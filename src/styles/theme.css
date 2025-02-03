@@ -1,0 +1,72 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
+
+:root {
+  /* Colors */
+  --color-primary-50: hsl(265, 100%, 97%);
+  --color-primary-100: hsl(265, 100%, 94%);
+  --color-primary-200: hsl(265, 95%, 86%);
+  --color-primary-300: hsl(265, 90%, 76%);
+  --color-primary-400: hsl(265, 85%, 66%);
+  --color-primary-500: hsl(265, 80%, 56%);
+  --color-primary-600: hsl(265, 75%, 46%);
+  --color-primary-700: hsl(265, 70%, 36%);
+  --color-primary-800: hsl(265, 65%, 26%);
+  --color-primary-900: hsl(265, 60%, 16%);
+
+  --color-neutral-50: hsl(0, 0%, 98%);
+  --color-neutral-100: hsl(0, 0%, 96%);
+  --color-neutral-200: hsl(0, 0%, 90%);
+  --color-neutral-300: hsl(0, 0%, 83%);
+  --color-neutral-400: hsl(0, 0%, 64%);
+  --color-neutral-500: hsl(0, 0%, 45%);
+  --color-neutral-600: hsl(0, 0%, 32%);
+  --color-neutral-700: hsl(0, 0%, 25%);
+  --color-neutral-800: hsl(0, 0%, 15%);
+  --color-neutral-900: hsl(0, 0%, 9%);
+
+  --color-success: hsl(145, 80%, 42%);
+  --color-warning: hsl(45, 93%, 47%);
+  --color-error: hsl(0, 84%, 60%);
+  --color-info: hsl(200, 98%, 39%);
+
+  /* Typography */
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  /* Other tokens are already defined in your index.css through shadcn */
+}
+
+/* Base styles */
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-neutral-50);
+  color: var(--color-neutral-900);
+}
+
+body.dark {
+  background-color: var(--color-neutral-950);
+  color: var(--color-neutral-50);
+}
+
+.dark ::selection {
+  background-color: var(--color-primary-500);
+  color: var(--color-neutral-50);
+}
+
+/* Typography styles */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+/* Custom component styles */
+.time-display {
+  font-family: var(--font-mono);
+  font-feature-settings: "tnum";
+  font-variant-numeric: tabular-nums;
+}
