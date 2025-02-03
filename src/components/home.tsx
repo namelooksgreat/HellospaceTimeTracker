@@ -1,4 +1,13 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import {
+  getProjects,
+  getTimeEntries,
+  deleteTimeEntry,
+  getCustomers,
+  Project,
+  Customer,
+  TimeEntry,
+} from "@/lib/api";
 import TimeTracker from "./TimeTracker";
 import Timeline from "./Timeline";
 import BottomNav from "./BottomNav";
@@ -26,38 +35,79 @@ const Home = ({
   onTimeEntryStart = () => {},
   onTimeEntryStop = () => {},
   onTimeEntryEdit = () => {},
-  onTimeEntryDelete = () => {},
-  timeEntries = [
-    {
-      id: "1",
-      taskName: "Design Review",
-      projectName: "Website Redesign",
-      duration: "2h 15m",
-      startTime: "9:00 AM",
-      projectColor: "#4F46E5",
-    },
-    {
-      id: "2",
-      taskName: "Client Meeting",
-      projectName: "Mobile App",
-      duration: "1h 30m",
-      startTime: "11:30 AM",
-      projectColor: "#10B981",
-    },
-    {
-      id: "3",
-      taskName: "Code Review",
-      projectName: "Backend API",
-      duration: "45m",
-      startTime: "2:00 PM",
-      projectColor: "#F59E0B",
-    },
-  ],
+  onTimeEntryDelete: externalOnTimeEntryDelete = async (id: string) => {},
+  timeEntries: initialTimeEntries = [],
 }: HomeProps) => {
   const [activeTab, setActiveTab] = useState<"timer" | "reports" | "profile">(
     "timer",
   );
   const { session } = useAuth();
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [timeEntries, setTimeEntries] = useState(initialTimeEntries);
+
+  const fetchCustomers = async () => {
+    try {
+      const customers = await getCustomers();
+      setCustomers(customers);
+    } catch (error) {
+      console.error("Error fetching customers:", error);
+    }
+  };
+
+  const fetchProjects = async () => {
+    try {
+      const projects = await getProjects();
+      setProjects(projects);
+    } catch (error) {
+      console.error("Error fetching projects:", error);
+    }
+  };
+
+  const fetchTimeEntries = async () => {
+    try {
+      const entries = await getTimeEntries();
+      setTimeEntries(
+        entries.map((entry) => ({
+          id: entry.id,
+          taskName: entry.task_name,
+          projectName: entry.project?.name || "No Project",
+          duration: formatDuration(entry.duration),
+          startTime: new Date(entry.start_time).toLocaleTimeString(),
+          projectColor: entry.project?.color || "#4F46E5",
+          tags: entry.time_entry_tags?.map((t) => t.tag) || [],
+        })),
+      );
+    } catch (error) {
+      console.error("Error fetching time entries:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchCustomers();
+    fetchProjects();
+    fetchTimeEntries();
+  }, []);
+
+  const formatDuration = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    return `${hours}h ${minutes}m`;
+  };
+
+  const handleTimeEntryStop = async () => {
+    await fetchTimeEntries();
+  };
+
+  const handleTimeEntryDelete = async (id: string) => {
+    try {
+      await deleteTimeEntry(id);
+      await fetchTimeEntries();
+      externalOnTimeEntryDelete(id);
+    } catch (error) {
+      console.error("Error deleting time entry:", error);
+    }
+  };
 
   const renderContent = () => {
     switch (activeTab) {
@@ -66,17 +116,14 @@ const Home = ({
           <div className="space-y-6 p-4">
             <TimeTracker
               onStart={onTimeEntryStart}
-              onStop={onTimeEntryStop}
-              projects={[
-                { id: "1", name: "Website Redesign", color: "#4F46E5" },
-                { id: "2", name: "Mobile App", color: "#10B981" },
-                { id: "3", name: "Backend API", color: "#F59E0B" },
-              ]}
+              onStop={handleTimeEntryStop}
+              projects={projects}
+              customers={customers}
             />
             <Timeline
               entries={timeEntries}
               onEditEntry={onTimeEntryEdit}
-              onDeleteEntry={onTimeEntryDelete}
+              onDeleteEntry={handleTimeEntryDelete}
             />
           </div>
         );

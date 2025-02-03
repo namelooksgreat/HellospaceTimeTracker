@@ -16,17 +16,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import { useState, useRef } from "react";
-import { Check, ChevronsUpDown, X, Tag as TagIcon } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Check, X, Tag as TagIcon } from "lucide-react";
 import { Badge } from "./ui/badge";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from "./ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 
 interface SaveTimeEntryDialogProps {
   open: boolean;
@@ -34,7 +26,13 @@ interface SaveTimeEntryDialogProps {
   taskName: string;
   projectId: string;
   customerId?: string;
-  duration: string;
+  duration: number;
+  projects?: Array<{
+    id: string;
+    name: string;
+    color: string;
+    customer_id: string;
+  }>;
   customers?: Array<{ id: string; name: string }>;
   availableTags?: Array<{ value: string; label: string }>;
   onSave: (data: {
@@ -53,6 +51,7 @@ export function SaveTimeEntryDialog({
   projectId: initialProjectId,
   duration,
   customerId = "",
+  projects = [],
   customers = [
     { id: "1", name: "Customer 1" },
     { id: "2", name: "Customer 2" },
@@ -67,23 +66,39 @@ export function SaveTimeEntryDialog({
   ],
   onSave,
 }: SaveTimeEntryDialogProps) {
-  const [taskName, setTaskName] = useState(initialTaskName);
-  const [description, setDescription] = useState("");
-  const [selectedCustomer, setSelectedCustomer] = useState(
-    customerId || customers[0].id,
-  );
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [openTagSelect, setOpenTagSelect] = useState(false);
+  const [formData, setFormData] = useState({
+    taskName: initialTaskName,
+    projectId: initialProjectId,
+    customerId: customerId,
+    description: localStorage.getItem("lastDescription") || "",
+    tags: [] as string[],
+  });
+
+  // Update form data when props change
+  useEffect(() => {
+    setFormData((prev) => ({
+      ...prev,
+      taskName: initialTaskName,
+      projectId: initialProjectId,
+      customerId: customerId,
+    }));
+  }, [initialTaskName, initialProjectId, customerId]);
 
   const handleSave = () => {
-    onSave({
-      taskName,
-      projectId: initialProjectId,
-      customerId: selectedCustomer,
-      description,
-      tags: selectedTags,
-    });
+    onSave(formData);
+    // Clear all storage
+    localStorage.removeItem("lastTaskName");
+    localStorage.removeItem("lastDescription");
+    localStorage.removeItem("selectedProjectId");
+    localStorage.removeItem("selectedCustomerId");
+
+    // Reset form data
+    setFormData((prev) => ({
+      ...prev,
+      description: "",
+      tags: [],
+    }));
+
     onOpenChange(false);
   };
 
@@ -96,43 +111,85 @@ export function SaveTimeEntryDialog({
         <div className="space-y-4 py-4">
           <div className="space-y-2">
             <Label>Duration</Label>
-            <div className="text-2xl font-mono font-semibold">{duration}</div>
+            <div className="text-2xl font-mono font-semibold">
+              {Math.floor(duration / 3600)}h{" "}
+              {Math.floor((duration % 3600) / 60)}m {duration % 60}s
+            </div>
           </div>
+
           <div className="space-y-2">
             <Label>Customer</Label>
             <Select
-              value={selectedCustomer}
-              onValueChange={setSelectedCustomer}
+              value={formData.customerId}
+              onValueChange={(value) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  customerId: value,
+                  projectId: "",
+                }))
+              }
             >
-              <SelectTrigger className="w-full bg-[#2C2C2E] border-0 text-white">
+              <SelectTrigger>
                 <SelectValue placeholder="Select customer" />
               </SelectTrigger>
-              <SelectContent className="bg-[#2C2C2E] border-0">
+              <SelectContent>
                 {customers.map((customer) => (
-                  <SelectItem
-                    key={customer.id}
-                    value={customer.id}
-                    className="text-white hover:bg-[#1C1C1E] focus:bg-[#1C1C1E]"
-                  >
+                  <SelectItem key={customer.id} value={customer.id}>
                     {customer.name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
+
+          <div className="space-y-2">
+            <Label>Project</Label>
+            <Select
+              value={formData.projectId}
+              onValueChange={(value) =>
+                setFormData((prev) => ({ ...prev, projectId: value }))
+              }
+              disabled={!formData.customerId}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select project" />
+              </SelectTrigger>
+              <SelectContent>
+                {projects
+                  .filter(
+                    (project) => project.customer_id === formData.customerId,
+                  )
+                  .map((project) => (
+                    <SelectItem key={project.id} value={project.id}>
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: project.color }}
+                        />
+                        {project.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="taskName">Task Name</Label>
             <Input
               id="taskName"
-              value={taskName}
-              onChange={(e) => setTaskName(e.target.value)}
+              value={formData.taskName}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, taskName: e.target.value }))
+              }
               placeholder="What did you work on?"
             />
           </div>
+
           <div className="space-y-2">
             <Label>Tags</Label>
             <div className="flex flex-wrap gap-2 mb-2">
-              {selectedTags.map((tag) => (
+              {formData.tags.map((tag) => (
                 <Badge
                   key={tag}
                   variant="secondary"
@@ -144,7 +201,10 @@ export function SaveTimeEntryDialog({
                     className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
-                        setSelectedTags(selectedTags.filter((t) => t !== tag));
+                        setFormData((prev) => ({
+                          ...prev,
+                          tags: prev.tags.filter((t) => t !== tag),
+                        }));
                       }
                     }}
                     onMouseDown={(e) => {
@@ -152,7 +212,10 @@ export function SaveTimeEntryDialog({
                       e.stopPropagation();
                     }}
                     onClick={() =>
-                      setSelectedTags(selectedTags.filter((t) => t !== tag))
+                      setFormData((prev) => ({
+                        ...prev,
+                        tags: prev.tags.filter((t) => t !== tag),
+                      }))
                     }
                   >
                     <X className="h-3 w-3 hover:text-muted-foreground" />
@@ -162,18 +225,19 @@ export function SaveTimeEntryDialog({
             </div>
             <Select
               onValueChange={(value) => {
-                setSelectedTags((prev) =>
-                  prev.includes(value)
-                    ? prev.filter((t) => t !== value)
-                    : [...prev, value],
-                );
+                setFormData((prev) => ({
+                  ...prev,
+                  tags: prev.tags.includes(value)
+                    ? prev.tags.filter((t) => t !== value)
+                    : [...prev.tags, value],
+                }));
               }}
             >
               <SelectTrigger className="w-full">
                 <div className="flex items-center gap-2">
                   <TagIcon className="h-4 w-4" />
-                  {selectedTags.length > 0
-                    ? `${selectedTags.length} tag${selectedTags.length > 1 ? "s" : ""} selected`
+                  {formData.tags.length > 0
+                    ? `${formData.tags.length} tag${formData.tags.length > 1 ? "s" : ""} selected`
                     : "Select tags..."}
                 </div>
               </SelectTrigger>
@@ -182,7 +246,7 @@ export function SaveTimeEntryDialog({
                   <SelectItem key={tag.value} value={tag.value}>
                     <div className="flex items-center gap-2">
                       <div className="w-4 h-4 flex items-center justify-center">
-                        {selectedTags.includes(tag.value) && (
+                        {formData.tags.includes(tag.value) && (
                           <Check className="h-4 w-4" />
                         )}
                       </div>
@@ -198,8 +262,15 @@ export function SaveTimeEntryDialog({
             <Label htmlFor="description">Description</Label>
             <Textarea
               id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              value={formData.description}
+              onChange={(e) => {
+                const newValue = e.target.value;
+                setFormData((prev) => ({
+                  ...prev,
+                  description: newValue,
+                }));
+                localStorage.setItem("lastDescription", newValue);
+              }}
               placeholder="Add any additional details..."
             />
           </div>

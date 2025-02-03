@@ -1,4 +1,4 @@
-import { Moon, Sun, LogOut } from "lucide-react";
+import { Moon, Sun, LogOut, Settings } from "lucide-react";
 import { Button } from "./ui/button";
 import { useTheme } from "./theme-provider";
 import { useNavigate } from "react-router-dom";
@@ -44,6 +44,22 @@ export function ThemeToggle() {
                 <p className="font-medium">
                   Switch to {theme === "light" ? "dark" : "light"} mode
                 </p>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="hover:bg-primary/5 hover:text-primary"
+                >
+                  <Settings className="h-[1.2rem] w-[1.2rem]" />
+                  <span className="sr-only">Settings</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                <p className="font-medium">Settings</p>
               </TooltipContent>
             </Tooltip>
 

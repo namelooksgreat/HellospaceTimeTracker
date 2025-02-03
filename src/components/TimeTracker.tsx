@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { createTimeEntry } from "@/lib/api";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { SaveTimeEntryDialog } from "./SaveTimeEntryDialog";
@@ -18,7 +19,12 @@ interface TimeTrackerProps {
   onStop?: () => void;
   onReset?: () => void;
   initialTaskName?: string;
-  projects?: Array<{ id: string; name: string; color: string }>;
+  projects?: Array<{
+    id: string;
+    name: string;
+    color: string;
+    customer_id: string;
+  }>;
   customers?: Array<{ id: string; name: string }>;
   availableTags?: Array<{ value: string; label: string }>;
 }
@@ -28,11 +34,8 @@ const TimeTracker = ({
   onStop = () => {},
   onReset = () => {},
   initialTaskName = "",
-  projects = [
-    { id: "1", name: "Project 1", color: "#4F46E5" },
-    { id: "2", name: "Project 2", color: "#10B981" },
-    { id: "3", name: "Project 3", color: "#F59E0B" },
-  ],
+  projects = [],
+
   customers = [
     { id: "1", name: "Customer 1" },
     { id: "2", name: "Customer 2" },
@@ -48,9 +51,20 @@ const TimeTracker = ({
 }: TimeTrackerProps) => {
   const [isRunning, setIsRunning] = useState(false);
   const [time, setTime] = useState(0);
-  const [taskName, setTaskName] = useState(initialTaskName);
-  const [selectedProject, setSelectedProject] = useState(projects[0].id);
-  const [selectedCustomer, setSelectedCustomer] = useState(customers[0].id);
+  const [taskName, setTaskName] = useState(
+    localStorage.getItem("lastTaskName") || initialTaskName,
+  );
+  const [selectedCustomer, setSelectedCustomer] = useState(
+    localStorage.getItem("selectedCustomerId") || customers[0]?.id || "",
+  );
+  const [selectedProject, setSelectedProject] = useState(
+    localStorage.getItem("selectedProjectId") || "",
+  );
+
+  // Filter projects based on selected customer
+  const customerProjects = projects.filter(
+    (project) => project.customer_id === selectedCustomer,
+  );
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [mode, setMode] = useState<"list" | "pomodoro">("list");
 
@@ -88,16 +102,37 @@ const TimeTracker = ({
     }
   };
 
-  const handleSaveTimeEntry = (data: {
+  const handleSaveTimeEntry = async (data: {
     taskName: string;
     projectId: string;
     customerId: string;
     description: string;
     tags: string[];
   }) => {
-    onStop();
-    setTaskName("");
-    setTime(0);
+    try {
+      await createTimeEntry(
+        {
+          task_name: data.taskName,
+          description: data.description,
+          duration: time,
+          start_time: new Date(Date.now() - time * 1000).toISOString(),
+          project_id: data.projectId,
+        },
+        data.tags,
+      );
+
+      onStop();
+      setTaskName("");
+      localStorage.removeItem("lastTaskName");
+      localStorage.removeItem("lastDescription");
+      localStorage.removeItem("selectedProjectId");
+      localStorage.removeItem("selectedCustomerId");
+      setTime(0);
+      setShowSaveDialog(false);
+    } catch (error) {
+      console.error("Error saving time entry:", error);
+      // TODO: Show error toast
+    }
   };
 
   return (
@@ -111,34 +146,65 @@ const TimeTracker = ({
         </Tabs>
 
         <div className="space-y-6">
-          <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select customer" />
-            </SelectTrigger>
-            <SelectContent>
-              {customers.map((customer) => (
-                <SelectItem key={customer.id} value={customer.id}>
-                  {customer.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="space-y-4">
+            <Select
+              value={selectedCustomer}
+              onValueChange={(value) => {
+                setSelectedCustomer(value);
+                setSelectedProject(""); // Reset project when customer changes
+                localStorage.setItem("selectedCustomerId", value);
+                localStorage.removeItem("selectedProjectId"); // Clear saved project when customer changes
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select customer" />
+              </SelectTrigger>
+              <SelectContent>
+                {customers.map((customer) => (
+                  <SelectItem key={customer.id} value={customer.id}>
+                    {customer.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" className="shrink-0">
-              <Plus className="h-4 w-4" />
-            </Button>
-            <Input
-              type="text"
-              placeholder="What are you working on?"
-              value={taskName}
-              onChange={(e) => setTaskName(e.target.value)}
-              className="flex-grow"
-            />
-            <Button variant="outline" size="icon" className="shrink-0">
-              <Settings className="h-4 w-4" />
-            </Button>
+            <Select
+              value={selectedProject}
+              onValueChange={(value) => {
+                setSelectedProject(value);
+                localStorage.setItem("selectedProjectId", value);
+              }}
+              disabled={!selectedCustomer}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select project" />
+              </SelectTrigger>
+              <SelectContent>
+                {customerProjects.map((project) => (
+                  <SelectItem key={project.id} value={project.id}>
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: project.color }}
+                      />
+                      {project.name}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
+
+          <Input
+            type="text"
+            placeholder="What are you working on?"
+            value={taskName}
+            onChange={(e) => {
+              setTaskName(e.target.value);
+              localStorage.setItem("lastTaskName", e.target.value);
+            }}
+            className="w-full"
+          />
 
           <div className="space-y-4">
             <Button
@@ -161,9 +227,10 @@ const TimeTracker = ({
         taskName={taskName}
         projectId={selectedProject}
         customerId={selectedCustomer}
+        projects={projects}
         customers={customers}
         availableTags={availableTags}
-        duration={formatTime(time)}
+        duration={time}
         onSave={handleSaveTimeEntry}
       />
     </Card>
