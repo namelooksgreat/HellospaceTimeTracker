@@ -1,6 +1,11 @@
-import React from "react";
+import React, { useState } from "react";
 import TimeTracker from "./TimeTracker";
 import Timeline from "./Timeline";
+import BottomNav from "./BottomNav";
+import { useAuth } from "@/lib/AuthContext";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface HomeProps {
   onTimeEntryStart?: () => void;
@@ -49,70 +54,79 @@ const Home = ({
     },
   ],
 }: HomeProps) => {
-  return (
-    <div className="min-h-screen bg-background text-foreground p-4 pb-24">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-2xl font-semibold text-foreground">Timer</h1>
-          <div className="flex gap-4">
-            <button className="text-white bg-transparent p-2 rounded-full hover:bg-white/10">
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M12 4V20M4 12H20"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-              </svg>
-            </button>
-            <button className="text-white bg-transparent p-2 rounded-full hover:bg-white/10">
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M12 15C13.6569 15 15 13.6569 15 12C15 10.3431 13.6569 9 12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15Z"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                />
-                <path
-                  d="M19.4 15C19.7 14.1 20 13.1 20 12C20 6.5 16.2 2 12 2C7.8 2 4 6.5 4 12C4 17.5 7.8 22 12 22"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-              </svg>
-            </button>
+  const [activeTab, setActiveTab] = useState<"timer" | "reports" | "profile">(
+    "timer",
+  );
+  const { session } = useAuth();
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case "timer":
+        return (
+          <div className="space-y-6 p-4">
+            <TimeTracker
+              onStart={onTimeEntryStart}
+              onStop={onTimeEntryStop}
+              projects={[
+                { id: "1", name: "Website Redesign", color: "#4F46E5" },
+                { id: "2", name: "Mobile App", color: "#10B981" },
+                { id: "3", name: "Backend API", color: "#F59E0B" },
+              ]}
+            />
+            <Timeline
+              entries={timeEntries}
+              onEditEntry={onTimeEntryEdit}
+              onDeleteEntry={onTimeEntryDelete}
+            />
           </div>
-        </div>
+        );
+      case "reports":
+        return (
+          <Card className="m-4">
+            <CardHeader>
+              <CardTitle>Reports</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">
+                Reports feature coming soon...
+              </p>
+            </CardContent>
+          </Card>
+        );
+      case "profile":
+        return (
+          <Card className="m-4">
+            <CardHeader>
+              <CardTitle>Profile</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center space-x-4">
+                <Avatar className="h-16 w-16">
+                  <AvatarFallback className="text-lg bg-primary/10 text-primary">
+                    {session?.user?.email?.[0].toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <h3 className="text-lg font-medium">
+                    {session?.user?.email}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">Free Plan</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      default:
+        return null;
+    }
+  };
 
-        <div className="grid gap-6">
-          <TimeTracker
-            onStart={onTimeEntryStart}
-            onStop={onTimeEntryStop}
-            projects={[
-              { id: "1", name: "Website Redesign", color: "#4F46E5" },
-              { id: "2", name: "Mobile App", color: "#10B981" },
-              { id: "3", name: "Backend API", color: "#F59E0B" },
-            ]}
-          />
-
-          <Timeline
-            entries={timeEntries}
-            onEditEntry={onTimeEntryEdit}
-            onDeleteEntry={onTimeEntryDelete}
-          />
-        </div>
-      </div>
+  return (
+    <div className="min-h-screen bg-background text-foreground pb-24">
+      <ScrollArea className="h-[calc(100vh-5rem)] pt-14">
+        <div className="max-w-2xl mx-auto">{renderContent()}</div>
+      </ScrollArea>
+      <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
     </div>
   );
 };

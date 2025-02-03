@@ -1,5 +1,5 @@
 import React from "react";
-import { Card } from "./ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { ScrollArea } from "./ui/scroll-area";
 import TimeEntry from "./TimeEntry";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
@@ -48,43 +48,50 @@ const Timeline = ({
   onDeleteEntry = () => {},
 }: TimelineProps) => {
   return (
-    <Card className="w-full h-[500px] p-6 bg-card text-card-foreground shadow-sm rounded-2xl border">
-      <Tabs defaultValue="today" className="w-full">
-        <TabsList className="mb-4">
-          <TabsTrigger value="today">Today</TabsTrigger>
-          <TabsTrigger value="yesterday">Yesterday</TabsTrigger>
-          <TabsTrigger value="week">This Week</TabsTrigger>
-        </TabsList>
+    <Card>
+      <CardHeader>
+        <CardTitle>Time Entries</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Tabs defaultValue="today" className="w-full">
+          <TabsList className="w-full justify-start mb-4">
+            <TabsTrigger value="today">Today</TabsTrigger>
+            <TabsTrigger value="yesterday">Yesterday</TabsTrigger>
+            <TabsTrigger value="week">This Week</TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="today" className="m-0">
-          <ScrollArea className="h-[400px] pr-4">
-            {entries.map((entry) => (
-              <TimeEntry
-                key={entry.id}
-                taskName={entry.taskName}
-                projectName={entry.projectName}
-                duration={entry.duration}
-                startTime={entry.startTime}
-                projectColor={entry.projectColor}
-                onEdit={() => onEditEntry(entry.id)}
-                onDelete={() => onDeleteEntry(entry.id)}
-              />
-            ))}
-          </ScrollArea>
-        </TabsContent>
+          <TabsContent value="today" className="mt-0">
+            <ScrollArea className="h-[400px]">
+              <div className="space-y-2">
+                {entries.map((entry) => (
+                  <TimeEntry
+                    key={entry.id}
+                    taskName={entry.taskName}
+                    projectName={entry.projectName}
+                    duration={entry.duration}
+                    startTime={entry.startTime}
+                    projectColor={entry.projectColor}
+                    onEdit={() => onEditEntry(entry.id)}
+                    onDelete={() => onDeleteEntry(entry.id)}
+                  />
+                ))}
+              </div>
+            </ScrollArea>
+          </TabsContent>
 
-        <TabsContent value="yesterday" className="m-0">
-          <div className="flex items-center justify-center h-[400px] text-gray-500">
-            No entries for yesterday
-          </div>
-        </TabsContent>
+          <TabsContent value="yesterday" className="mt-0">
+            <div className="flex items-center justify-center h-[400px] text-muted-foreground">
+              No entries for yesterday
+            </div>
+          </TabsContent>
 
-        <TabsContent value="week" className="m-0">
-          <div className="flex items-center justify-center h-[400px] text-gray-500">
-            Weekly view coming soon
-          </div>
-        </TabsContent>
-      </Tabs>
+          <TabsContent value="week" className="mt-0">
+            <div className="flex items-center justify-center h-[400px] text-muted-foreground">
+              Weekly view coming soon
+            </div>
+          </TabsContent>
+        </Tabs>
+      </CardContent>
     </Card>
   );
 };
