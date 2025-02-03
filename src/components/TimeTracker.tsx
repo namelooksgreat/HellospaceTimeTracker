@@ -20,6 +20,7 @@ interface TimeTrackerProps {
   initialTaskName?: string;
   projects?: Array<{ id: string; name: string; color: string }>;
   customers?: Array<{ id: string; name: string }>;
+  availableTags?: Array<{ value: string; label: string }>;
 }
 
 const TimeTracker = ({
@@ -36,6 +37,13 @@ const TimeTracker = ({
     { id: "1", name: "Customer 1" },
     { id: "2", name: "Customer 2" },
     { id: "3", name: "Customer 3" },
+  ],
+  availableTags = [
+    { value: "bug", label: "Bug" },
+    { value: "feature", label: "Feature" },
+    { value: "documentation", label: "Documentation" },
+    { value: "design", label: "Design" },
+    { value: "testing", label: "Testing" },
   ],
 }: TimeTrackerProps) => {
   const [isRunning, setIsRunning] = useState(false);
@@ -83,7 +91,9 @@ const TimeTracker = ({
   const handleSaveTimeEntry = (data: {
     taskName: string;
     projectId: string;
+    customerId: string;
     description: string;
+    tags: string[];
   }) => {
     onStop();
     setTaskName("");
@@ -152,6 +162,7 @@ const TimeTracker = ({
         projectId={selectedProject}
         customerId={selectedCustomer}
         customers={customers}
+        availableTags={availableTags}
         duration={formatTime(time)}
         onSave={handleSaveTimeEntry}
       />
