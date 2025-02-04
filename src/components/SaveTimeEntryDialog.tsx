@@ -16,7 +16,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Badge } from "./ui/badge";
 
 interface SaveTimeEntryDialogProps {
-  isEditing?: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   taskName: string;
@@ -51,7 +50,6 @@ export function SaveTimeEntryDialog({
   customers = [],
   availableTags = [],
   onSave,
-  isEditing = false,
 }: SaveTimeEntryDialogProps) {
   const [formData, setFormData] = useState<{
     taskName: string;
@@ -108,7 +106,7 @@ export function SaveTimeEntryDialog({
         <div className="dialog-header">
           <div className="flex items-center justify-between gap-4">
             <DialogTitle className="text-lg font-semibold leading-none tracking-tight">
-              {isEditing ? "Edit Time Entry" : "Save Time Entry"}
+              Save Time Entry
             </DialogTitle>
             <div className="flex items-center gap-2">
               <Button
@@ -124,7 +122,7 @@ export function SaveTimeEntryDialog({
                 onClick={handleSave}
                 className="h-10 px-5 font-medium bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm transition-all"
               >
-                {isEditing ? "Update" : "Save"}
+                Save
               </Button>
             </div>
           </div>

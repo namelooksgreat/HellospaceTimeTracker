@@ -43,28 +43,10 @@ export async function getCustomers() {
     .select("*")
     .order("name");
 
-  if (error) throw error;
+  if (error) {
+    throw new APIError("Failed to fetch customers", error.code, error.status);
+  }
   return data as Customer[];
-}
-
-export async function createCustomer(
-  customer: Omit<Customer, "id" | "created_at" | "user_id">,
-) {
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-  if (userError) throw userError;
-  if (!user) throw new Error("No authenticated user");
-
-  const { data, error } = await supabase
-    .from("customers")
-    .insert([{ ...customer, user_id: user.id }])
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data as Customer;
 }
 
 // Projects
@@ -79,28 +61,11 @@ export async function getProjects() {
     )
     .order("name");
 
-  if (error) throw error;
+  if (error) {
+    console.error("Error fetching projects:", error);
+    throw error;
+  }
   return data as Project[];
-}
-
-export async function createProject(
-  project: Omit<Project, "id" | "created_at" | "user_id">,
-) {
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-  if (userError) throw userError;
-  if (!user) throw new Error("No authenticated user");
-
-  const { data, error } = await supabase
-    .from("projects")
-    .insert([{ ...project, user_id: user.id }])
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data as Project;
 }
 
 // Time Entries
@@ -116,7 +81,10 @@ export async function getTimeEntries() {
     )
     .order("start_time", { ascending: false });
 
-  if (error) throw error;
+  if (error) {
+    console.error("Error fetching time entries:", error);
+    throw error;
+  }
   return data as TimeEntry[];
 }
 
@@ -203,4 +171,24 @@ export async function updateTimeEntry(
   }
 
   return timeEntry;
+}
+
+// User Management
+export async function getUsers() {
+  const { data, error } = await supabase
+    .from("users")
+    .select("*")
+    .order("created_at");
+
+  if (error) throw error;
+  return data;
+}
+
+export async function updateUserRole(userId: string, role: string) {
+  const { error } = await supabase
+    .from("users")
+    .update({ role })
+    .eq("id", userId);
+
+  if (error) throw error;
 }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { createTimeEntry, updateTimeEntry } from "@/lib/api";
+import { createTimeEntry } from "@/lib/api";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { SaveTimeEntryDialog } from "./SaveTimeEntryDialog";
@@ -16,10 +16,6 @@ import { Timer, Play, Pause, Square, Coffee } from "lucide-react";
 import { PomodoroSettings } from "./PomodoroSettings";
 
 interface TimeTrackerProps {
-  editingEntry?: any;
-  showEditDialog?: boolean;
-  onEditDialogClose?: () => void;
-  onEditComplete?: () => void;
   onStart?: () => void;
   onStop?: () => void;
   onReset?: () => void;
@@ -56,10 +52,6 @@ const TimeTracker = ({
     { value: "design", label: "Design" },
     { value: "testing", label: "Testing" },
   ],
-  editingEntry,
-  showEditDialog = false,
-  onEditDialogClose = () => {},
-  onEditComplete = () => {},
 }: TimeTrackerProps) => {
   const [timerState, setTimerState] = useState<TimerState>("stopped");
   const [timerMode, setTimerMode] = useState<TimerMode>("list");
@@ -354,47 +346,21 @@ const TimeTracker = ({
         </div>
 
         <SaveTimeEntryDialog
-          open={showSaveDialog || showEditDialog}
+          open={showSaveDialog}
           onOpenChange={(open) => {
-            if (showEditDialog) {
-              onEditDialogClose();
-            } else {
-              setShowSaveDialog(open);
-              if (!open) {
-                setTimerState("paused");
-              }
+            setShowSaveDialog(open);
+            if (!open) {
+              setTimerState("paused");
             }
           }}
-          taskName={editingEntry ? editingEntry.task_name : taskName}
-          projectId={editingEntry ? editingEntry.project_id : selectedProject}
-          customerId={
-            editingEntry ? editingEntry.project?.customer_id : selectedCustomer
-          }
+          taskName={taskName}
+          projectId={selectedProject}
+          customerId={selectedCustomer}
           projects={projects}
           customers={customers}
           availableTags={availableTags}
-          duration={editingEntry ? editingEntry.duration : time}
-          onSave={async (data) => {
-            if (editingEntry) {
-              try {
-                await updateTimeEntry(
-                  editingEntry.id,
-                  {
-                    task_name: data.taskName,
-                    description: data.description,
-                    project_id: data.projectId,
-                  },
-                  data.tags,
-                );
-                onEditComplete();
-              } catch (error) {
-                console.error("Error updating time entry:", error);
-              }
-            } else {
-              handleSaveTimeEntry(data);
-            }
-          }}
-          isEditing={!!editingEntry}
+          duration={time}
+          onSave={handleSaveTimeEntry}
         />
       </CardContent>
     </Card>

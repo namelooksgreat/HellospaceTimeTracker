@@ -1,8 +1,9 @@
-import { Moon, Sun, LogOut, Settings } from "lucide-react";
+import { Moon, Sun, LogOut, Settings, Users, Shield } from "lucide-react";
+import { useAuth } from "@/lib/AuthContext";
 import { Button } from "./ui/button";
 import { useTheme } from "./theme-provider";
 import { useNavigate } from "react-router-dom";
-import { logout } from "@/lib/auth";
+import { supabase } from "@/lib/supabase";
 import {
   Tooltip,
   TooltipContent,
@@ -12,12 +13,21 @@ import {
 
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
-    const { error } = await logout();
-    if (!error) {
-      navigate("/auth");
+    try {
+      // First clear storage
+      localStorage.clear();
+      sessionStorage.clear();
+
+      // Then sign out from supabase
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+    } catch (error) {
+      console.error("Logout failed:", error);
+      window.location.replace("/auth");
     }
   };
 
@@ -47,6 +57,24 @@ export function ThemeToggle() {
               </TooltipContent>
             </Tooltip>
 
+            {user?.role === "admin" && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => navigate("/admin")}
+                    className="hover:bg-primary/5 hover:text-primary"
+                  >
+                    <Shield className="h-[1.2rem] w-[1.2rem]" />
+                    <span className="sr-only">Admin Panel</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  <p className="font-medium">Admin Panel</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -68,7 +96,11 @@ export function ThemeToggle() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={handleLogout}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleLogout();
+                  }}
                   className="hover:bg-destructive/5 hover:text-destructive text-muted-foreground"
                 >
                   <LogOut className="h-[1.2rem] w-[1.2rem]" />

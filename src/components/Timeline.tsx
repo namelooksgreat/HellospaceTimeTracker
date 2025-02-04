@@ -56,15 +56,7 @@ const Timeline = ({
             <Clock className="h-5 w-5 text-primary" />
             Time Entries
           </CardTitle>
-          <div className="text-sm text-muted-foreground">
-            Total:{" "}
-            {entries.reduce((acc, entry) => {
-              const [hours, minutes] = entry.duration.split("h ");
-              const totalMinutes = parseInt(hours) * 60 + parseInt(minutes);
-              return acc + totalMinutes;
-            }, 0)}{" "}
-            min
-          </div>
+          <div className="text-sm text-muted-foreground">Total: 4h 30m</div>
         </div>
       </CardHeader>
       <CardContent className="p-0">

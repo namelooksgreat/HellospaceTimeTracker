@@ -22,16 +22,39 @@ export function RegisterForm() {
     setError("");
 
     try {
+      // Basic validation
+      if (!formData.email || !formData.password || !formData.full_name) {
+        throw new Error("All fields are required");
+      }
+
+      if (formData.password.length < 6) {
+        throw new Error("Password must be at least 6 characters");
+      }
+
       const { user, error } = await register(formData);
 
-      if (error) throw error;
-      if (!user) throw new Error("Registration failed - no user returned");
+      if (error) {
+        if (error.message?.toLowerCase().includes("already registered")) {
+          throw new Error("This email is already registered");
+        }
+        throw error;
+      }
 
-      // Registration successful - redirect to home
-      navigate("/");
+      if (!user) {
+        throw new Error("Registration failed - please try again");
+      }
+
+      // Show success message
+      setError("");
+      alert("Registration successful! You can now log in.");
+      navigate("/auth");
     } catch (error) {
       console.error("Registration error:", error);
-      setError(error instanceof Error ? error.message : "Registration failed");
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Registration failed. Please try again.",
+      );
     } finally {
       setLoading(false);
     }

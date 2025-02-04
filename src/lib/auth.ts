@@ -8,7 +8,7 @@ export interface RegisterData {
 
 export async function register({ email, password, full_name }: RegisterData) {
   try {
-    // Step 1: Create auth user
+    // First create the auth user
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
@@ -17,40 +17,22 @@ export async function register({ email, password, full_name }: RegisterData) {
       },
     });
 
-    if (authError) {
-      console.error("Auth error:", authError);
-      throw authError;
-    }
+    if (authError) throw authError;
+    if (!authData.user) throw new Error("No user returned after signup");
 
-    if (!authData.user) {
-      console.error("No user returned after signup");
-      throw new Error("No user returned after signup");
-    }
-
-    // Step 2: Insert into users table
-    const { error: insertError } = await supabase.from("users").insert([
+    // Then create the user record
+    const { error: insertError } = await supabase.from("users").upsert(
       {
         id: authData.user.id,
         email,
         full_name,
+        role: "user",
       },
-    ]);
+      { onConflict: "id" },
+    );
 
     if (insertError) {
       console.error("Insert error:", insertError);
-      throw insertError;
-    }
-
-    // Step 3: Sign in
-    const { data: signInData, error: signInError } =
-      await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-    if (signInError) {
-      console.error("Sign in error:", signInError);
-      throw signInError;
     }
 
     return {
@@ -58,6 +40,7 @@ export async function register({ email, password, full_name }: RegisterData) {
         id: authData.user.id,
         email,
         full_name,
+        role: "user",
       },
       error: null,
     };
@@ -83,15 +66,49 @@ export async function login({
       password,
     });
 
-    if (error) throw error;
+    if (error) {
+      console.error("Login error:", error);
+      return {
+        session: null,
+        error: new Error(
+          error.message ||
+            "Giriş başarısız oldu. Lütfen bilgilerinizi kontrol edin.",
+        ),
+      };
+    }
+
+    if (!data?.session) {
+      return {
+        session: null,
+        error: new Error("Oturum oluşturulamadı. Lütfen tekrar deneyin."),
+      };
+    }
 
     return { session: data.session, error: null };
   } catch (error) {
-    return { session: null, error };
+    console.error("Unexpected login error:", error);
+    return {
+      session: null,
+      error: new Error("Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin."),
+    };
   }
 }
 
 export async function logout() {
-  const { error } = await supabase.auth.signOut();
-  return { error };
+  try {
+    // First clear all storage
+    localStorage.clear();
+    sessionStorage.clear();
+
+    // Then kill the supabase session
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
+
+    // Finally force a clean reload
+    window.location.replace("/auth");
+  } catch (error) {
+    console.error("Logout error:", error);
+    // Even if there's an error, try to force a reload
+    window.location.replace("/auth");
+  }
 }
