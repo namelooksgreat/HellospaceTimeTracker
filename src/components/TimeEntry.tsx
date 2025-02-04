@@ -1,8 +1,7 @@
 import React from "react";
 import { Card } from "./ui/card";
-import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
-import { Pencil, Trash2, Clock } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -30,62 +29,64 @@ const TimeEntry = ({
   onDelete = () => {},
 }: TimeEntryProps) => {
   return (
-    <Card className="p-4 mb-2 bg-card hover:bg-accent/50 transition-all duration-200 border border-border rounded-xl">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4 flex-1">
+    <Card className="p-3 bg-card hover:bg-accent/50 transition-all duration-200 border border-border/50 rounded-xl">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+        <div className="flex items-start sm:items-center gap-3 flex-1 min-w-0">
           <div
-            className="w-3 h-3 rounded-full"
+            className="w-3 h-3 rounded-full flex-shrink-0 mt-1.5 sm:mt-0"
             style={{ backgroundColor: projectColor }}
           />
-          <div className="flex-1">
-            <h3 className="font-medium text-foreground">{taskName}</h3>
-            <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-              <span>{projectName}</span>
-              <span>•</span>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-medium text-foreground truncate">{taskName}</h3>
+            <div className="flex flex-wrap gap-x-2 gap-y-1 text-sm text-muted-foreground">
+              <span className="truncate">{projectName}</span>
+              <span className="hidden sm:inline">•</span>
               <span>{startTime}</span>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center space-x-2">
-          <div className="text-lg font-semibold text-gray-700 dark:text-gray-300">
+        <div className="flex items-center justify-between sm:justify-end gap-2 mt-2 sm:mt-0">
+          <div className="text-base sm:text-lg font-semibold text-foreground">
             {duration}
           </div>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={onEdit}
-                  className="hover:bg-gray-100"
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Edit entry</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <div className="flex items-center gap-1">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={onEdit}
+                    className="h-10 w-10 hover:bg-accent"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p>Edit entry</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
 
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={onDelete}
-                  className="hover:bg-red-100 text-red-600"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Delete entry</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={onDelete}
+                    className="h-10 w-10 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p>Delete entry</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         </div>
       </div>
     </Card>

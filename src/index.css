@@ -55,5 +55,223 @@
   }
   body {
     @apply bg-background text-foreground;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  /* Prevent iOS zoom on input focus */
+  @supports (-webkit-touch-callout: none) {
+    input,
+    select,
+    textarea {
+      @apply text-base;
+      font-size: 16px !important;
+    }
+  }
+
+  /* Better touch targets for mobile */
+  button,
+  [role="button"],
+  a {
+    @apply cursor-pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Safe area utilities */
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Prevent text selection on mobile */
+  .mobile-input {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  /* Mobile Select improvements */
+  @media (max-width: 640px) {
+    .select-trigger {
+      min-height: 48px;
+    }
+
+    .select-item {
+      min-height: 56px !important;
+      padding: 0 16px !important;
+      display: flex !important;
+      align-items: center !important;
+      font-size: 16px !important;
+      cursor: pointer !important;
+      transition: background-color 0.2s !important;
+    }
+
+    .select-item:active {
+      background-color: hsl(var(--accent)) !important;
+    }
+
+    .select-item[data-highlighted] {
+      background-color: hsl(var(--accent)) !important;
+      color: hsl(var(--accent-foreground)) !important;
+    }
+
+    [data-radix-popper-content-wrapper] {
+      position: fixed !important;
+      inset: auto 0 0 0 !important;
+      margin: 0 !important;
+      transform: none !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      padding: 0 !important;
+      padding-bottom: env(safe-area-inset-bottom) !important;
+      z-index: var(--z-select, 100) !important;
+    }
+
+    .select-content {
+      position: relative !important;
+      width: 100% !important;
+      border-radius: 1.25rem 1.25rem 0 0 !important;
+      border-width: 0 !important;
+      box-shadow: 0 -8px 16px -6px rgb(0 0 0 / 0.1) !important;
+      animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      background-color: hsl(var(--background)) !important;
+      padding: 8px 0 !important;
+      padding-bottom: calc(8px + env(safe-area-inset-bottom)) !important;
+      max-height: 85vh !important;
+      overflow-y: auto !important;
+      -webkit-overflow-scrolling: touch !important;
+      overscroll-behavior: contain !important;
+    }
+
+    .select-content::before {
+      content: "";
+      display: block;
+      width: 32px;
+      height: 4px;
+      background-color: hsl(var(--border));
+      border-radius: 2px;
+      margin: 8px auto;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background-color: hsl(var(--muted));
+    }
+  }
+
+  /* Improved mobile dialog */
+  @media (max-width: 640px) {
+    [data-radix-dialog-content] {
+      position: fixed !important;
+      inset: auto 0 0 0 !important;
+      margin: 0 !important;
+      transform: none !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      height: 90vh !important;
+      max-height: 90vh !important;
+      min-height: 50vh !important;
+      border-radius: 1.25rem 1.25rem 0 0 !important;
+      border-width: 0 !important;
+      animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+      padding: 0 !important;
+      display: flex !important;
+      flex-direction: column !important;
+      background-color: hsl(var(--background)) !important;
+      box-shadow: 0 -8px 16px -6px rgb(0 0 0 / 0.1) !important;
+      z-index: var(--z-dialog, 1000) !important;
+      transform: translate3d(0, 0, 0) !important;
+      -webkit-transform: translate3d(0, 0, 0) !important;
+      backface-visibility: hidden !important;
+      -webkit-backface-visibility: hidden !important;
+      perspective: 1000 !important;
+      -webkit-perspective: 1000 !important;
+    }
+
+    [data-radix-dialog-overlay] {
+      animation: fade-in 0.2s ease-out !important;
+      -webkit-tap-highlight-color: transparent !important;
+      touch-action: none !important;
+      cursor: pointer !important;
+      background-color: rgba(0, 0, 0, 0.4) !important;
+      backdrop-filter: blur(4px) !important;
+      -webkit-backdrop-filter: blur(4px) !important;
+    }
+
+    .dialog-header {
+      position: sticky !important;
+      top: 0 !important;
+      z-index: 50 !important;
+      background-color: hsl(var(--background)) !important;
+      backdrop-filter: blur(8px) !important;
+      border-bottom: 1px solid hsl(var(--border)) !important;
+      padding: 1rem !important;
+      flex-shrink: 0 !important;
+    }
+
+    .dialog-header::before {
+      content: "" !important;
+      display: block !important;
+      width: 32px !important;
+      height: 4px !important;
+      background-color: hsl(var(--muted)) !important;
+      border-radius: 2px !important;
+      margin: -4px auto 12px !important;
+    }
+
+    .dialog-body {
+      flex: 1 !important;
+      overflow-y: auto !important;
+      -webkit-overflow-scrolling: touch !important;
+      overscroll-behavior: contain !important;
+      padding: 1rem !important;
+      position: relative !important;
+      z-index: 40 !important;
+      transform: translate3d(0, 0, 0) !important;
+      -webkit-transform: translate3d(0, 0, 0) !important;
+      backface-visibility: hidden !important;
+      -webkit-backface-visibility: hidden !important;
+      will-change: transform !important;
+    }
+
+    .dialog-body::-webkit-scrollbar {
+      display: none !important;
+    }
+
+    .dialog-body {
+      -ms-overflow-style: none !important;
+      scrollbar-width: none !important;
+    }
+
+    .dialog-footer {
+      position: sticky !important;
+      bottom: 0 !important;
+      z-index: 50 !important;
+      background-color: hsl(var(--background)) !important;
+      backdrop-filter: blur(8px) !important;
+      border-top: 1px solid hsl(var(--border)) !important;
+      padding: 1rem !important;
+      padding-bottom: calc(1rem + env(safe-area-inset-bottom)) !important;
+      flex-shrink: 0 !important;
+    }
+  }
+
+  @keyframes slide-up {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
   }
 }

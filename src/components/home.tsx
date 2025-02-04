@@ -84,9 +84,11 @@ const Home = ({
   };
 
   useEffect(() => {
-    fetchCustomers();
-    fetchProjects();
-    fetchTimeEntries();
+    Promise.all([fetchCustomers(), fetchProjects(), fetchTimeEntries()]).catch(
+      (error) => {
+        console.error("Error fetching initial data:", error);
+      },
+    );
   }, []);
 
   const formatDuration = (seconds: number) => {
@@ -97,6 +99,22 @@ const Home = ({
 
   const handleTimeEntryStop = async () => {
     await fetchTimeEntries();
+  };
+
+  const [editingEntry, setEditingEntry] = useState<TimeEntry | null>(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+
+  const handleTimeEntryEdit = async (id: string) => {
+    try {
+      const entries = await getTimeEntries();
+      const entry = entries.find((e) => e.id === id);
+      if (!entry) return;
+
+      setEditingEntry(entry);
+      setShowEditDialog(true);
+    } catch (error) {
+      console.error("Error fetching entry for edit:", error);
+    }
   };
 
   const handleTimeEntryDelete = async (id: string) => {
@@ -113,13 +131,25 @@ const Home = ({
     switch (activeTab) {
       case "timer":
         return (
-          <div className="space-y-6 p-4">
+          <div className="space-y-4 sm:space-y-6 p-3 sm:p-4">
             <TimeTracker
               onStart={onTimeEntryStart}
               onStop={handleTimeEntryStop}
               projects={projects}
               customers={customers}
+              editingEntry={editingEntry}
+              showEditDialog={showEditDialog}
+              onEditDialogClose={() => {
+                setShowEditDialog(false);
+                setEditingEntry(null);
+              }}
+              onEditComplete={async () => {
+                await fetchTimeEntries();
+                setShowEditDialog(false);
+                setEditingEntry(null);
+              }}
             />
+
             <Timeline
               entries={timeEntries}
               onEditEntry={onTimeEntryEdit}
