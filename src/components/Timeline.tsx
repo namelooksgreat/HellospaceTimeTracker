@@ -49,7 +49,7 @@ const Timeline = ({
   onDeleteEntry = () => {},
 }: TimelineProps) => {
   return (
-    <Card className="bg-background/50 backdrop-blur-sm border-border/50 shadow-sm overflow-hidden">
+    <Card className="bg-background/50 backdrop-blur-sm border-border/50 shadow-sm overflow-hidden sm:rounded-lg rounded-none border-x-0 sm:border-x">
       <CardHeader className="p-4 border-b border-border/50">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-base sm:text-lg">

@@ -5,6 +5,7 @@ export const STORAGE_KEYS = {
   SELECTED_CUSTOMER_ID: "selectedCustomerId",
   THEME: "theme",
   USER_PREFERENCES: "userPreferences",
+  THEME_PREFERENCE: "theme-preference",
 } as const;
 
 export const DEFAULT_TAGS = [
@@ -46,7 +47,7 @@ export const TIME_FORMAT_OPTIONS = {
 } as const;
 
 export const API_CONFIG = {
-  RETRY_ATTEMPTS: 3,
+  RETRY_ATTEMPTS: 1, // Reduced to 1 to fail fast
   TIMEOUT: 10000, // 10 seconds
   ERROR_MESSAGES: {
     NETWORK: "Network error occurred. Please check your connection.",
@@ -57,13 +58,13 @@ export const API_CONFIG = {
 } as const;
 
 export const AUTH_CONFIG = {
-  MIN_PASSWORD_LENGTH: 8,
+  MIN_PASSWORD_LENGTH: 6,
   MAX_LOGIN_ATTEMPTS: 5,
   LOCKOUT_DURATION: 15 * 60 * 1000, // 15 minutes
 } as const;
 
 export const VALIDATION_RULES = {
   EMAIL: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-  PASSWORD: /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/,
+  PASSWORD: /^.{6,}$/,
   NAME: /^[\p{L}\s-]{2,50}$/u,
 } as const;

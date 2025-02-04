@@ -1,4 +1,5 @@
 import React from "react";
+import { STORAGE_KEYS, getStorageItem, setStorageItem } from "@/lib/storage";
 
 type Theme = "dark" | "light" | "system";
 
@@ -20,7 +21,9 @@ export function ThemeProvider({
   children,
   defaultTheme = "system",
 }: ThemeProviderProps) {
-  const [theme, setTheme] = React.useState<Theme>(defaultTheme);
+  const [theme, setTheme] = React.useState<Theme>(() =>
+    getStorageItem(STORAGE_KEYS.THEME_PREFERENCE, defaultTheme),
+  );
 
   React.useEffect(() => {
     const root = window.document.documentElement;
@@ -32,10 +35,12 @@ export function ThemeProvider({
         ? "dark"
         : "light";
       root.classList.add(systemTheme);
+      setStorageItem(STORAGE_KEYS.THEME_PREFERENCE, systemTheme);
       return;
     }
 
     root.classList.add(theme);
+    setStorageItem(STORAGE_KEYS.THEME_PREFERENCE, theme);
   }, [theme]);
 
   const value = React.useMemo(

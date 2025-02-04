@@ -22,7 +22,6 @@ export function RegisterForm() {
     setError("");
 
     try {
-      // Basic validation
       if (!formData.email || !formData.password || !formData.full_name) {
         throw new Error("All fields are required");
       }
@@ -31,20 +30,21 @@ export function RegisterForm() {
         throw new Error("Password must be at least 6 characters");
       }
 
-      const { user, error } = await register(formData);
+      const { data, error } = await register(formData);
 
       if (error) {
-        if (error.message?.toLowerCase().includes("already registered")) {
-          throw new Error("This email is already registered");
+        if (error.message.toLowerCase().includes("user already registered")) {
+          throw new Error(
+            "This email is already registered. Please check your email for the confirmation link.",
+          );
         }
         throw error;
       }
 
-      if (!user) {
+      if (!data) {
         throw new Error("Registration failed - please try again");
       }
 
-      // Show success message
       setError("");
       alert("Registration successful! You can now log in.");
       navigate("/auth");

@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { login } from "@/lib/auth";
+import { showError, showSuccess } from "@/lib/utils/toast";
+import { MESSAGES } from "@/config/messages";
 
 export function LoginForm() {
   const navigate = useNavigate();
@@ -12,33 +14,38 @@ export function LoginForm() {
     email: "",
     password: "",
   });
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError("");
 
-    const { session, error } = await login(formData);
+    try {
+      const { data, error } = await login({
+        email: formData.email,
+        password: formData.password,
+      });
 
-    if (error) {
-      setError(error.message);
+      if (error) throw error;
+      if (!data?.session) throw new Error("Login failed - please try again");
+
+      showSuccess(MESSAGES.AUTH.LOGIN_SUCCESS);
+      navigate("/");
+    } catch (error) {
+      showError(
+        error instanceof Error ? error.message : MESSAGES.AUTH.LOGIN_ERROR,
+      );
+    } finally {
       setLoading(false);
-      return;
     }
-
-    // Handle successful login
-    navigate("/");
-    setLoading(false);
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto p-6 space-y-6">
+    <Card className="w-full max-w-md mx-auto p-6 space-y-6 bg-card">
       <div className="space-y-2 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight">Welcome back</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Welcome Back</h1>
         <p className="text-sm text-muted-foreground">
-          Enter your credentials to sign in
+          Enter your credentials to continue
         </p>
       </div>
 
@@ -48,12 +55,13 @@ export function LoginForm() {
           <Input
             id="email"
             type="email"
-            placeholder="john@example.com"
+            placeholder="example@email.com"
             value={formData.email}
             onChange={(e) =>
               setFormData((prev) => ({ ...prev, email: e.target.value }))
             }
             required
+            className="bg-background"
           />
         </div>
 
@@ -67,12 +75,16 @@ export function LoginForm() {
               setFormData((prev) => ({ ...prev, password: e.target.value }))
             }
             required
+            className="bg-background"
           />
         </div>
 
-        {error && <div className="text-sm text-destructive">{error}</div>}
-
-        <Button type="submit" className="w-full" disabled={loading}>
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={loading}
+          variant="default"
+        >
           {loading ? "Signing in..." : "Sign in"}
         </Button>
       </form>

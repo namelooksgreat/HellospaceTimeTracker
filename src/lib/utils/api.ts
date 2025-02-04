@@ -9,20 +9,18 @@ export async function handleApiRequest<T>(
 
   for (let attempt = 1; attempt <= API_CONFIG.RETRY_ATTEMPTS; attempt++) {
     try {
-      const response = await Promise.race([
-        requestFn(),
-        new Promise((_, reject) =>
-          setTimeout(
-            () => reject(new Error("Request timeout")),
-            API_CONFIG.TIMEOUT * attempt, // Increase timeout for each retry
-          ),
-        ),
-      ]);
+      const response = await requestFn();
       return response as T;
     } catch (error) {
       console.error(`API Request attempt ${attempt} failed:`, error);
       lastError = error instanceof Error ? error : new Error(String(error));
 
+      // Check if it's a Supabase error with status
+      if (error && typeof error === "object" && "status" in error) {
+        throw new APIError(errorMessage, String(error));
+      }
+
+      // If it's the last attempt, throw the error
       if (attempt === API_CONFIG.RETRY_ATTEMPTS) {
         throw new APIError(
           errorMessage,
@@ -30,10 +28,10 @@ export async function handleApiRequest<T>(
         );
       }
 
-      // Wait before retrying (exponential backoff)
-      await new Promise((resolve) =>
-        setTimeout(resolve, Math.pow(2, attempt) * 1000),
-      );
+      // Wait before retrying
+      const delay = (ms: number) =>
+        new Promise((resolve) => window.setTimeout(resolve, ms));
+      await delay(500);
     }
   }
 

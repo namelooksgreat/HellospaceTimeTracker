@@ -1,10 +1,13 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { STORAGE_KEYS } from "@/lib/constants";
+import { useTimer } from "@/hooks/useTimer";
 import { createTimeEntry } from "@/lib/api";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { SaveTimeEntryDialog } from "./SaveTimeEntryDialog";
 import { Card, CardContent } from "./ui/card";
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
+import { showSuccess } from "@/lib/utils/toast";
 import {
   Select,
   SelectContent,
@@ -16,6 +19,7 @@ import { Timer, Play, Pause, Square, Coffee } from "lucide-react";
 import { PomodoroSettings } from "./PomodoroSettings";
 
 interface TimeTrackerProps {
+  onTimeEntrySaved?: () => void;
   onStart?: () => void;
   onStop?: () => void;
   onReset?: () => void;
@@ -30,116 +34,106 @@ interface TimeTrackerProps {
   availableTags?: Array<{ value: string; label: string }>;
 }
 
-type TimerState = "stopped" | "running" | "paused" | "break";
-type TimerMode = "list" | "pomodoro";
-type PomodoroMode = "classic" | "long" | "short";
-
 const TimeTracker = ({
   onStart = () => {},
   onStop = () => {},
   onReset = () => {},
   initialTaskName = "",
   projects = [],
-  customers = [
-    { id: "1", name: "Customer 1" },
-    { id: "2", name: "Customer 2" },
-    { id: "3", name: "Customer 3" },
-  ],
-  availableTags = [
-    { value: "bug", label: "Bug" },
-    { value: "feature", label: "Feature" },
-    { value: "documentation", label: "Documentation" },
-    { value: "design", label: "Design" },
-    { value: "testing", label: "Testing" },
-  ],
+  customers = [],
+  availableTags = [],
+  onTimeEntrySaved = () => {},
 }: TimeTrackerProps) => {
-  const [timerState, setTimerState] = useState<TimerState>("stopped");
-  const [timerMode, setTimerMode] = useState<TimerMode>("list");
-  const [pomodoroMode, setPomodoroMode] = useState<PomodoroMode>("classic");
-  const [isBreakTime, setIsBreakTime] = useState(false);
-  const [time, setTime] = useState(0);
-  const [taskName, setTaskName] = useState(
-    localStorage.getItem("lastTaskName") || initialTaskName,
-  );
-  const [selectedCustomer, setSelectedCustomer] = useState(
-    localStorage.getItem("selectedCustomerId") || customers[0]?.id || "",
-  );
-  const [selectedProject, setSelectedProject] = useState(
-    localStorage.getItem("selectedProjectId") || "",
-  );
+  const {
+    timerState,
+    timerMode,
+    pomodoroMode,
+    isBreakTime,
+    time,
+    formattedTime,
+    setTimerMode,
+    setPomodoroMode,
+    start,
+    pause,
+    resume,
+    stop,
+    reset,
+    getPomodoroTime,
+  } = useTimer({
+    onStart,
+    onStop,
+    onReset,
+  });
+  const [taskName, setTaskName] = useState(initialTaskName);
+  const [selectedCustomer, setSelectedCustomer] = useState("");
+  const [selectedProject, setSelectedProject] = useState("");
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+
+  // Load saved state when component mounts
+  useEffect(() => {
+    const savedTaskName = localStorage.getItem(STORAGE_KEYS.LAST_TASK_NAME);
+    if (savedTaskName) setTaskName(savedTaskName);
+
+    if (customers.length > 0) {
+      const savedCustomerId = localStorage.getItem(
+        STORAGE_KEYS.SELECTED_CUSTOMER_ID,
+      );
+      const validCustomer = customers.find((c) => c.id === savedCustomerId);
+
+      if (validCustomer) {
+        setSelectedCustomer(validCustomer.id);
+
+        const savedProjectId = localStorage.getItem(
+          STORAGE_KEYS.SELECTED_PROJECT_ID,
+        );
+        const validProject = projects.find(
+          (p) => p.id === savedProjectId && p.customer_id === validCustomer.id,
+        );
+
+        if (validProject) {
+          setSelectedProject(validProject.id);
+        }
+      } else {
+        // If no valid customer, set to first customer
+        setSelectedCustomer(customers[0].id);
+        localStorage.setItem(
+          STORAGE_KEYS.SELECTED_CUSTOMER_ID,
+          customers[0].id,
+        );
+      }
+    }
+  }, [customers, projects, initialTaskName]);
+
+  // Persist state changes to localStorage
+  useEffect(() => {
+    if (selectedCustomer)
+      localStorage.setItem(STORAGE_KEYS.SELECTED_CUSTOMER_ID, selectedCustomer);
+    if (selectedProject)
+      localStorage.setItem(STORAGE_KEYS.SELECTED_PROJECT_ID, selectedProject);
+    if (taskName) localStorage.setItem(STORAGE_KEYS.LAST_TASK_NAME, taskName);
+  }, [selectedCustomer, selectedProject, taskName]);
 
   // Filter projects based on selected customer
   const customerProjects = projects.filter(
     (project) => project.customer_id === selectedCustomer,
   );
-  const [showSaveDialog, setShowSaveDialog] = useState(false);
 
-  useEffect(() => {
-    let interval: number | undefined;
-    let startTime: number;
-
-    if (timerState === "running") {
-      startTime = Date.now();
-      interval = setInterval(() => {
-        const elapsed = Math.floor((Date.now() - startTime) / 1000);
-        setTime((prevTime) => prevTime + elapsed);
-        startTime = Date.now();
-      }, 1000);
+  const handleTimerAction = useCallback(() => {
+    if (timerState === "stopped") {
+      start();
+    } else if (timerState === "running") {
+      pause();
+    } else if (timerState === "paused") {
+      resume();
     }
+  }, [timerState, start, pause, resume]);
 
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [timerState]);
-
-  const formatTime = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const remainingSeconds = seconds % 60;
-
-    return `${hours.toString().padStart(2, "0")} : ${minutes
-      .toString()
-      .padStart(2, "0")} : ${remainingSeconds.toString().padStart(2, "0")}`;
-  };
-
-  const getPomodoroTime = () => {
-    switch (pomodoroMode) {
-      case "classic":
-        return isBreakTime ? 5 * 60 : 25 * 60;
-      case "long":
-        return isBreakTime ? 10 * 60 : 50 * 60;
-      case "short":
-        return isBreakTime ? 3 * 60 : 15 * 60;
+  const handleStop = useCallback(() => {
+    if (time > 0) {
+      stop();
+      setShowSaveDialog(true);
     }
-  };
-
-  const handleTimerAction = () => {
-    if (timerMode === "pomodoro") {
-      const targetTime = getPomodoroTime();
-      if (time >= targetTime) {
-        setIsBreakTime(!isBreakTime);
-        setTime(0);
-        return;
-      }
-    }
-    switch (timerState) {
-      case "stopped":
-        setTimerState("running");
-        onStart();
-        break;
-      case "running":
-        setTimerState("paused");
-        break;
-      case "paused":
-        setTimerState("running");
-        break;
-    }
-  };
-
-  const handleStop = () => {
-    setTimerState("stopped");
-    setShowSaveDialog(true);
-  };
+  }, [time, stop]);
 
   const handleSaveTimeEntry = async (data: {
     taskName: string;
@@ -149,42 +143,72 @@ const TimeTracker = ({
     tags: string[];
   }) => {
     try {
+      const currentTime = time;
+      setShowSaveDialog(false);
+
       await createTimeEntry(
         {
           task_name: data.taskName,
           description: data.description,
-          duration: time,
-          start_time: new Date(Date.now() - time * 1000).toISOString(),
+          duration: currentTime,
+          start_time: new Date(Date.now() - currentTime * 1000).toISOString(),
           project_id: data.projectId,
         },
         data.tags,
       );
 
+      // Reset timer state
       onStop();
+      reset();
       setTaskName("");
-      localStorage.removeItem("lastTaskName");
-      localStorage.removeItem("lastDescription");
-      localStorage.removeItem("selectedProjectId");
-      localStorage.removeItem("selectedCustomerId");
-      setTime(0);
-      setTimerState("stopped");
-      setShowSaveDialog(false);
+      localStorage.removeItem(STORAGE_KEYS.LAST_TASK_NAME);
+      localStorage.removeItem(STORAGE_KEYS.LAST_DESCRIPTION);
+
+      // Show success message
+      showSuccess("Time entry saved successfully");
+
+      // Notify parent to refresh time entries
+      onTimeEntrySaved();
     } catch (error) {
       console.error("Error saving time entry:", error);
+      setShowSaveDialog(true);
+      throw error;
     }
   };
 
   return (
-    <Card className="w-full bg-background/50 backdrop-blur-sm border-border/50 shadow-sm overflow-hidden">
+    <Card className="w-full bg-background/50 backdrop-blur-sm border-border/50 shadow-sm overflow-hidden sm:rounded-lg rounded-none border-x-0 sm:border-x">
       <CardContent className="p-4 space-y-4">
-        <div className="flex items-center gap-2 mb-2">
-          <Timer className="h-5 w-5 text-primary" />
-          <h2 className="text-lg font-semibold">Time Tracker</h2>
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <div className="flex items-center gap-2">
+            <Timer className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-semibold">Time Tracker</h2>
+          </div>
+          <div className="text-center">
+            <div className="font-mono text-2xl font-bold tracking-wider text-primary">
+              {formattedTime}
+            </div>
+            {timerMode === "pomodoro" && timerState !== "stopped" && (
+              <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground mt-1">
+                {isBreakTime ? (
+                  <>
+                    <Coffee className="h-3 w-3" />
+                    Break Time
+                  </>
+                ) : (
+                  <>
+                    <Timer className="h-3 w-3" />
+                    Focus Time
+                  </>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         <Tabs
           value={timerMode}
-          onValueChange={(v) => setTimerMode(v as TimerMode)}
+          onValueChange={(v) => setTimerMode(v as "list" | "pomodoro")}
           className="w-full"
         >
           <TabsList className="grid w-full grid-cols-2 h-11 p-1 bg-muted/50 rounded-lg">
@@ -211,14 +235,14 @@ const TimeTracker = ({
         )}
 
         <div className="space-y-4">
-          <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
             <Select
               value={selectedCustomer}
               onValueChange={(value) => {
                 setSelectedCustomer(value);
                 setSelectedProject("");
-                localStorage.setItem("selectedCustomerId", value);
-                localStorage.removeItem("selectedProjectId");
+                localStorage.setItem(STORAGE_KEYS.SELECTED_CUSTOMER_ID, value);
+                localStorage.removeItem(STORAGE_KEYS.SELECTED_PROJECT_ID);
               }}
             >
               <SelectTrigger className="h-12 bg-muted/50 border-input/50">
@@ -241,7 +265,7 @@ const TimeTracker = ({
               value={selectedProject}
               onValueChange={(value) => {
                 setSelectedProject(value);
-                localStorage.setItem("selectedProjectId", value);
+                localStorage.setItem(STORAGE_KEYS.SELECTED_PROJECT_ID, value);
               }}
               disabled={!selectedCustomer}
             >
@@ -274,7 +298,7 @@ const TimeTracker = ({
             value={taskName}
             onChange={(e) => {
               setTaskName(e.target.value);
-              localStorage.setItem("lastTaskName", e.target.value);
+              localStorage.setItem(STORAGE_KEYS.LAST_TASK_NAME, e.target.value);
             }}
             onKeyDown={(e) => {
               if (e.key === "Enter" && timerState === "stopped") {
@@ -284,64 +308,40 @@ const TimeTracker = ({
             className="w-full h-12 bg-muted/50 border-input/50 focus-visible:ring-primary/20"
           />
 
-          <div className="space-y-4">
-            <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-4 gap-2">
+            <Button
+              onClick={handleTimerAction}
+              variant={timerState === "paused" ? "secondary" : "default"}
+              className="col-span-3 h-14 text-lg font-medium rounded-xl shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-center gap-2"
+            >
+              {timerState === "stopped" && (
+                <>
+                  <Play className="h-5 w-5" />
+                  Start
+                </>
+              )}
+              {timerState === "running" && (
+                <>
+                  <Pause className="h-5 w-5" />
+                  Pause
+                </>
+              )}
+              {timerState === "paused" && (
+                <>
+                  <Play className="h-5 w-5" />
+                  Resume
+                </>
+              )}
+            </Button>
+            {timerState !== "stopped" && (
               <Button
-                onClick={handleTimerAction}
-                variant={timerState === "paused" ? "secondary" : "default"}
-                className="col-span-3 h-14 text-lg font-medium rounded-xl shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-center gap-2"
+                onClick={handleStop}
+                variant="destructive"
+                className="h-14 rounded-xl shadow-sm hover:shadow-md transition-all duration-200"
               >
-                {timerState === "stopped" && (
-                  <>
-                    <Play className="h-5 w-5" />
-                    Start
-                  </>
-                )}
-                {timerState === "running" && (
-                  <>
-                    <Pause className="h-5 w-5" />
-                    Pause
-                  </>
-                )}
-                {timerState === "paused" && (
-                  <>
-                    <Play className="h-5 w-5" />
-                    Resume
-                  </>
-                )}
+                <Square className="h-5 w-5" />
               </Button>
-              {timerState !== "stopped" && (
-                <Button
-                  onClick={handleStop}
-                  variant="destructive"
-                  className="h-14 rounded-xl shadow-sm hover:shadow-md transition-all duration-200"
-                >
-                  <Square className="h-5 w-5" />
-                </Button>
-              )}
-            </div>
-            <div className="text-center space-y-1">
-              <div className="font-mono text-4xl font-bold tracking-wider text-primary">
-                {formatTime(time)}
-              </div>
-              {timerMode === "pomodoro" && timerState !== "stopped" && (
-                <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                  {isBreakTime ? (
-                    <>
-                      <Coffee className="h-4 w-4" />
-                      Break Time
-                    </>
-                  ) : (
-                    <>
-                      <Timer className="h-4 w-4" />
-                      Focus Time
-                    </>
-                  )}
-                  <span>•</span>
-                  {formatTime(getPomodoroTime() - time)} remaining
-                </div>
-              )}
-            </div>
+            )}
           </div>
         </div>
 
@@ -350,7 +350,7 @@ const TimeTracker = ({
           onOpenChange={(open) => {
             setShowSaveDialog(open);
             if (!open) {
-              setTimerState("paused");
+              pause();
             }
           }}
           taskName={taskName}

@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import { STORAGE_KEYS } from "@/lib/constants";
+import BottomNav from "./BottomNav";
 import {
   getProjects,
   getTimeEntries,
@@ -10,7 +12,8 @@ import {
 } from "@/lib/api";
 import TimeTracker from "./TimeTracker";
 import Timeline from "./Timeline";
-import { useAuth } from "@/lib/AuthContext";
+import { useAuth } from "@/lib/auth";
+import { Navigate } from "react-router-dom";
 
 function Home() {
   const { session } = useAuth();
@@ -18,20 +21,37 @@ function Home() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<"timer" | "reports" | "profile">(
+    "timer",
+  );
+
+  const fetchTimeEntriesData = async () => {
+    if (!session) return;
+    try {
+      const timeEntriesData = await getTimeEntries();
+      setTimeEntries(timeEntriesData);
+    } catch (error) {
+      console.error("Error fetching time entries:", error);
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!session) return;
+      if (!session?.user) return;
 
       try {
+        setLoading(true);
         const [projectsData, customersData, timeEntriesData] =
           await Promise.all([getProjects(), getCustomers(), getTimeEntries()]);
 
-        setProjects(projectsData);
-        setCustomers(customersData);
-        setTimeEntries(timeEntriesData);
+        setProjects(projectsData || []);
+        setCustomers(customersData || []);
+        setTimeEntries(timeEntriesData || []);
       } catch (error) {
         console.error("Error fetching data:", error);
+        setProjects([]);
+        setCustomers([]);
+        setTimeEntries([]);
       } finally {
         setLoading(false);
       }
@@ -43,7 +63,7 @@ function Home() {
   const handleDeleteTimeEntry = async (id: string) => {
     try {
       await deleteTimeEntry(id);
-      setTimeEntries((prev) => prev.filter((entry) => entry.id !== id));
+      await fetchTimeEntriesData();
     } catch (error) {
       console.error("Error deleting time entry:", error);
     }
@@ -72,33 +92,47 @@ function Home() {
     };
   };
 
+  if (!session?.user) {
+    return <Navigate to="/auth" replace />;
+  }
+
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <p>Loading...</p>
-      </div>
-    );
+    return null;
   }
 
   return (
-    <div className="container max-w-6xl mx-auto p-4 pb-20">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <TimeTracker
-          projects={projects}
-          customers={customers}
-          availableTags={[
-            { value: "bug", label: "Bug" },
-            { value: "feature", label: "Feature" },
-            { value: "documentation", label: "Documentation" },
-            { value: "design", label: "Design" },
-            { value: "testing", label: "Testing" },
-          ]}
-        />
-        <Timeline
-          entries={timeEntries.map(formatTimeEntry)}
-          onDeleteEntry={handleDeleteTimeEntry}
-        />
+    <div className="min-h-screen bg-background pb-20">
+      <div className="container max-w-6xl mx-auto p-4">
+        {activeTab === "timer" && (
+          <TimeTracker
+            projects={projects}
+            customers={customers}
+            availableTags={[
+              { value: "bug", label: "Bug" },
+              { value: "feature", label: "Feature" },
+              { value: "documentation", label: "Documentation" },
+              { value: "design", label: "Design" },
+              { value: "testing", label: "Testing" },
+            ]}
+            onTimeEntrySaved={fetchTimeEntriesData}
+          />
+        )}
+        {activeTab === "reports" && (
+          <Timeline
+            entries={timeEntries.map(formatTimeEntry)}
+            onDeleteEntry={handleDeleteTimeEntry}
+          />
+        )}
+        {activeTab === "profile" && (
+          <div className="space-y-4">
+            <h2 className="text-2xl font-semibold">Profile</h2>
+            <p className="text-muted-foreground">
+              Profile settings coming soon...
+            </p>
+          </div>
+        )}
       </div>
+      <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
     </div>
   );
 }

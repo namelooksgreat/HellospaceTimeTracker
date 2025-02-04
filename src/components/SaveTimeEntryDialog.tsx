@@ -1,9 +1,16 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
 import { useState, useEffect } from "react";
+import { STORAGE_KEYS } from "@/lib/constants";
 import { Tag as TagIcon, ChevronsUpDown, X } from "lucide-react";
 import {
   Select,
@@ -61,7 +68,7 @@ export function SaveTimeEntryDialog({
     taskName: initialTaskName,
     projectId: initialProjectId,
     customerId: customerId,
-    description: localStorage.getItem("lastDescription") || "",
+    description: localStorage.getItem(STORAGE_KEYS.LAST_DESCRIPTION) || "",
     tags: [] as string[],
   });
 
@@ -76,10 +83,10 @@ export function SaveTimeEntryDialog({
 
   const handleSave = () => {
     onSave(formData);
-    localStorage.removeItem("lastTaskName");
-    localStorage.removeItem("lastDescription");
-    localStorage.removeItem("selectedProjectId");
-    localStorage.removeItem("selectedCustomerId");
+    localStorage.removeItem(STORAGE_KEYS.LAST_TASK_NAME);
+    localStorage.removeItem(STORAGE_KEYS.LAST_DESCRIPTION);
+    localStorage.removeItem(STORAGE_KEYS.SELECTED_PROJECT_ID);
+    localStorage.removeItem(STORAGE_KEYS.SELECTED_CUSTOMER_ID);
     setFormData((prev) => ({
       ...prev,
       description: "",
@@ -103,11 +110,18 @@ export function SaveTimeEntryDialog({
           }
         }}
       >
+        <DialogHeader>
+          <DialogTitle className="text-lg font-semibold leading-none tracking-tight">
+            Save Time Entry
+          </DialogTitle>
+          <DialogDescription>
+            Save your time entry details including task name, project, duration,
+            and optional description.
+          </DialogDescription>
+        </DialogHeader>
+
         <div className="dialog-header">
           <div className="flex items-center justify-between gap-4">
-            <DialogTitle className="text-lg font-semibold leading-none tracking-tight">
-              Save Time Entry
-            </DialogTitle>
             <div className="flex items-center gap-2">
               <Button
                 variant="ghost"
@@ -330,7 +344,10 @@ export function SaveTimeEntryDialog({
                       ...prev,
                       description: newValue,
                     }));
-                    localStorage.setItem("lastDescription", newValue);
+                    localStorage.setItem(
+                      STORAGE_KEYS.LAST_DESCRIPTION,
+                      newValue,
+                    );
                   }}
                   placeholder="Add any additional details..."
                   className="min-h-[100px] bg-muted/50 border-input/50"

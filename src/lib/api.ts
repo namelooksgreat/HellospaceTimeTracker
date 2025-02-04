@@ -17,10 +17,13 @@ export async function getCustomers(): Promise<Customer[]> {
     const { data, error } = await supabase
       .from("customers")
       .select("*")
-      .eq("user_id", user.id)
-      .order("name");
+      .order("name", { ascending: true });
 
-    if (error) throw new APIError("Failed to fetch customers", error.code);
+    if (error) {
+      console.error("Customers fetch error:", error);
+      throw new APIError("Failed to fetch customers", error.code);
+    }
+
     return data || [];
   }, "Failed to fetch customers");
 }
@@ -34,7 +37,7 @@ export async function getProjects(): Promise<Project[]> {
       .order("name");
 
     if (error) throw new APIError("Failed to fetch projects", error.code);
-    return data;
+    return data || [];
   }, "Failed to fetch projects");
 }
 
@@ -53,13 +56,13 @@ export async function getTimeEntries(): Promise<TimeEntry[]> {
       .order("start_time", { ascending: false });
 
     if (error) throw new APIError("Failed to fetch time entries", error.code);
-    return data;
+    return data || [];
   }, "Failed to fetch time entries");
 }
 
 export async function createTimeEntry(
   entry: Omit<TimeEntry, "id" | "created_at" | "user_id">,
-  tags?: string[],
+  tags?: string[] | null,
 ): Promise<TimeEntry> {
   return handleApiRequest(async () => {
     const {
@@ -71,19 +74,65 @@ export async function createTimeEntry(
       throw new APIError("Authentication failed", userError.message);
     if (!user) throw new APIError("No authenticated user");
 
-    const { data: timeEntry, error: timeEntryError } = await supabase
+    // Validate required fields
+    if (!entry?.task_name) {
+      throw new APIError("Task name is required");
+    }
+    if (typeof entry.duration !== "number") {
+      throw new APIError("Duration is required and must be a number");
+    }
+
+    // Ensure start_time is in ISO format
+    let startTime: string;
+    try {
+      startTime = entry.start_time
+        ? new Date(entry.start_time).toISOString()
+        : new Date().toISOString();
+    } catch (error) {
+      throw new APIError("Invalid start time format");
+    }
+
+    // Prepare the entry data with null safety
+    const entryData = {
+      task_name: entry.task_name.trim(),
+      description: entry.description?.trim() || null,
+      duration: Math.max(0, entry.duration), // Ensure non-negative
+      start_time: startTime,
+      project_id: entry.project_id || null,
+      user_id: user.id,
+    };
+
+    const { data: timeEntries, error: timeEntryError } = await supabase
       .from("time_entries")
-      .insert([{ ...entry, user_id: user.id }])
-      .select()
-      .single();
+      .insert([entryData])
+      .select();
 
-    if (timeEntryError)
+    if (timeEntryError) {
+      console.error("Time entry error:", timeEntryError);
       throw new APIError("Failed to create time entry", timeEntryError.message);
+    }
 
-    if (tags?.length) {
+    const timeEntry = timeEntries?.[0];
+    if (!timeEntry) {
+      throw new APIError("No time entry was created");
+    }
+
+    // Handle tags with null safety
+    if (
+      Array.isArray(tags) &&
+      tags.length > 0 &&
+      tags.every((tag) => typeof tag === "string")
+    ) {
       const { error: tagsError } = await supabase
         .from("time_entry_tags")
-        .insert(tags.map((tag) => ({ time_entry_id: timeEntry.id, tag })));
+        .insert(
+          tags
+            .map((tag) => ({
+              time_entry_id: timeEntry.id,
+              tag: tag.trim(),
+            }))
+            .filter((tag) => tag.tag.length > 0),
+        );
 
       if (tagsError)
         throw new APIError("Failed to create tags", tagsError.message);
@@ -106,15 +155,20 @@ export async function updateTimeEntry(
   tags?: string[],
 ): Promise<TimeEntry> {
   return handleApiRequest(async () => {
-    const { data: timeEntry, error: timeEntryError } = await supabase
+    const { data: timeEntries, error: timeEntryError } = await supabase
       .from("time_entries")
       .update(updates)
       .eq("id", id)
-      .select()
-      .single();
+      .select();
 
-    if (timeEntryError)
+    if (timeEntryError) {
       throw new APIError("Failed to update time entry", timeEntryError.message);
+    }
+
+    const timeEntry = timeEntries?.[0];
+    if (!timeEntry) {
+      throw new APIError("Time entry not found");
+    }
 
     if (tags !== undefined) {
       const { error: deleteError } = await supabase
@@ -151,7 +205,7 @@ export async function getUsers(): Promise<User[]> {
       .order("created_at");
 
     if (error) throw new APIError("Failed to fetch users", error.message);
-    return data;
+    return data || [];
   }, "Failed to fetch users");
 }
 

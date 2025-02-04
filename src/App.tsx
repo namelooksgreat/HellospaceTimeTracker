@@ -1,17 +1,12 @@
-import { Suspense } from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { LoadingPage } from "./components/ui/loading-spinner";
-import { useRoutes, Routes, Route, Navigate } from "react-router-dom";
-import { AuthPage } from "./components/auth/AuthPage";
-import { AdminPage } from "./components/admin/AdminPage";
 import { ProtectedRoute } from "./components/ProtectedRoute";
-import { useAuth } from "./lib/AuthContext";
+import { useAuth } from "./lib/auth";
+import { AuthPage } from "./components/auth/AuthPage";
 import Home from "./components/home";
-import routes from "tempo-routes";
 
-function App() {
+export default function App() {
   const { session, loading } = useAuth();
-  const tempoRoutes =
-    import.meta.env.VITE_TEMPO === "true" ? useRoutes(routes) : null;
 
   if (loading) {
     return <LoadingPage />;
@@ -19,47 +14,24 @@ function App() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Suspense fallback={<p>Loading...</p>}>
-        <div>
-          {tempoRoutes}
-          <Routes>
-            <Route
-              path="/auth"
-              element={session ? <Navigate to="/" replace /> : <AuthPage />}
-            />
-            <Route
-              path="/admin"
-              element={
-                <ProtectedRoute>
-                  <AdminPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/users"
-              element={
-                <ProtectedRoute>
-                  <AdminPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <Home />
-                </ProtectedRoute>
-              }
-            />
-            {import.meta.env.VITE_TEMPO === "true" && (
-              <Route path="/tempobook/*" />
-            )}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </div>
-      </Suspense>
+      <Routes>
+        <Route
+          path="/auth"
+          element={session ? <Navigate to="/" replace /> : <AuthPage />}
+        />
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <Home />
+            </ProtectedRoute>
+          }
+        />
+        {import.meta.env.VITE_TEMPO === "true" && (
+          <Route path="/tempobook/*" element={<div />} />
+        )}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </div>
   );
 }
-
-export default App;

@@ -1,5 +1,6 @@
 import React, { Component, ErrorInfo } from "react";
 import { AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface Props {
   children: React.ReactNode;
@@ -11,7 +12,7 @@ interface State {
   error?: Error;
 }
 
-export class ErrorBoundary extends Component<Props, State> {
+class ErrorBoundaryComponent extends Component<Props, State> {
   public state: State = {
     hasError: false,
   };
@@ -35,12 +36,13 @@ export class ErrorBoundary extends Component<Props, State> {
               <p className="text-muted-foreground">
                 {this.state.error?.message || "An unexpected error occurred"}
               </p>
-              <button
+              <Button
                 onClick={() => window.location.reload()}
-                className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
+                variant="default"
+                className="w-full"
               >
                 Reload page
-              </button>
+              </Button>
             </div>
           </div>
         )
@@ -50,3 +52,5 @@ export class ErrorBoundary extends Component<Props, State> {
     return this.props.children;
   }
 }
+
+export const ErrorBoundary = ErrorBoundaryComponent;
