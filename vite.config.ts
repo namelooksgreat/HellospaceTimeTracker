@@ -9,9 +9,33 @@ if (process.env.TEMPO === "true") {
 }
 
 export default defineConfig({
+  define: {
+    "process.env.NODE_ENV": JSON.stringify(
+      process.env.NODE_ENV || "development",
+    ),
+  },
   plugins: [
     react({
       plugins: [...conditionalPlugins],
+      jsxImportSource: "react",
+      swcOptions: {
+        jsc: {
+          target: "es2020",
+          parser: {
+            syntax: "typescript",
+            tsx: true,
+            decorators: false,
+            dynamicImport: false,
+          },
+          transform: {
+            react: {
+              runtime: "automatic",
+              development: process.env.NODE_ENV === "development",
+              refresh: process.env.NODE_ENV === "development",
+            },
+          },
+        },
+      },
     }),
     tempo(),
   ],
