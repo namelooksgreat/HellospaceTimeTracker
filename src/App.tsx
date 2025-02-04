@@ -27,9 +27,6 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-        {import.meta.env.VITE_TEMPO === "true" && (
-          <Route path="/tempobook/*" element={<div />} />
-        )}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </div>

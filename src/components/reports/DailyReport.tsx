@@ -1,0 +1,47 @@
+import { ScrollArea } from "../ui/scroll-area";
+import TimeEntry from "../TimeEntry";
+import { Clock } from "lucide-react";
+
+interface TimeEntry {
+  id: string;
+  taskName: string;
+  projectName: string;
+  duration: string;
+  startTime: string;
+  projectColor: string;
+}
+
+interface DailyReportProps {
+  entries: TimeEntry[];
+  onDeleteEntry?: (id: string) => void;
+}
+
+export function DailyReport({ entries, onDeleteEntry }: DailyReportProps) {
+  return (
+    <ScrollArea className="h-[calc(100vh-20rem)] sm:h-[500px]">
+      <div className="space-y-2">
+        {entries.length > 0 ? (
+          entries.map((entry) => (
+            <TimeEntry
+              key={entry.id}
+              taskName={entry.taskName}
+              projectName={entry.projectName}
+              duration={entry.duration}
+              startTime={entry.startTime}
+              projectColor={entry.projectColor}
+              onDelete={() => onDeleteEntry?.(entry.id)}
+            />
+          ))
+        ) : (
+          <div className="flex flex-col items-center justify-center h-[300px] text-muted-foreground">
+            <Clock className="h-12 w-12 mb-4 text-muted-foreground/50" />
+            <p className="text-center mb-1">No time entries for today</p>
+            <p className="text-sm text-muted-foreground/80">
+              Start tracking your time to see entries here
+            </p>
+          </div>
+        )}
+      </div>
+    </ScrollArea>
+  );
+}

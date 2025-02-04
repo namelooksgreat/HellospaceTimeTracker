@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { STORAGE_KEYS } from "@/lib/constants";
-import BottomNav from "./BottomNav";
+import { ProfilePage } from "./profile/ProfilePage";
+import { MainLayout } from "./layouts/MainLayout";
 import {
   getProjects,
   getTimeEntries,
@@ -11,9 +11,10 @@ import {
   TimeEntry,
 } from "@/lib/api";
 import TimeTracker from "./TimeTracker";
-import Timeline from "./Timeline";
+import { ReportsPage } from "./reports/ReportsPage";
 import { useAuth } from "@/lib/auth";
 import { Navigate } from "react-router-dom";
+import { Skeleton } from "./ui/skeleton";
 
 function Home() {
   const { session } = useAuth();
@@ -96,44 +97,41 @@ function Home() {
     return <Navigate to="/auth" replace />;
   }
 
-  if (loading) {
-    return null;
-  }
-
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <div className="container max-w-6xl mx-auto p-4">
-        {activeTab === "timer" && (
-          <TimeTracker
-            projects={projects}
-            customers={customers}
-            availableTags={[
-              { value: "bug", label: "Bug" },
-              { value: "feature", label: "Feature" },
-              { value: "documentation", label: "Documentation" },
-              { value: "design", label: "Design" },
-              { value: "testing", label: "Testing" },
-            ]}
-            onTimeEntrySaved={fetchTimeEntriesData}
-          />
-        )}
-        {activeTab === "reports" && (
-          <Timeline
-            entries={timeEntries.map(formatTimeEntry)}
-            onDeleteEntry={handleDeleteTimeEntry}
-          />
-        )}
-        {activeTab === "profile" && (
-          <div className="space-y-4">
-            <h2 className="text-2xl font-semibold">Profile</h2>
-            <p className="text-muted-foreground">
-              Profile settings coming soon...
-            </p>
+    <MainLayout activeTab={activeTab} onTabChange={setActiveTab}>
+      <div className="space-y-6 animate-in fade-in-50 duration-500">
+        {loading ? (
+          <div className="space-y-6">
+            <Skeleton className="h-[300px] w-full rounded-xl" />
+            <Skeleton className="h-[400px] w-full rounded-xl" />
           </div>
+        ) : (
+          <>
+            {activeTab === "timer" && (
+              <TimeTracker
+                projects={projects}
+                customers={customers}
+                availableTags={[
+                  { value: "bug", label: "Bug" },
+                  { value: "feature", label: "Feature" },
+                  { value: "documentation", label: "Documentation" },
+                  { value: "design", label: "Design" },
+                  { value: "testing", label: "Testing" },
+                ]}
+                onTimeEntrySaved={fetchTimeEntriesData}
+              />
+            )}
+            {activeTab === "reports" && (
+              <ReportsPage
+                entries={timeEntries.map(formatTimeEntry)}
+                onDeleteEntry={handleDeleteTimeEntry}
+              />
+            )}
+            {activeTab === "profile" && <ProfilePage />}
+          </>
         )}
       </div>
-      <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
-    </div>
+    </MainLayout>
   );
 }
 

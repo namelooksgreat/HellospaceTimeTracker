@@ -6,8 +6,12 @@ import { AuthProvider } from "./lib/auth";
 import { ErrorBoundary } from "./lib/utils/error-boundary";
 import App from "./App";
 import "./index.css";
-import { TempoDevtools } from "tempo-devtools";
 
+// Initialize Tempo DevTools
+import { TempoDevtools } from "tempo-devtools";
+TempoDevtools.init();
+
+// Initialize React app
 const rootElement = document.getElementById("root");
 if (!rootElement) throw new Error("Root element not found");
 
@@ -24,10 +28,3 @@ ReactDOM.createRoot(rootElement).render(
     </BrowserRouter>
   </React.StrictMode>,
 );
-
-// Initialize Tempo devtools after render
-try {
-  TempoDevtools.init();
-} catch (error) {
-  console.warn("Failed to initialize Tempo devtools:", error);
-}

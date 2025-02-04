@@ -1,4 +1,7 @@
 export const STORAGE_KEYS = {
+  TIMER_STATE: "timer_state",
+  TIMER_START: "timer_start",
+  TIMER_ELAPSED: "timer_elapsed",
   LAST_TASK_NAME: "lastTaskName",
   LAST_DESCRIPTION: "lastDescription",
   SELECTED_PROJECT_ID: "selectedProjectId",

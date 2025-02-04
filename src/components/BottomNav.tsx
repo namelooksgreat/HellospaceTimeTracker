@@ -42,7 +42,7 @@ function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-lg border-t border-border safe-area-bottom">
+    <div className="fixed bottom-0 left-0 right-0 bg-background/95 dark:bg-background/90 backdrop-blur-xl border-t border-border/50 safe-area-bottom z-50 h-[4.5rem]">
       <div className="max-w-md mx-auto flex justify-between items-center px-6 py-2">
         <TooltipProvider>
           {tabs.map((tab) => {

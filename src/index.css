@@ -1,277 +1,75 @@
+@import "./styles/base.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    --primary: 265 84% 45%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 240 5% 96%;
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 5% 96%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 265 84% 97%;
-    --accent-foreground: 265 84% 45%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5% 96%;
-    --ring: 265 84% 45%;
-    --radius: 0.75rem;
-  }
-
-  .dark {
-    --background: 0 0% 0%;
-    --foreground: 0 0% 98%;
-    --card: 24 9.8% 10%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 265 80% 56%;
-    --primary-foreground: 355.7 100% 97.3%;
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 15%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 12 6.5% 15.1%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 85.7% 97.3%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 265 80% 56%;
-  }
-}
-
-@layer base {
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
+    font-feature-settings:
+      "rlig" 1,
+      "calt" 1;
+  }
+}
+
+@layer components {
+  .input-base {
+    @apply h-12 w-full rounded-lg border border-input bg-background px-4 py-2 text-base ring-offset-background transition-colors;
+    @apply placeholder:text-muted-foreground/60;
+    @apply hover:border-primary/50;
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0;
+    @apply disabled:cursor-not-allowed disabled:opacity-50;
   }
 
-  /* Prevent iOS zoom on input focus */
-  @supports (-webkit-touch-callout: none) {
-    input,
-    select,
-    textarea {
-      @apply text-base;
-      font-size: 16px !important;
-    }
+  .select-base {
+    @apply h-12 w-full rounded-lg border border-input bg-background px-4 py-2 text-base ring-offset-background transition-colors;
+    @apply hover:border-primary/50;
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0;
+    @apply disabled:cursor-not-allowed disabled:opacity-50;
   }
 
-  /* Better touch targets for mobile */
-  button,
-  [role="button"],
-  a {
-    @apply cursor-pointer;
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
-    min-height: 44px;
-    min-width: 44px;
+  .card-base {
+    @apply rounded-xl border bg-card text-card-foreground shadow-sm;
   }
 
-  /* Safe area utilities */
+  .dialog-base {
+    @apply fixed inset-0 z-50 bg-background/80 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0;
+  }
+
+  .dialog-content-base {
+    @apply fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg;
+  }
+}
+
+@keyframes slide-in-from-bottom-full {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-out-to-bottom-full {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+
+@layer utilities {
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
   .safe-area-bottom {
     padding-bottom: env(safe-area-inset-bottom);
-  }
-
-  /* Prevent text selection on mobile */
-  .mobile-input {
-    -webkit-user-select: none;
-    user-select: none;
-    -webkit-touch-callout: none;
-  }
-
-  /* Mobile Select improvements */
-  @media (max-width: 640px) {
-    .select-trigger {
-      min-height: 48px;
-    }
-
-    .select-item {
-      min-height: 56px !important;
-      padding: 0 16px !important;
-      display: flex !important;
-      align-items: center !important;
-      font-size: 16px !important;
-      cursor: pointer !important;
-      transition: background-color 0.2s !important;
-    }
-
-    .select-item:active {
-      background-color: hsl(var(--accent)) !important;
-    }
-
-    .select-item[data-highlighted] {
-      background-color: hsl(var(--accent)) !important;
-      color: hsl(var(--accent-foreground)) !important;
-    }
-
-    [data-radix-popper-content-wrapper] {
-      position: fixed !important;
-      inset: auto 0 0 0 !important;
-      margin: 0 !important;
-      transform: none !important;
-      width: 100% !important;
-      max-width: 100% !important;
-      padding: 0 !important;
-      padding-bottom: env(safe-area-inset-bottom) !important;
-      z-index: var(--z-select, 100) !important;
-    }
-
-    .select-content {
-      position: relative !important;
-      width: 100% !important;
-      border-radius: 1.25rem 1.25rem 0 0 !important;
-      border-width: 0 !important;
-      box-shadow: 0 -8px 16px -6px rgb(0 0 0 / 0.1) !important;
-      animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-      background-color: hsl(var(--background)) !important;
-      padding: 8px 0 !important;
-      padding-bottom: calc(8px + env(safe-area-inset-bottom)) !important;
-      max-height: 85vh !important;
-      overflow-y: auto !important;
-      -webkit-overflow-scrolling: touch !important;
-      overscroll-behavior: contain !important;
-    }
-
-    .select-content::before {
-      content: "";
-      display: block;
-      width: 32px;
-      height: 4px;
-      background-color: hsl(var(--border));
-      border-radius: 2px;
-      margin: 8px auto;
-      position: sticky;
-      top: 0;
-      z-index: 10;
-      background-color: hsl(var(--muted));
-    }
-  }
-
-  /* Improved mobile dialog */
-  @media (max-width: 640px) {
-    [data-radix-dialog-content] {
-      position: fixed !important;
-      inset: auto 0 0 0 !important;
-      margin: 0 !important;
-      transform: none !important;
-      width: 100% !important;
-      max-width: 100% !important;
-      height: 90vh !important;
-      max-height: 90vh !important;
-      min-height: 50vh !important;
-      border-radius: 1.25rem 1.25rem 0 0 !important;
-      border-width: 0 !important;
-      animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
-      padding: 0 !important;
-      display: flex !important;
-      flex-direction: column !important;
-      background-color: hsl(var(--background)) !important;
-      box-shadow: 0 -8px 16px -6px rgb(0 0 0 / 0.1) !important;
-      z-index: var(--z-dialog, 1000) !important;
-      transform: translate3d(0, 0, 0) !important;
-      -webkit-transform: translate3d(0, 0, 0) !important;
-      backface-visibility: hidden !important;
-      -webkit-backface-visibility: hidden !important;
-      perspective: 1000 !important;
-      -webkit-perspective: 1000 !important;
-    }
-
-    [data-radix-dialog-overlay] {
-      animation: fade-in 0.2s ease-out !important;
-      -webkit-tap-highlight-color: transparent !important;
-      touch-action: none !important;
-      cursor: pointer !important;
-      background-color: rgba(0, 0, 0, 0.4) !important;
-      backdrop-filter: blur(4px) !important;
-      -webkit-backdrop-filter: blur(4px) !important;
-    }
-
-    .dialog-header {
-      position: sticky !important;
-      top: 0 !important;
-      z-index: 50 !important;
-      background-color: hsl(var(--background)) !important;
-      backdrop-filter: blur(8px) !important;
-      border-bottom: 1px solid hsl(var(--border)) !important;
-      padding: 1rem !important;
-      flex-shrink: 0 !important;
-    }
-
-    .dialog-header::before {
-      content: "" !important;
-      display: block !important;
-      width: 32px !important;
-      height: 4px !important;
-      background-color: hsl(var(--muted)) !important;
-      border-radius: 2px !important;
-      margin: -4px auto 12px !important;
-    }
-
-    .dialog-body {
-      flex: 1 !important;
-      overflow-y: auto !important;
-      -webkit-overflow-scrolling: touch !important;
-      overscroll-behavior: contain !important;
-      padding: 1rem !important;
-      position: relative !important;
-      z-index: 40 !important;
-      transform: translate3d(0, 0, 0) !important;
-      -webkit-transform: translate3d(0, 0, 0) !important;
-      backface-visibility: hidden !important;
-      -webkit-backface-visibility: hidden !important;
-      will-change: transform !important;
-    }
-
-    .dialog-body::-webkit-scrollbar {
-      display: none !important;
-    }
-
-    .dialog-body {
-      -ms-overflow-style: none !important;
-      scrollbar-width: none !important;
-    }
-
-    .dialog-footer {
-      position: sticky !important;
-      bottom: 0 !important;
-      z-index: 50 !important;
-      background-color: hsl(var(--background)) !important;
-      backdrop-filter: blur(8px) !important;
-      border-top: 1px solid hsl(var(--border)) !important;
-      padding: 1rem !important;
-      padding-bottom: calc(1rem + env(safe-area-inset-bottom)) !important;
-      flex-shrink: 0 !important;
-    }
-  }
-
-  @keyframes slide-up {
-    from {
-      transform: translateY(100%);
-    }
-    to {
-      transform: translateY(0);
-    }
-  }
-
-  @keyframes fade-in {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
   }
 }

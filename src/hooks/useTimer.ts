@@ -1,71 +1,45 @@
-import { useState, useEffect, useCallback } from "react";
-import { POMODORO_DURATIONS } from "@/lib/constants";
+import { useState, useEffect, useCallback, useRef } from "react";
 
-export type TimerState = "stopped" | "running" | "paused" | "break";
-export type TimerMode = "list" | "pomodoro";
-export type PomodoroMode = "classic" | "long" | "short";
+export type TimerState = "stopped" | "running" | "paused";
 
 interface UseTimerProps {
   onStart?: () => void;
   onStop?: () => void;
   onReset?: () => void;
-  initialMode?: TimerMode;
-  initialPomodoroMode?: PomodoroMode;
 }
 
 export function useTimer({
   onStart = () => {},
   onStop = () => {},
   onReset = () => {},
-  initialMode = "list",
-  initialPomodoroMode = "classic",
 }: UseTimerProps = {}) {
   const [timerState, setTimerState] = useState<TimerState>("stopped");
-  const [timerMode, setTimerMode] = useState<TimerMode>(initialMode);
-  const [pomodoroMode, setPomodoroMode] =
-    useState<PomodoroMode>(initialPomodoroMode);
-  const [isBreakTime, setIsBreakTime] = useState(false);
-  const [time, setTime] = useState(0);
+  const [elapsedTime, setElapsedTime] = useState(0);
+  const intervalRef = useRef<number | null>(null);
+  const startTimeRef = useRef<number | null>(null);
 
-  const getPomodoroTime = useCallback(() => {
-    return POMODORO_DURATIONS[pomodoroMode][isBreakTime ? "break" : "work"];
-  }, [pomodoroMode, isBreakTime]);
-
-  const formatTime = useCallback((seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const remainingSeconds = seconds % 60;
-
-    return `${hours.toString().padStart(2, "0")} : ${minutes
-      .toString()
-      .padStart(2, "0")} : ${remainingSeconds.toString().padStart(2, "0")}`;
+  // Clear interval and timer state
+  const clearTimer = useCallback(() => {
+    if (intervalRef.current) {
+      window.clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    startTimeRef.current = null;
   }, []);
 
+  // Effect for handling timer state changes
   useEffect(() => {
-    let interval: number | undefined;
-    let startTime: number;
-
     if (timerState === "running") {
-      startTime = Date.now();
-      interval = window.setInterval(() => {
-        const elapsed = Math.floor((Date.now() - startTime) / 1000);
-        setTime((prevTime) => {
-          const newTime = prevTime + elapsed;
-          if (timerMode === "pomodoro" && newTime >= getPomodoroTime()) {
-            setIsBreakTime(!isBreakTime);
-            setTime(0);
-            return 0;
-          }
-          return newTime;
-        });
-        startTime = Date.now();
+      startTimeRef.current = Date.now() - elapsedTime * 1000;
+      intervalRef.current = window.setInterval(() => {
+        setElapsedTime(Math.floor((Date.now() - startTimeRef.current!) / 1000));
       }, 1000);
+    } else {
+      clearTimer();
     }
 
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [timerState, timerMode, getPomodoroTime, isBreakTime]);
+    return () => clearTimer();
+  }, [timerState, clearTimer]);
 
   const start = useCallback(() => {
     setTimerState("running");
@@ -74,7 +48,8 @@ export function useTimer({
 
   const pause = useCallback(() => {
     setTimerState("paused");
-  }, []);
+    clearTimer();
+  }, [clearTimer]);
 
   const resume = useCallback(() => {
     setTimerState("running");
@@ -82,30 +57,34 @@ export function useTimer({
 
   const stop = useCallback(() => {
     setTimerState("stopped");
+    clearTimer();
     onStop();
-  }, [onStop]);
+  }, [clearTimer, onStop]);
 
   const reset = useCallback(() => {
-    setTime(0);
+    clearTimer();
     setTimerState("stopped");
-    setIsBreakTime(false);
+    setElapsedTime(0);
     onReset();
-  }, [onReset]);
+  }, [clearTimer, onReset]);
+
+  const formatTime = useCallback((seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const remainingSeconds = seconds % 60;
+    return `${hours.toString().padStart(2, "0")} : ${minutes
+      .toString()
+      .padStart(2, "0")} : ${remainingSeconds.toString().padStart(2, "0")}`;
+  }, []);
 
   return {
     timerState,
-    timerMode,
-    pomodoroMode,
-    isBreakTime,
-    time,
-    formattedTime: formatTime(time),
-    setTimerMode,
-    setPomodoroMode,
+    time: elapsedTime,
+    formattedTime: formatTime(elapsedTime),
     start,
     pause,
     resume,
     stop,
     reset,
-    getPomodoroTime,
   };
 }
