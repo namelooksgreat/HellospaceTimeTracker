@@ -1,97 +1,88 @@
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Card } from "../ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { UserProfile } from "./UserProfile";
 import { UserPreferences } from "./UserPreferences";
 import { UserSecurity } from "./UserSecurity";
-import { Settings, Shield, Palette, LogOut } from "lucide-react";
-import { Button } from "../ui/button";
-import { useNavigate } from "react-router-dom";
-import { logout } from "@/lib/auth";
-import { showSuccess } from "@/lib/utils/toast";
+import { Settings, Shield, Palette } from "lucide-react";
 
 export function ProfilePage() {
-  const navigate = useNavigate();
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-      showSuccess("Logged out successfully");
-      navigate("/auth");
-    } catch (error) {
-      console.error("Logout failed:", error);
-    }
-  };
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("profile");
 
   if (!user) return null;
 
   return (
-    <div className="container max-w-4xl mx-auto p-4 space-y-6">
-      <Card className="bg-background/50 backdrop-blur-sm border-border/50">
-        <CardHeader className="p-6 flex items-center justify-between">
-          <div className="flex items-center justify-between w-full">
-            <CardTitle className="text-2xl font-semibold tracking-tight">
+    <div className="container max-w-4xl mx-auto px-4 space-y-6">
+      <Card className="bg-background/50 backdrop-blur-sm border-border/50 overflow-hidden rounded-none sm:rounded-xl shadow-none sm:shadow-lg transition-all duration-300 -mx-4 sm:mx-0">
+        {/* Header - Fixed on mobile */}
+        <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-xl border-b border-border/50">
+          <div className="p-4 sm:p-6">
+            <h1 className="text-xl sm:text-2xl font-semibold tracking-tight flex items-center gap-2">
+              <Settings className="h-5 w-5 text-primary" />
               Account Settings
-            </CardTitle>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleLogout}
-              className="text-muted-foreground hover:text-destructive"
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Sign out
-            </Button>
+            </h1>
           </div>
-        </CardHeader>
-        <CardContent className="p-6 pt-0">
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="w-full h-10 p-1 bg-muted/50 rounded-lg">
+        </div>
+
+        {/* Tabs Container */}
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          {/* Tabs List */}
+          <div className="px-4 sm:px-6 pb-2 border-b border-border/50">
+            <TabsList className="w-full h-11 p-1 bg-muted/50 rounded-lg grid grid-cols-3 gap-1">
               <TabsTrigger
                 value="profile"
-                className="flex-1 rounded-md data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all"
+                className="h-9 rounded-md data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all"
               >
-                <div className="flex items-center justify-center gap-2">
+                <div className="flex items-center justify-center gap-1.5">
                   <Settings className="h-4 w-4" />
                   <span>Profile</span>
                 </div>
               </TabsTrigger>
               <TabsTrigger
                 value="preferences"
-                className="flex-1 rounded-md data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all"
+                className="h-9 rounded-md data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all"
               >
-                <div className="flex items-center justify-center gap-2">
+                <div className="flex items-center justify-center gap-1.5">
                   <Palette className="h-4 w-4" />
                   <span>Preferences</span>
                 </div>
               </TabsTrigger>
               <TabsTrigger
                 value="security"
-                className="flex-1 rounded-md data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all"
+                className="h-9 rounded-md data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all"
               >
-                <div className="flex items-center justify-center gap-2">
+                <div className="flex items-center justify-center gap-1.5">
                   <Shield className="h-4 w-4" />
                   <span>Security</span>
                 </div>
               </TabsTrigger>
             </TabsList>
+          </div>
 
-            <div className="mt-6 space-y-6">
-              <TabsContent value="profile">
-                <UserProfile user={user} />
-              </TabsContent>
-              <TabsContent value="preferences">
-                <UserPreferences />
-              </TabsContent>
-              <TabsContent value="security">
-                <UserSecurity />
-              </TabsContent>
-            </div>
-          </Tabs>
-        </CardContent>
+          {/* Tabs Content */}
+          <div className="p-4 sm:p-6 space-y-6">
+            <TabsContent
+              value="profile"
+              className="mt-0 focus-visible:outline-none focus-visible:ring-0"
+            >
+              <UserProfile user={user} />
+            </TabsContent>
+            <TabsContent
+              value="preferences"
+              className="mt-0 focus-visible:outline-none focus-visible:ring-0"
+            >
+              <UserPreferences />
+            </TabsContent>
+            <TabsContent
+              value="security"
+              className="mt-0 focus-visible:outline-none focus-visible:ring-0"
+            >
+              <UserSecurity />
+            </TabsContent>
+          </div>
+        </Tabs>
       </Card>
     </div>
   );

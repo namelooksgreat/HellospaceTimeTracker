@@ -1,5 +1,5 @@
 export const APP_CONFIG = {
-  name: "Time Tracking App",
+  name: "Hellospace Tracker",
   version: "1.0.0",
   api: {
     baseUrl: import.meta.env.VITE_SUPABASE_URL,

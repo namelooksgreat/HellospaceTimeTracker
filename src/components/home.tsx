@@ -1,6 +1,10 @@
-import React, { useState, useEffect } from "react";
-import { ProfilePage } from "./profile/ProfilePage";
+import React, { useState, useEffect, Suspense, lazy } from "react";
+import { Navigate } from "react-router-dom";
 import { MainLayout } from "./layouts/MainLayout";
+import { useAuth } from "@/lib/auth";
+import { Skeleton } from "./ui/skeleton";
+import { usePerformanceTracking } from "@/hooks/usePerformanceTracking";
+import { handleError } from "@/lib/utils/error-handler";
 import {
   getProjects,
   getTimeEntries,
@@ -10,13 +14,28 @@ import {
   Customer,
   TimeEntry,
 } from "@/lib/api";
-import TimeTracker from "./TimeTracker";
-import { ReportsPage } from "./reports/ReportsPage";
-import { useAuth } from "@/lib/auth";
-import { Navigate } from "react-router-dom";
-import { Skeleton } from "./ui/skeleton";
+
+// Lazy load components for better performance
+const TimeTracker = lazy(() =>
+  import("./TimeTracker").then((module) => {
+    return { default: module.default };
+  }),
+);
+
+const ReportsPage = lazy(() =>
+  import("./reports/ReportsPage").then((module) => {
+    return { default: module.ReportsPage };
+  }),
+);
+
+const ProfilePage = lazy(() =>
+  import("./profile/ProfilePage").then((module) => {
+    return { default: module.ProfilePage };
+  }),
+);
 
 function Home() {
+  usePerformanceTracking("Home");
   const { session } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -32,7 +51,7 @@ function Home() {
       const timeEntriesData = await getTimeEntries();
       setTimeEntries(timeEntriesData);
     } catch (error) {
-      console.error("Error fetching time entries:", error);
+      handleError(error, "Home");
     }
   };
 
@@ -49,7 +68,7 @@ function Home() {
         setCustomers(customersData || []);
         setTimeEntries(timeEntriesData || []);
       } catch (error) {
-        console.error("Error fetching data:", error);
+        handleError(error, "Home");
         setProjects([]);
         setCustomers([]);
         setTimeEntries([]);
@@ -66,16 +85,11 @@ function Home() {
       await deleteTimeEntry(id);
       await fetchTimeEntriesData();
     } catch (error) {
-      console.error("Error deleting time entry:", error);
+      handleError(error, "Home");
     }
   };
 
   const formatTimeEntry = (entry: TimeEntry) => {
-    const duration = entry.duration;
-    const hours = Math.floor(duration / 3600);
-    const minutes = Math.floor((duration % 3600) / 60);
-    const durationStr = `${hours}h ${minutes}m`;
-
     const startTime = new Date(entry.start_time);
     const timeStr = startTime.toLocaleTimeString("en-US", {
       hour: "numeric",
@@ -83,13 +97,17 @@ function Home() {
       hour12: true,
     });
 
+    const duration =
+      typeof entry.duration === "number" ? Math.max(0, entry.duration) : 0;
+
     return {
       id: entry.id,
       taskName: entry.task_name,
       projectName: entry.project?.name || "No Project",
-      duration: durationStr,
+      duration: duration,
       startTime: timeStr,
       projectColor: entry.project?.color || "#94A3B8",
+      createdAt: entry.created_at,
     };
   };
 
@@ -97,16 +115,20 @@ function Home() {
     return <Navigate to="/auth" replace />;
   }
 
+  const LoadingFallback = () => (
+    <div className="space-y-6">
+      <Skeleton className="h-[300px] w-full rounded-xl" />
+      <Skeleton className="h-[400px] w-full rounded-xl" />
+    </div>
+  );
+
   return (
     <MainLayout activeTab={activeTab} onTabChange={setActiveTab}>
       <div className="space-y-6 animate-in fade-in-50 duration-500">
         {loading ? (
-          <div className="space-y-6">
-            <Skeleton className="h-[300px] w-full rounded-xl" />
-            <Skeleton className="h-[400px] w-full rounded-xl" />
-          </div>
+          <LoadingFallback />
         ) : (
-          <>
+          <Suspense fallback={<LoadingFallback />}>
             {activeTab === "timer" && (
               <TimeTracker
                 projects={projects}
@@ -128,7 +150,7 @@ function Home() {
               />
             )}
             {activeTab === "profile" && <ProfilePage />}
-          </>
+          </Suspense>
         )}
       </div>
     </MainLayout>

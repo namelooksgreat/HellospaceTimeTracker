@@ -9,6 +9,7 @@ export const STORAGE_KEYS = {
   THEME: "theme",
   USER_PREFERENCES: "userPreferences",
   THEME_PREFERENCE: "theme-preference",
+  TIMER_DATA: "timer_data",
 } as const;
 
 export const DEFAULT_TAGS = [

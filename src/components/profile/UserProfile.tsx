@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Card, CardContent } from "../ui/card";
 import { Camera, Loader2 } from "lucide-react";
+import { handleError } from "@/lib/utils/error-handler";
 
 interface UserProfileProps {
   user: {
@@ -19,6 +21,29 @@ export function UserProfile({ user }: UserProfileProps) {
     full_name: user.full_name || "",
     email: user.email,
   });
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const {
+          data: { user: currentUser },
+          error,
+        } = await supabase.auth.getUser();
+        if (error) throw error;
+
+        if (currentUser?.user_metadata?.full_name) {
+          setFormData((prev) => ({
+            ...prev,
+            full_name: currentUser.user_metadata.full_name,
+          }));
+        }
+      } catch (error) {
+        handleError(error, "UserProfile");
+      }
+    };
+
+    fetchUserData();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -25,14 +25,14 @@ const Timeline = ({
   onDeleteEntry = () => {},
 }: TimelineProps) => {
   const totalDuration = entries.reduce((acc, entry) => {
-    const [hours, minutes] = entry.duration.split("h ")[0].split("h");
-    return acc + (parseInt(hours) * 60 + parseInt(minutes || "0"));
+    const duration = typeof entry.duration === "number" ? entry.duration : 0;
+    return acc + duration;
   }, 0);
 
-  const formatTotalDuration = (minutes: number) => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return `${hours}h ${mins}m`;
+  const formatTotalDuration = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    return `${hours}h ${minutes}m`;
   };
 
   return (

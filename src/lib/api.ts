@@ -56,7 +56,18 @@ export async function getTimeEntries(): Promise<TimeEntry[]> {
       .order("start_time", { ascending: false });
 
     if (error) throw new APIError("Failed to fetch time entries", error.code);
-    return data || [];
+
+    // Ensure duration is a number
+    const formattedData =
+      data?.map((entry) => ({
+        ...entry,
+        duration:
+          typeof entry.duration === "string"
+            ? parseInt(entry.duration, 10)
+            : entry.duration,
+      })) || [];
+
+    return formattedData;
   }, "Failed to fetch time entries");
 }
 

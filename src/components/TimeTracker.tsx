@@ -1,14 +1,17 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useCallback } from "react";
+import { useMemoizedCallback } from "@/hooks/useMemoizedCallback";
 import { STORAGE_KEYS } from "@/lib/constants";
-import { useTimer } from "@/hooks/useTimer";
+import { useTimerStore } from "@/store/timerStore";
 import { createTimeEntry } from "@/lib/api";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { SaveTimeEntryDialog } from "./SaveTimeEntryDialog";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Card, CardContent } from "./ui/card";
 import { showSuccess } from "@/lib/utils/toast";
-import { Separator } from "./ui/separator";
+import { handleError } from "@/lib/utils/error-handler";
+import { ValidationError } from "@/config/errors";
+import { ERROR_MESSAGES } from "@/config/errors";
 import {
   Select,
   SelectContent,
@@ -16,15 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import {
-  Timer,
-  Play,
-  Pause,
-  Square,
-  Building2,
-  FolderKanban,
-  RotateCcw,
-} from "lucide-react";
+import { Timer, Play, Pause, Square, Building2, RotateCcw } from "lucide-react";
 
 interface TimeTrackerProps {
   projects?: Array<{
@@ -44,278 +39,285 @@ const TimeTracker = ({
   availableTags = [],
   onTimeEntrySaved,
 }: TimeTrackerProps) => {
-  const [taskName, setTaskName] = useState("");
-  const [selectedProject, setSelectedProject] = useState("");
-  const [selectedCustomer, setSelectedCustomer] = useState("");
+  const [taskName, setTaskName] = useState(
+    () => localStorage.getItem(STORAGE_KEYS.LAST_TASK_NAME) || "",
+  );
+  const [selectedProject, setSelectedProject] = useState(
+    () => localStorage.getItem(STORAGE_KEYS.SELECTED_PROJECT_ID) || "",
+  );
+  const [selectedCustomer, setSelectedCustomer] = useState(
+    () => localStorage.getItem(STORAGE_KEYS.SELECTED_CUSTOMER_ID) || "",
+  );
   const [showSaveDialog, setShowSaveDialog] = useState(false);
 
-  const { timerState, time, formattedTime, start, pause, resume, stop, reset } =
-    useTimer();
+  const { state, time, start, pause, resume, stop, reset } = useTimerStore();
+
+  const formatTime = useCallback((seconds: number) => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    return `${String(h).padStart(2, "0")} : ${String(m).padStart(2, "0")} : ${String(s).padStart(2, "0")}`;
+  }, []);
+
+  const formattedTime = formatTime(time);
 
   const selectedProjectData = projects.find((p) => p.id === selectedProject);
   const selectedCustomerData = customers.find((c) => c.id === selectedCustomer);
 
-  const handleTimerAction = () => {
-    if (timerState === "stopped") start();
-    else if (timerState === "running") pause();
-    else if (timerState === "paused") resume();
-  };
+  const handleTimerAction = useMemoizedCallback(() => {
+    if (state === "stopped") start();
+    else if (state === "running") pause();
+    else if (state === "paused") resume();
+  }, [state, start, pause, resume]);
 
-  const handleStop = () => {
-    stop();
+  const handleStop = useMemoizedCallback(() => {
+    pause();
     setShowSaveDialog(true);
-  };
+  }, [pause]);
 
-  const handleReset = () => {
-    // First stop the timer
+  const handleReset = useMemoizedCallback(() => {
     stop();
-    // Then reset it
     reset();
-    // Clear all storage
-    Object.values(STORAGE_KEYS).forEach((key) => {
-      localStorage.removeItem(key);
-    });
-    // Reset all state
-    setTaskName("");
-    setSelectedProject("");
-    setSelectedCustomer("");
-  };
+    localStorage.removeItem(STORAGE_KEYS.TIMER_STATE);
+    localStorage.removeItem(STORAGE_KEYS.TIMER_START);
+    localStorage.removeItem(STORAGE_KEYS.TIMER_ELAPSED);
+    setTaskName(localStorage.getItem(STORAGE_KEYS.LAST_TASK_NAME) || "");
+    setSelectedProject(
+      localStorage.getItem(STORAGE_KEYS.SELECTED_PROJECT_ID) || "",
+    );
+    setSelectedCustomer(
+      localStorage.getItem(STORAGE_KEYS.SELECTED_CUSTOMER_ID) || "",
+    );
+  }, [stop, reset]);
 
-  const handleSaveTimeEntry = async (data: {
-    taskName: string;
-    projectId: string;
-    customerId: string;
-    description: string;
-    tags: string[];
-  }) => {
-    try {
-      await createTimeEntry({
-        task_name: data.taskName,
-        project_id: data.projectId,
-        duration: time,
-        start_time: new Date().toISOString(),
-      });
-      showSuccess("Time entry saved successfully");
-      onTimeEntrySaved?.();
-      handleReset();
-      setShowSaveDialog(false);
-    } catch (error) {
-      console.error("Error saving time entry:", error);
-    }
-  };
+  const handleSaveTimeEntry = useMemoizedCallback(
+    async (data: {
+      taskName: string;
+      projectId: string;
+      customerId: string;
+      description: string;
+      tags: string[];
+    }) => {
+      try {
+        if (!data.taskName.trim()) {
+          throw new ValidationError(ERROR_MESSAGES.TIME_TRACKING.INVALID_TASK, {
+            componentName: "TimeTracker",
+            action: "save_entry",
+          });
+        }
+
+        const entry = {
+          task_name: data.taskName,
+          project_id: data.projectId || null,
+          duration: Math.max(0, time),
+          start_time: new Date().toISOString(),
+          description: data.description || null,
+        };
+
+        await createTimeEntry(entry, data.tags);
+        showSuccess("Time entry saved successfully");
+        onTimeEntrySaved?.();
+        reset();
+        setShowSaveDialog(false);
+      } catch (error) {
+        handleError(error, "TimeTracker");
+        setShowSaveDialog(false);
+      }
+    },
+    [time, onTimeEntrySaved, reset],
+  );
 
   return (
-    <Card className="w-full bg-card/95 dark:bg-card/90 backdrop-blur-xl border-border/50 shadow-lg overflow-hidden rounded-xl transition-all duration-300 ease-in-out hover:shadow-xl">
-      <CardHeader className="p-4 sm:p-6">
-        <div className="flex flex-col sm:flex-row gap-4">
-          {/* Timer Card */}
-          <div className="flex-1 bg-card/50 dark:bg-card/30 border border-border/50 rounded-2xl p-6 shadow-sm order-2 sm:order-1 transition-all duration-300 ease-in-out hover:bg-card/70 dark:hover:bg-card/40">
-            <div className="space-y-4">
-              {/* Timer Header */}
-              <div className="flex items-center gap-2 text-primary">
+    <Card className="bg-gradient-to-b from-background/95 via-background/80 to-background/90 backdrop-blur-xl border-border/50 overflow-hidden rounded-2xl shadow-2xl transition-all duration-300 -mx-4 sm:mx-0">
+      <CardContent className="p-3 space-y-3">
+        {/* Timer Display */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-primary/2 to-transparent border border-border/50 rounded-2xl p-3 transition-all duration-300 hover:shadow-xl hover:border-primary/20 group">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-50" />
+          <div className="absolute inset-0 bg-grid-primary/5 mask-gradient" />
+          <div className="relative z-10 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-xl bg-primary/10 text-primary ring-1 ring-primary/20 shadow-lg shadow-primary/10">
                 <Timer className="h-5 w-5" />
-                <CardTitle className="text-lg font-semibold tracking-tight">
-                  Timer
-                </CardTitle>
               </div>
-
-              {/* Timer Display */}
-              <div className="relative bg-background/50 dark:bg-background/25 rounded-xl p-4 border border-border/50">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="font-mono text-2xl sm:text-3xl font-bold tracking-wider text-foreground">
-                      {formattedTime}
-                    </div>
-                    {time > 0 && (
-                      <Button
-                        onClick={handleReset}
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8 rounded-lg hover:bg-muted/50 shrink-0 border-border/50"
-                        title="Reset timer"
-                      >
-                        <RotateCcw className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
+              <div className="font-mono text-xl font-bold tracking-tight text-foreground transition-colors duration-300 group-hover:text-primary flex items-center justify-center min-w-[120px] static">
+                {formattedTime}
               </div>
             </div>
-
-            {/* Mobile Project Info */}
-            {(selectedCustomerData || selectedProjectData) && (
-              <div className="sm:hidden flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-border/50">
-                {selectedCustomerData && (
-                  <div className="flex items-center gap-1.5 bg-muted/50 px-2 py-1 rounded-md text-sm">
-                    <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span>{selectedCustomerData.name}</span>
-                  </div>
-                )}
-                {selectedProjectData && (
-                  <div className="flex items-center gap-1.5 bg-muted/50 px-2 py-1 rounded-md text-sm">
-                    <div
-                      className="w-2.5 h-2.5 rounded-full ring-1 ring-border"
-                      style={{ backgroundColor: selectedProjectData.color }}
-                    />
-                    <span>{selectedProjectData.name}</span>
-                  </div>
-                )}
-              </div>
+            {time > 0 && (
+              <Button
+                onClick={handleReset}
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-lg hover:bg-accent/50 shrink-0"
+                title="Reset timer"
+              >
+                <RotateCcw className="h-4 w-4" />
+              </Button>
             )}
           </div>
         </div>
-      </CardHeader>
 
-      <CardContent className="p-4 sm:p-6 pt-0 space-y-6">
-        <div className="space-y-6">
-          <div className="grid gap-6 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="customer-select">Customer</Label>
-              <Select
-                value={selectedCustomer}
-                onValueChange={(value) => {
-                  setSelectedCustomer(value);
-                  setSelectedProject("");
-                  localStorage.setItem(
-                    STORAGE_KEYS.SELECTED_CUSTOMER_ID,
-                    value,
-                  );
-                }}
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-1">
+            <Label className="text-sm font-medium" htmlFor="customer-select">
+              Customer
+            </Label>
+            <Select
+              value={selectedCustomer}
+              onValueChange={(value) => {
+                setSelectedCustomer(value);
+                setSelectedProject("");
+                localStorage.setItem(STORAGE_KEYS.SELECTED_CUSTOMER_ID, value);
+              }}
+            >
+              <SelectTrigger
+                id="customer-select"
+                className="h-9 bg-background/50 hover:bg-accent/50 transition-all duration-150 rounded-lg border-border/50 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 shadow-sm"
               >
-                <SelectTrigger id="customer-select" className="h-12">
-                  <SelectValue placeholder="Select customer" />
-                </SelectTrigger>
-                <SelectContent>
-                  {customers.map((customer) => (
+                <SelectValue placeholder="Select customer" />
+              </SelectTrigger>
+              <SelectContent className="max-h-[280px] rounded-xl border-border/50">
+                {customers.map((customer) => (
+                  <SelectItem
+                    key={customer.id}
+                    value={customer.id}
+                    className="py-2"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4 text-muted-foreground" />
+                      <span>{customer.name}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-sm font-medium" htmlFor="project-select">
+              Project
+            </Label>
+            <Select
+              value={selectedProject}
+              onValueChange={(value) => {
+                setSelectedProject(value);
+                localStorage.setItem(STORAGE_KEYS.SELECTED_PROJECT_ID, value);
+              }}
+              disabled={!selectedCustomer}
+            >
+              <SelectTrigger
+                id="project-select"
+                className="h-9 bg-background/50 hover:bg-accent/50 transition-all duration-150 rounded-lg border-border/50 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 shadow-sm"
+              >
+                <SelectValue
+                  placeholder={
+                    selectedCustomer
+                      ? "Select project"
+                      : "Select customer first"
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent className="max-h-[280px] rounded-xl border-border/50">
+                {projects
+                  .filter((project) => project.customer_id === selectedCustomer)
+                  .map((project) => (
                     <SelectItem
-                      key={customer.id}
-                      value={customer.id}
-                      className="py-3"
+                      key={project.id}
+                      value={project.id}
+                      className="py-2"
                     >
                       <div className="flex items-center gap-2">
-                        <Building2 className="h-4 w-4 text-muted-foreground" />
-                        <span>{customer.name}</span>
+                        <div
+                          className="w-3 h-3 rounded-full ring-1 ring-border/50"
+                          style={{ backgroundColor: project.color }}
+                        />
+                        <span>{project.name}</span>
                       </div>
                     </SelectItem>
                   ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="project-select">Project</Label>
-              <Select
-                value={selectedProject}
-                onValueChange={(value) => {
-                  setSelectedProject(value);
-                  localStorage.setItem(STORAGE_KEYS.SELECTED_PROJECT_ID, value);
-                }}
-                disabled={!selectedCustomer}
-              >
-                <SelectTrigger id="project-select" className="h-12">
-                  <SelectValue placeholder="Select project" />
-                </SelectTrigger>
-                <SelectContent>
-                  {projects
-                    .filter(
-                      (project) => project.customer_id === selectedCustomer,
-                    )
-                    .map((project) => (
-                      <SelectItem
-                        key={project.id}
-                        value={project.id}
-                        className="py-3"
-                      >
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="w-3 h-3 rounded-full"
-                            style={{ backgroundColor: project.color }}
-                          />
-                          <span>{project.name}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="task-name">Task Name</Label>
-            <Input
-              id="task-name"
-              type="text"
-              placeholder="What are you working on?"
-              value={taskName}
-              onChange={(e) => {
-                setTaskName(e.target.value);
-                localStorage.setItem(
-                  STORAGE_KEYS.LAST_TASK_NAME,
-                  e.target.value,
-                );
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && timerState === "stopped") {
-                  handleTimerAction();
-                }
-              }}
-              className="h-12"
-            />
+              </SelectContent>
+            </Select>
           </div>
         </div>
-      </CardContent>
 
-      {/* Bottom Action Bar */}
-      <div className="sticky bottom-0 left-0 right-0 p-4 bg-background/95 dark:bg-background/90 backdrop-blur-xl border-t border-border/50 transition-colors duration-300 mt-6">
-        <div className="flex gap-2">
+        <div className="space-y-1">
+          <Label className="text-sm font-medium" htmlFor="task-name">
+            Task Name
+          </Label>
+          <Input
+            id="task-name"
+            type="text"
+            placeholder="What are you working on?"
+            value={taskName}
+            onChange={(e) => {
+              setTaskName(e.target.value);
+              localStorage.setItem(STORAGE_KEYS.LAST_TASK_NAME, e.target.value);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && state === "stopped") {
+                handleTimerAction();
+              }
+            }}
+            className="h-9 bg-background/50 hover:bg-accent/50 transition-all duration-150 rounded-lg border-border/50 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 shadow-sm"
+          />
+        </div>
+
+        <div className="flex gap-2 pt-1">
           <Button
             onClick={handleTimerAction}
-            variant={timerState === "paused" ? "secondary" : "default"}
-            className="flex-1 h-14 sm:h-14 font-medium flex items-center justify-center gap-2.5 rounded-2xl text-base shadow-lg transition-all duration-300 ease-in-out active:scale-[0.98] hover:shadow-xl"
-            size="lg"
+            variant={state === "paused" ? "outline" : "default"}
+            className={`
+              relative overflow-hidden flex-1 h-9 font-medium flex items-center justify-center gap-2 rounded-lg
+              transition-all duration-300 shadow-lg hover:shadow-xl
+              ${state === "running" ? "bg-primary hover:bg-primary/90 ring-1 ring-primary/50" : ""}
+              ${state === "paused" ? "bg-muted text-muted-foreground hover:bg-muted/90 ring-1 ring-border/50" : ""}
+              before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/10 before:to-transparent before:translate-x-[-200%] hover:before:translate-x-[200%] before:transition-transform before:duration-700
+              animate-slide-out-up
+            `}
           >
-            {timerState === "stopped" && (
+            {state === "stopped" && (
               <>
-                <Play className="h-5 w-5" />
-                Start Timer
+                <Play className="h-4 w-4 animate-pulse" />
+                <span className="relative inline-block overflow-hidden">
+                  <span className="inline-block animate-slide-out-up">
+                    Start Timer
+                  </span>
+                </span>
               </>
             )}
-            {timerState === "running" && (
+            {state === "running" && (
               <>
-                <Pause className="h-5 w-5" />
-                Pause Timer
+                <Pause className="h-4 w-4" />
+                <span>Pause Timer</span>
               </>
             )}
-            {timerState === "paused" && (
+            {state === "paused" && (
               <>
-                <Play className="h-5 w-5" />
-                Resume Timer
+                <Play className="h-4 w-4 animate-pulse" />
+                <span className="relative inline-block overflow-hidden">
+                  <span className="inline-block animate-slide-out-up">
+                    Resume Timer
+                  </span>
+                </span>
               </>
             )}
           </Button>
 
-          {timerState !== "stopped" && (
-            <Button
-              onClick={handleStop}
-              variant="destructive"
-              className="h-12 sm:h-14 w-12 sm:w-14 rounded-xl"
-              size="icon"
-              title="Stop and save timer"
-            >
-              <Square className="h-5 w-5" />
-            </Button>
-          )}
+          <Button
+            onClick={handleStop}
+            variant="destructive"
+            className="h-9 w-9 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300"
+            size="icon"
+            title="Stop and save timer"
+            disabled={state === "stopped"}
+          >
+            <Square className="h-4 w-4" />
+          </Button>
         </div>
-      </div>
-
+      </CardContent>
       <SaveTimeEntryDialog
         open={showSaveDialog}
-        onOpenChange={(open) => {
-          setShowSaveDialog(open);
-          if (!open) {
-            pause();
-          }
-        }}
+        onOpenChange={setShowSaveDialog}
         taskName={taskName}
         projectId={selectedProject}
         customerId={selectedCustomer}

@@ -62,6 +62,16 @@ module.exports = {
         sm: "calc(var(--radius) - 4px)",
       },
       keyframes: {
+        "slide-out-up": {
+          "0%": { transform: "translateY(150%)", opacity: "0", scale: "0.95" },
+          "60%": {
+            transform: "translateY(-10%)",
+            opacity: "0.8",
+            scale: "1.02",
+          },
+          "80%": { transform: "translateY(5%)", opacity: "0.9", scale: "0.98" },
+          "100%": { transform: "translateY(0)", opacity: "1", scale: "1" },
+        },
         "accordion-down": {
           from: { height: "0" },
           to: { height: "var(--radix-accordion-content-height)" },
@@ -70,10 +80,36 @@ module.exports = {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
+        shine: {
+          "0%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(100%)" },
+        },
+        "bounce-subtle": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-15%)" },
+        },
+        "slide-up": {
+          "0%": { transform: "translateY(100%)", opacity: "0" },
+          "100%": { transform: "translateY(0)", opacity: "1" },
+        },
+        "slide-up-fade-in": {
+          "0%": { transform: "translateY(100%)", opacity: "0" },
+          "100%": { transform: "translateY(0)", opacity: "1" },
+        },
+        "slide-up-fade-out": {
+          "0%": { transform: "translateY(0)", opacity: "1" },
+          "100%": { transform: "translateY(-100%)", opacity: "0" },
+        },
       },
       animation: {
+        "slide-out-up": "slide-out-up 0.3s ease-out forwards",
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        shine: "shine 2s linear infinite",
+        "bounce-subtle": "bounce-subtle 2s ease-in-out infinite",
+        "slide-up": "slide-up 0.2s ease-out",
+        "slide-up-fade-in": "slide-up-fade-in 0.3s ease-out forwards",
+        "slide-up-fade-out": "slide-up-fade-out 0.3s ease-out forwards",
       },
     },
   },

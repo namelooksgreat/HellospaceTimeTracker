@@ -1,4 +1,4 @@
-import React from "react";
+import { memo } from "react";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Pencil, Trash2 } from "lucide-react";
@@ -9,25 +9,34 @@ import {
   TooltipTrigger,
 } from "./ui/tooltip";
 
+const formatDuration = (seconds: number): string => {
+  const duration = typeof seconds === "number" ? Math.max(0, seconds) : 0;
+  const hours = Math.floor(duration / 3600);
+  const minutes = Math.floor((duration % 3600) / 60);
+  return `${hours}h ${minutes}m`;
+};
+
 interface TimeEntryProps {
   taskName?: string;
   projectName?: string;
-  duration?: string;
+  duration: number;
   startTime?: string;
+  createdAt?: string;
   projectColor?: string;
   onEdit?: () => void;
   onDelete?: () => void;
 }
 
-const TimeEntry = ({
+function TimeEntryComponent({
   taskName = "Sample Task",
   projectName = "Default Project",
-  duration = "1h 30m",
+  duration = 0,
   startTime = "9:00 AM",
+  createdAt = new Date().toISOString(),
   projectColor = "#4F46E5",
   onEdit = () => {},
   onDelete = () => {},
-}: TimeEntryProps) => {
+}: TimeEntryProps) {
   return (
     <Card className="p-3 bg-card hover:bg-accent/50 transition-all duration-200 border border-border/50 rounded-xl">
       <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
@@ -42,13 +51,17 @@ const TimeEntry = ({
               <span className="truncate">{projectName}</span>
               <span className="hidden sm:inline">•</span>
               <span>{startTime}</span>
+              <span className="hidden sm:inline">•</span>
+              <span className="text-xs">
+                {new Date(createdAt).toLocaleDateString()}
+              </span>
             </div>
           </div>
         </div>
 
         <div className="flex items-center justify-between sm:justify-end gap-2 mt-2 sm:mt-0">
           <div className="text-base sm:text-lg font-semibold text-foreground">
-            {duration}
+            {formatDuration(duration)}
           </div>
           <div className="flex items-center gap-1">
             <TooltipProvider>
@@ -91,6 +104,10 @@ const TimeEntry = ({
       </div>
     </Card>
   );
-};
+}
+
+const TimeEntry = memo(TimeEntryComponent);
+
+TimeEntry.displayName = "TimeEntry";
 
 export default TimeEntry;

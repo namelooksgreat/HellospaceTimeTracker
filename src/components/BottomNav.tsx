@@ -22,16 +22,16 @@ function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
     description: string;
   }> = [
     {
-      id: "timer",
-      icon: Timer,
-      label: "Timer",
-      description: "Track your time",
-    },
-    {
       id: "reports",
       icon: BarChart2,
       label: "Reports",
       description: "View your statistics",
+    },
+    {
+      id: "timer",
+      icon: Timer,
+      label: "Timer",
+      description: "Track your time",
     },
     {
       id: "profile",
@@ -43,10 +43,13 @@ function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-background/95 dark:bg-background/90 backdrop-blur-xl border-t border-border/50 safe-area-bottom z-50 h-[4.5rem]">
-      <div className="max-w-md mx-auto flex justify-between items-center px-6 py-2">
+      <div className="max-w-md mx-auto flex justify-between items-center px-6 py-2 relative">
         <TooltipProvider>
           {tabs.map((tab) => {
             const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            const isTimer = tab.id === "timer";
+
             return (
               <Tooltip key={tab.id}>
                 <TooltipTrigger asChild>
@@ -54,22 +57,52 @@ function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
                     variant="ghost"
                     size="lg"
                     onClick={() => onTabChange(tab.id)}
-                    className={`relative flex flex-col items-center justify-center min-w-[72px] h-auto py-2 px-1 gap-1 ${
-                      activeTab === tab.id
-                        ? "text-primary bg-primary/10"
-                        : "text-muted-foreground hover:text-primary hover:bg-primary/5"
-                    } transition-all duration-200`}
+                    className={`
+                      relative flex flex-col items-center justify-center
+                      ${isTimer ? "min-w-[96px] -mt-8" : "min-w-[72px]"}
+                      h-auto py-2 px-1 gap-1.5
+                      transition-all duration-500 ease-out
+                      ${
+                        isActive
+                          ? `text-primary bg-primary/10 shadow-lg shadow-primary/10 
+                         ${isTimer ? "scale-110" : "scale-105"}`
+                          : `text-muted-foreground hover:text-primary hover:bg-primary/5
+                         ${isTimer ? "hover:scale-105" : "hover:scale-102"}`
+                      }
+                      ${isTimer ? "rounded-2xl border border-border/50 bg-background/80" : ""}
+                    `}
                   >
                     <div className="relative">
-                      <Icon className="h-5 w-5" />
-                      {activeTab === tab.id && (
-                        <span className="absolute -bottom-3 left-1/2 w-1 h-1 bg-primary rounded-full transform -translate-x-1/2" />
-                      )}
+                      <Icon
+                        className={`transition-all duration-500
+                          ${isTimer ? "h-6 w-6" : "h-5 w-5"}
+                          ${isActive ? "scale-110 text-primary" : ""}
+                          ${isTimer && !isActive ? "animate-bounce-subtle" : ""}
+                        `}
+                      />
+                      <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-10 h-0.5 rounded-full overflow-hidden">
+                        {isActive && (
+                          <div className="w-full h-full bg-primary animate-slide-out-up" />
+                        )}
+                      </div>
                     </div>
-                    <span className="text-xs font-medium">{tab.label}</span>
+                    <span
+                      className={`text-xs font-medium transition-all duration-300
+                      ${isActive ? "font-semibold" : ""}
+                      ${isTimer ? "text-sm" : ""}
+                    `}
+                    >
+                      {tab.label}
+                    </span>
+                    {isTimer && (
+                      <div className="absolute inset-0 bg-gradient-to-t from-primary/5 via-transparent to-transparent rounded-2xl pointer-events-none" />
+                    )}
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent side="top" className="font-medium">
+                <TooltipContent
+                  side="top"
+                  className="font-medium bg-popover/95 backdrop-blur-sm border-border/50 shadow-xl"
+                >
                   {tab.description}
                 </TooltipContent>
               </Tooltip>

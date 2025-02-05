@@ -1,0 +1,142 @@
+# Project Structure Map
+
+modules:
+  core:
+    path: src/
+    description: Core application files and entry points
+    files:
+      - main.tsx
+      - App.tsx
+      - index.css
+      - vite-env.d.ts
+
+  components:
+    path: src/components/
+    description: React components
+    modules:
+      auth:
+        description: Authentication related components
+        files:
+          - AuthPage.tsx
+          - LoginForm.tsx
+          - RegisterForm.tsx
+      
+      timer:
+        description: Time tracking core functionality
+        files:
+          - TimeTracker.tsx
+          - TimeEntry.tsx
+          - TimeEntryList.tsx
+          - SaveTimeEntryDialog.tsx
+      
+      reports:
+        description: Reporting and analytics components
+        files:
+          - ReportsPage.tsx
+          - DailyReport.tsx
+          - WeeklyReport.tsx
+          - ProjectsReport.tsx
+      
+      profile:
+        description: User profile management
+        files:
+          - ProfilePage.tsx
+          - UserProfile.tsx
+          - UserPreferences.tsx
+          - UserSecurity.tsx
+      
+      layouts:
+        description: Layout components
+        files:
+          - MainLayout.tsx
+      
+      ui:
+        description: Shared UI components using shadcn
+        files:
+          - button.tsx
+          - input.tsx
+          - dialog.tsx
+          - select.tsx
+          - card.tsx
+          # ... other UI components
+
+  lib:
+    path: src/lib/
+    description: Core business logic and utilities
+    modules:
+      api:
+        description: API client and data fetching
+        files:
+          - api.ts
+          - apiClient.ts
+      
+      auth:
+        description: Authentication logic
+        files:
+          - auth.ts
+          - index.tsx
+      
+      hooks:
+        description: Custom React hooks
+        files:
+          - useTimer.ts
+          - useTimeEntries.ts
+          - useDebounce.ts
+          - useMemoizedCallback.ts
+      
+      utils:
+        description: Utility functions
+        files:
+          - error.ts
+          - errorTracking.ts
+          - errorBoundary.tsx
+          - logger.ts
+          - performance.ts
+          - storage.ts
+          - time.ts
+          - toast.ts
+          - validation.ts
+
+  config:
+    path: src/config/
+    description: Configuration files
+    files:
+      - index.ts
+      - messages.ts
+      - theme.ts
+
+  types:
+    path: src/types/
+    description: TypeScript type definitions
+    files:
+      - index.ts
+      - supabase.ts
+
+  styles:
+    path: src/styles/
+    description: Global styles and theme configuration
+    files:
+      - base.css
+      - theme.css
+      - design-tokens.ts
+
+dependencies:
+  core:
+    - react
+    - react-dom
+    - react-router-dom
+    - @supabase/supabase-js
+  
+  ui:
+    - tailwindcss
+    - shadcn/ui
+    - lucide-react
+    - class-variance-authority
+    - clsx
+    - tailwind-merge
+
+  dev:
+    - typescript
+    - vite
+    - @vitejs/plugin-react-swc
+    - tempo-devtools

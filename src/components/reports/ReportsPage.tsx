@@ -10,7 +10,7 @@ interface TimeEntry {
   id: string;
   taskName: string;
   projectName: string;
-  duration: string;
+  duration: number;
   startTime: string;
   projectColor: string;
 }
@@ -23,15 +23,47 @@ interface ReportsPageProps {
 export function ReportsPage({ entries, onDeleteEntry }: ReportsPageProps) {
   const [activeTab, setActiveTab] = useState("daily");
 
-  const totalDuration = entries.reduce((acc, entry) => {
-    const [hours, minutes] = entry.duration.split("h ")[0].split("h");
-    return acc + (parseInt(hours) * 60 + parseInt(minutes || "0"));
-  }, 0);
+  const calculateTotalDuration = (entries: TimeEntry[]) => {
+    return entries.reduce((acc, entry) => {
+      const duration =
+        typeof entry.duration === "number" ? Math.max(0, entry.duration) : 0;
+      return acc + duration;
+    }, 0);
+  };
 
-  const formatTotalDuration = (minutes: number) => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return `${hours}h ${mins}m`;
+  const getDailyEntries = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    return entries.filter((entry) => {
+      const entryDate = new Date(entry.startTime);
+      entryDate.setHours(0, 0, 0, 0);
+      return entryDate.getTime() === today.getTime();
+    });
+  };
+
+  const getWeeklyEntries = () => {
+    const today = new Date();
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay()); // Start from Sunday
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    return entries.filter((entry) => {
+      const entryDate = new Date(entry.startTime);
+      return entryDate >= startOfWeek;
+    });
+  };
+
+  const totalDuration = calculateTotalDuration(
+    activeTab === "daily" ? getDailyEntries() : getWeeklyEntries(),
+  );
+
+  const formatTotalDuration = (seconds: number) => {
+    if (!seconds || isNaN(seconds)) return "0h 0m 0s";
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const remainingSeconds = seconds % 60;
+    return `${hours}h ${minutes}m ${remainingSeconds}s`;
   };
 
   return (
