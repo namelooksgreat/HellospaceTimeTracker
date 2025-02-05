@@ -19,8 +19,8 @@ export function ProjectsReport({ entries }: ProjectsReportProps) {
   // Group entries by project and calculate total duration
   const projectStats = entries.reduce(
     (acc, entry) => {
-      const [hours, minutes] = entry.duration.split("h ")[0].split("h");
-      const duration = parseInt(hours) * 60 + parseInt(minutes || "0");
+      const duration = typeof entry.duration === "number" ? entry.duration : 0;
+      const durationInMinutes = Math.floor(duration / 60);
 
       if (!acc[entry.projectName]) {
         acc[entry.projectName] = {
@@ -28,7 +28,7 @@ export function ProjectsReport({ entries }: ProjectsReportProps) {
           color: entry.projectColor,
         };
       }
-      acc[entry.projectName].duration += duration;
+      acc[entry.projectName].duration += durationInMinutes;
       return acc;
     },
     {} as Record<string, { duration: number; color: string }>,

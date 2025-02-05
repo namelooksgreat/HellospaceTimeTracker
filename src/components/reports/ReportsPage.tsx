@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { DailyReport } from "./DailyReport";
 import { WeeklyReport } from "./WeeklyReport";
 import { ProjectsReport } from "./ProjectsReport";
-import { Calendar, BarChart2, PieChart } from "lucide-react";
+import { BarChart2, Calendar, PieChart, Clock } from "lucide-react";
 
 interface TimeEntry {
   id: string;
@@ -68,21 +68,23 @@ export function ReportsPage({ entries, onDeleteEntry }: ReportsPageProps) {
 
   return (
     <Card className="bg-background/50 backdrop-blur-sm border-border/50 shadow-sm overflow-hidden sm:rounded-lg rounded-none border-x-0 sm:border-x">
-      <CardHeader className="p-6 pb-0">
-        <div className="flex items-start justify-between gap-4">
-          <div className="space-y-1.5">
-            <CardTitle className="text-xl font-semibold tracking-tight flex items-center gap-2">
-              <BarChart2 className="h-5 w-5 text-primary" />
+      <CardContent className="p-6">
+        <div className="mb-6">
+          <div className="flex items-center gap-2">
+            <div className="p-2 rounded-xl bg-primary/10 text-primary ring-1 ring-primary/20">
+              <BarChart2 className="h-5 w-5" />
+            </div>
+            <CardTitle className="text-xl font-semibold tracking-tight">
               Time Reports
             </CardTitle>
-            <div className="text-sm text-muted-foreground">
-              Total Time: {formatTotalDuration(totalDuration)}
+          </div>
+          <div className="flex items-center gap-2 mt-2.5 text-sm text-muted-foreground">
+            <div className="flex items-center gap-1.5">
+              <Clock className="h-4 w-4" />
+              <span>{formatTotalDuration(totalDuration)}</span>
             </div>
           </div>
         </div>
-      </CardHeader>
-
-      <CardContent className="p-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="w-full h-10 p-1 bg-muted/50 rounded-lg">
             <TabsTrigger
