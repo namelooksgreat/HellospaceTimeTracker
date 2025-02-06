@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Suspense, lazy } from "react";
+import React, { useState, useEffect, Suspense, lazy, useMemo } from "react";
 import { Navigate } from "react-router-dom";
 import { MainLayout } from "./layouts/MainLayout";
 import { useAuth } from "@/lib/auth";
@@ -16,22 +16,18 @@ import {
 } from "@/lib/api";
 
 // Lazy load components for better performance
-const TimeTracker = lazy(() =>
-  import("./TimeTracker").then((module) => {
-    return { default: module.default };
-  }),
-);
+const TimeTracker = lazy(() => import("./TimeTracker"));
 
 const ReportsPage = lazy(() =>
-  import("./reports/ReportsPage").then((module) => {
-    return { default: module.ReportsPage };
-  }),
+  import("./reports/ReportsPage").then((module) => ({
+    default: module.ReportsPage,
+  })),
 );
 
 const ProfilePage = lazy(() =>
-  import("./profile/ProfilePage").then((module) => {
-    return { default: module.ProfilePage };
-  }),
+  import("./profile/ProfilePage").then((module) => ({
+    default: module.ProfilePage,
+  })),
 );
 
 function Home() {
@@ -49,20 +45,39 @@ function Home() {
     if (!session) return;
     try {
       const timeEntriesData = await getTimeEntries();
-      setTimeEntries(timeEntriesData);
+      console.debug("Fetched time entries:", timeEntriesData);
+      if (Array.isArray(timeEntriesData)) {
+        setTimeEntries(timeEntriesData);
+      } else {
+        console.error("Invalid time entries data:", timeEntriesData);
+        setTimeEntries([]);
+      }
     } catch (error) {
+      console.error("Error fetching time entries:", error);
       handleError(error, "Home");
+      setTimeEntries([]);
     }
   };
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!session?.user) return;
+      if (!session?.user) {
+        console.debug("No session user, skipping data fetch");
+        return;
+      }
+      console.debug("Fetching data for user:", session.user.id);
 
       try {
         setLoading(true);
+        console.debug("Starting data fetch...");
         const [projectsData, customersData, timeEntriesData] =
           await Promise.all([getProjects(), getCustomers(), getTimeEntries()]);
+
+        console.debug("Data fetch results:", {
+          projectsCount: projectsData?.length || 0,
+          customersCount: customersData?.length || 0,
+          timeEntriesCount: timeEntriesData?.length || 0,
+        });
 
         setProjects(projectsData || []);
         setCustomers(customersData || []);
@@ -87,28 +102,6 @@ function Home() {
     } catch (error) {
       handleError(error, "Home");
     }
-  };
-
-  const formatTimeEntry = (entry: TimeEntry) => {
-    const startTime = new Date(entry.start_time);
-    const timeStr = startTime.toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    });
-
-    const duration =
-      typeof entry.duration === "number" ? Math.max(0, entry.duration) : 0;
-
-    return {
-      id: entry.id,
-      taskName: entry.task_name,
-      projectName: entry.project?.name || "No Project",
-      duration: duration,
-      startTime: timeStr,
-      projectColor: entry.project?.color || "#94A3B8",
-      createdAt: entry.created_at,
-    };
   };
 
   if (!session?.user) {
@@ -145,7 +138,9 @@ function Home() {
             )}
             {activeTab === "reports" && (
               <ReportsPage
-                entries={timeEntries.map(formatTimeEntry)}
+                entries={timeEntries}
+                projects={projects}
+                customers={customers}
                 onDeleteEntry={handleDeleteTimeEntry}
               />
             )}

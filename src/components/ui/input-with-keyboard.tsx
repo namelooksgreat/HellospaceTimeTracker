@@ -21,7 +21,7 @@ const InputWithKeyboard = React.forwardRef<
   const mergedRef = (node: HTMLInputElement) => {
     if (typeof ref === "function") ref(node);
     else if (ref) ref.current = node;
-    inputRef.current = node;
+    if (inputRef) inputRef.current = node;
   };
 
   const handleKeyPress = (key: string) => {

@@ -8,17 +8,12 @@ export interface TimerData {
   startTime: string | null;
   mode: TimerMode;
   pomodoroMode?: PomodoroMode;
+  taskName?: string;
+  projectId?: string;
+  customerId?: string;
 }
 
-export interface TimeEntry {
-  id: string;
-  taskName: string;
-  projectName: string;
-  duration: number;
-  startTime: string;
-  createdAt: string;
-  projectColor: string;
-  description?: string;
-  projectId?: string;
-  tags?: string[];
+export interface TimerError extends Error {
+  code?: string;
+  context?: Record<string, unknown>;
 }

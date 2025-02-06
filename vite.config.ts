@@ -21,12 +21,19 @@ export default defineConfig({
     },
   },
   build: {
-    sourcemap: true,
-    minify: "terser",
-    terserOptions: {
-      format: {
-        comments: false,
+    sourcemap: process.env.TEMPO === "true" ? true : false,
+    minify: false,
+    rollupOptions: {
+      output: {
+        manualChunks: undefined,
       },
+    },
+  },
+  base: "/",
+  optimizeDeps: {
+    exclude: ["framer-motion"],
+    esbuildOptions: {
+      sourcemap: false,
     },
   },
 });

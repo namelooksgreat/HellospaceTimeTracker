@@ -5,11 +5,22 @@ import { LoadingPage } from "./components/ui/loading-spinner";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { useAuth } from "./lib/auth";
 import { AuthPage } from "./components/auth/AuthPage";
+
 // Optimize code splitting with prefetch
-const Home = lazy(() => import("./components/home"));
+const Home = lazy(() =>
+  import("./components/home").then((mod) => ({ default: mod.default })),
+);
 const TimeTracker = lazy(() => import("./components/TimeTracker"));
-const ReportsPage = lazy(() => import("./components/reports/ReportsPage"));
-const ProfilePage = lazy(() => import("./components/profile/ProfilePage"));
+const ReportsPage = lazy(() =>
+  import("./components/reports/ReportsPage").then((mod) => ({
+    default: mod.ReportsPage,
+  })),
+);
+const ProfilePage = lazy(() =>
+  import("./components/profile/ProfilePage").then((mod) => ({
+    default: mod.ProfilePage,
+  })),
+);
 
 export default function App() {
   const { session, loading } = useAuth();

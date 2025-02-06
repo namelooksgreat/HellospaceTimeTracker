@@ -1,0 +1,43 @@
+import { TimerState } from "@/types";
+
+export class TimerManager {
+  private static instance: TimerManager;
+  private intervals: Map<string, NodeJS.Timeout>;
+
+  private constructor() {
+    this.intervals = new Map();
+  }
+
+  static getInstance(): TimerManager {
+    if (!TimerManager.instance) {
+      TimerManager.instance = new TimerManager();
+    }
+    return TimerManager.instance;
+  }
+
+  startInterval(userId: string, callback: () => void): void {
+    this.stopInterval(userId);
+    const interval = setInterval(callback, 1000);
+    this.intervals.set(userId, interval);
+  }
+
+  stopInterval(userId: string): void {
+    const interval = this.intervals.get(userId);
+    if (interval) {
+      clearInterval(interval);
+      this.intervals.delete(userId);
+    }
+  }
+
+  cleanup(): void {
+    this.intervals.forEach((interval) => clearInterval(interval));
+    this.intervals.clear();
+  }
+}
+
+// Add cleanup listeners
+if (typeof window !== "undefined") {
+  const timerManager = TimerManager.getInstance();
+  window.addEventListener("unload", () => timerManager.cleanup());
+  window.addEventListener("beforeunload", () => timerManager.cleanup());
+}

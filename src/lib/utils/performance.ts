@@ -1,3 +1,35 @@
+export const debounce = <T extends (...args: any[]) => any>(
+  func: T,
+  wait: number,
+) => {
+  let timeout: NodeJS.Timeout;
+
+  return function executedFunction(...args: Parameters<T>) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+};
+
+export const throttle = <T extends (...args: any[]) => any>(
+  func: T,
+  limit: number,
+) => {
+  let inThrottle: boolean;
+
+  return function executedFunction(...args: Parameters<T>) {
+    if (!inThrottle) {
+      func(...args);
+      inThrottle = true;
+      setTimeout(() => (inThrottle = false), limit);
+    }
+  };
+};
+
 export const measurePerformance = (name: string) => {
   const start = performance.now();
   return () => {
@@ -6,19 +38,4 @@ export const measurePerformance = (name: string) => {
     console.debug(`[Performance] ${name}: ${duration.toFixed(2)}ms`);
     return duration;
   };
-};
-
-export const withPerformanceTracking = <T extends (...args: any[]) => any>(
-  fn: T,
-  name: string,
-): T => {
-  return ((...args: Parameters<T>) => {
-    const end = measurePerformance(name);
-    const result = fn(...args);
-    if (result instanceof Promise) {
-      return result.finally(end);
-    }
-    end();
-    return result;
-  }) as T;
 };

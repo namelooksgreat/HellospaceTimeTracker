@@ -2,21 +2,27 @@ import { ScrollArea } from "../ui/scroll-area";
 import TimeEntry from "../TimeEntry";
 import { Clock } from "lucide-react";
 
-interface TimeEntry {
+interface TimeEntryDisplay {
   id: string;
   taskName: string;
   projectName: string;
-  duration: string;
+  duration: number;
   startTime: string;
+  createdAt: string;
   projectColor: string;
 }
 
 interface DailyReportProps {
-  entries: TimeEntry[];
+  entries: TimeEntryDisplay[];
   onDeleteEntry?: (id: string) => void;
+  onEditEntry?: (id: string) => void;
 }
 
-export function DailyReport({ entries, onDeleteEntry }: DailyReportProps) {
+export function DailyReport({
+  entries = [],
+  onDeleteEntry,
+  onEditEntry,
+}: DailyReportProps) {
   return (
     <ScrollArea className="h-[calc(100vh-20rem)] sm:h-[500px]">
       <div className="space-y-2">
@@ -28,8 +34,10 @@ export function DailyReport({ entries, onDeleteEntry }: DailyReportProps) {
               projectName={entry.projectName}
               duration={entry.duration}
               startTime={entry.startTime}
+              createdAt={entry.createdAt}
               projectColor={entry.projectColor}
               onDelete={() => onDeleteEntry?.(entry.id)}
+              onEdit={() => onEditEntry?.(entry.id)}
             />
           ))
         ) : (

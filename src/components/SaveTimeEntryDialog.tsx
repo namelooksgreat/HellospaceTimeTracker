@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { STORAGE_CONSTANTS } from "@/lib/constants/storage";
 import { Building2, Clock } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -12,7 +13,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "./ui/dialog";
 
 interface SaveTimeEntryDialogProps {
   open: boolean;
@@ -49,13 +56,44 @@ export function SaveTimeEntryDialog({
   duration,
   onSave,
 }: SaveTimeEntryDialogProps) {
-  const [formData, setFormData] = useState({
-    taskName: initialTaskName,
-    projectId: initialProjectId,
-    customerId: initialCustomerId,
-    description: "",
-    tags: [] as string[],
+  const [formData, setFormData] = useState<{
+    taskName: string;
+    projectId: string;
+    customerId: string;
+    description: string;
+    tags: string[];
+  }>(() => {
+    const saved = localStorage.getItem(STORAGE_CONSTANTS.TIMER.KEY);
+    const savedData = saved ? JSON.parse(saved) : {};
+    return {
+      taskName: savedData.taskName || initialTaskName,
+      projectId: savedData.projectId || initialProjectId,
+      customerId: savedData.customerId || initialCustomerId,
+      description: "",
+      tags: [] as string[],
+    };
   });
+
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === STORAGE_CONSTANTS.TIMER.KEY && e.newValue) {
+        try {
+          const savedData = JSON.parse(e.newValue);
+          setFormData((prev) => ({
+            ...prev,
+            taskName: savedData.taskName || "",
+            projectId: savedData.projectId || "",
+            customerId: savedData.customerId || "",
+          }));
+        } catch (error) {
+          console.error("Error parsing storage data:", error);
+        }
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
 
   const formatDuration = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
@@ -71,6 +109,10 @@ export function SaveTimeEntryDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg w-full p-0 gap-0 overflow-hidden rounded-2xl border-border/50 shadow-xl dark:shadow-2xl dark:shadow-primary/10">
+        <DialogDescription className="sr-only">
+          Save your time entry details including task name, project, and
+          description
+        </DialogDescription>
         <DialogHeader className="sticky top-0 z-10 p-4 sm:p-6 bg-gradient-to-b from-background via-background to-background/80 backdrop-blur-xl border-b border-border/50">
           <div className="flex items-center gap-2 text-primary">
             <Clock className="h-5 w-5" />

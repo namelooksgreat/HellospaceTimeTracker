@@ -9,29 +9,34 @@ import {
   TableHeader,
   TableRow,
 } from "../ui/table";
-import { Input } from "../ui/input";
-import { useAuth } from "@/lib/AuthContext";
-import { getUsers, updateUserRole } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
+import { supabase } from "@/lib/supabase";
+import { handleError } from "@/lib/utils/error-handler";
+
+interface User {
+  id: string;
+  email: string;
+  role: string;
+  full_name: string;
+}
 
 export function AdminPage() {
   const { user } = useAuth();
-  const [users, setUsers] = useState<
-    Array<{
-      id: string;
-      email: string;
-      role: string;
-      full_name: string;
-    }>
-  >([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadUsers = async () => {
       try {
-        const data = await getUsers();
-        setUsers(data);
+        const { data, error } = await supabase
+          .from("users")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (error) throw error;
+        setUsers(data || []);
       } catch (error) {
-        console.error("Error loading users:", error);
+        handleError(error, "AdminPage");
       } finally {
         setLoading(false);
       }
@@ -42,12 +47,18 @@ export function AdminPage() {
 
   const handleRoleChange = async (userId: string, newRole: string) => {
     try {
-      await updateUserRole(userId, newRole);
-      setUsers(
-        users.map((u) => (u.id === userId ? { ...u, role: newRole } : u)),
+      const { error } = await supabase
+        .from("users")
+        .update({ role: newRole })
+        .eq("id", userId);
+
+      if (error) throw error;
+
+      setUsers((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u)),
       );
     } catch (error) {
-      console.error("Error updating user role:", error);
+      handleError(error, "AdminPage");
     }
   };
 

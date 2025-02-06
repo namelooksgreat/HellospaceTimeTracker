@@ -29,18 +29,8 @@ class ApiClient {
 
   private async handleRequest<T>(
     operation: () => Promise<{ data: T | null; error: any }>,
-    cacheKey?: string,
   ): Promise<T> {
     let lastError: Error | null = null;
-
-    // Check cache first
-    if (cacheKey) {
-      const cached = this.cache.get(cacheKey);
-      if (cached && this.isCacheValid(cached.timestamp)) {
-        logger.debug(`Cache hit for ${cacheKey}`);
-        return cached.data;
-      }
-    }
 
     for (let attempt = 1; attempt <= this.retryCount; attempt++) {
       try {
@@ -49,12 +39,7 @@ class ApiClient {
         if (error) throw error;
         if (!data) throw new Error("No data returned");
 
-        // Update cache
-        if (cacheKey) {
-          this.cache.set(cacheKey, { data, timestamp: Date.now() });
-        }
-
-        return data;
+        return data as T;
       } catch (error) {
         lastError = error as Error;
         logger.warn(
@@ -73,25 +58,35 @@ class ApiClient {
     throw lastError;
   }
 
-  async get<T>(table: string, params?: QueryParams): Promise<T> {
+  async get<T>(table: string, params?: QueryParams): Promise<T[]> {
     const cacheKey = this.getCacheKey(table, params);
 
-    return this.handleRequest(() => {
-      let query = supabase.from(table).select("*");
+    // Check cache first
+    const cached = this.cache.get(cacheKey);
+    if (cached && this.isCacheValid(cached.timestamp)) {
+      logger.debug(`Cache hit for ${cacheKey}`);
+      return cached.data;
+    }
 
-      if (params) {
-        Object.entries(params).forEach(([key, value]) => {
-          query = query.eq(key, value);
-        });
-      }
+    let query = supabase.from(table).select("*");
 
-      return query;
-    }, cacheKey);
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        query = query.eq(key, value);
+      });
+    }
+
+    const data = await this.handleRequest<T[]>(() => query as any);
+
+    // Update cache
+    this.cache.set(cacheKey, { data, timestamp: Date.now() });
+
+    return data;
   }
 
   async post<T>(table: string, data: Partial<T>): Promise<T> {
-    const result = await this.handleRequest(() =>
-      supabase.from(table).insert(data).select().single(),
+    const result = await this.handleRequest<T>(
+      () => supabase.from(table).insert([data]).select().single() as any,
     );
 
     // Invalidate cache for this table
@@ -101,8 +96,9 @@ class ApiClient {
   }
 
   async put<T>(table: string, id: string, data: Partial<T>): Promise<T> {
-    const result = await this.handleRequest(() =>
-      supabase.from(table).update(data).eq("id", id).select().single(),
+    const result = await this.handleRequest<T>(
+      () =>
+        supabase.from(table).update(data).eq("id", id).select().single() as any,
     );
 
     // Invalidate cache for this table
@@ -112,7 +108,9 @@ class ApiClient {
   }
 
   async delete(table: string, id: string): Promise<void> {
-    await this.handleRequest(() => supabase.from(table).delete().eq("id", id));
+    await this.handleRequest(
+      () => supabase.from(table).delete().eq("id", id) as any,
+    );
 
     // Invalidate cache for this table
     this.invalidateCache(table);

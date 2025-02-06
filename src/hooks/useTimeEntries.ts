@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
-import { TimeEntry } from "@/lib/api";
+import { TimeEntry } from "@/types";
 import { createTimeEntry, deleteTimeEntry, getTimeEntries } from "@/lib/api";
-import { handleApiError } from "@/lib/utils/error";
+import { handleError } from "@/lib/utils/error";
 
 export function useTimeEntries() {
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
@@ -12,23 +12,20 @@ export function useTimeEntries() {
       const entries = await getTimeEntries();
       setTimeEntries(entries);
     } catch (error) {
-      handleApiError(error);
+      handleError(error);
     } finally {
       setLoading(false);
     }
   }, []);
 
   const addTimeEntry = useCallback(
-    async (
-      entry: Omit<TimeEntry, "id" | "created_at" | "user_id">,
-      tags?: string[],
-    ) => {
+    async (entry: Omit<TimeEntry, "id" | "created_at" | "user_id">) => {
       try {
-        const newEntry = await createTimeEntry(entry, tags);
+        const newEntry = await createTimeEntry(entry);
         setTimeEntries((prev) => [newEntry, ...prev]);
         return newEntry;
       } catch (error) {
-        handleApiError(error);
+        handleError(error);
       }
     },
     [],
@@ -39,7 +36,7 @@ export function useTimeEntries() {
       await deleteTimeEntry(id);
       setTimeEntries((prev) => prev.filter((entry) => entry.id !== id));
     } catch (error) {
-      handleApiError(error);
+      handleError(error);
     }
   }, []);
 

@@ -1,6 +1,6 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
+import { STORAGE_CONSTANTS } from "@/lib/constants/storage";
 import { useMemoizedCallback } from "@/hooks/useMemoizedCallback";
-import { STORAGE_KEYS } from "@/lib/constants";
 import { useTimerStore } from "@/store/timerStore";
 import { createTimeEntry } from "@/lib/api";
 import { Button } from "./ui/button";
@@ -33,24 +33,61 @@ interface TimeTrackerProps {
   onTimeEntrySaved?: () => void;
 }
 
-const TimeTracker = ({
+function TimeTracker({
   projects = [],
   customers = [],
   availableTags = [],
   onTimeEntrySaved,
-}: TimeTrackerProps) => {
-  const [taskName, setTaskName] = useState(
-    () => localStorage.getItem(STORAGE_KEYS.LAST_TASK_NAME) || "",
-  );
-  const [selectedProject, setSelectedProject] = useState(
-    () => localStorage.getItem(STORAGE_KEYS.SELECTED_PROJECT_ID) || "",
-  );
-  const [selectedCustomer, setSelectedCustomer] = useState(
-    () => localStorage.getItem(STORAGE_KEYS.SELECTED_CUSTOMER_ID) || "",
-  );
+}: TimeTrackerProps) {
+  const [taskName, setTaskName] = useState(() => {
+    try {
+      const saved = localStorage.getItem("timer_data");
+      const savedData = saved ? JSON.parse(saved) : {};
+      return savedData.taskName || "";
+    } catch (error) {
+      console.error("Error loading timer data:", error);
+      return "";
+    }
+  });
+
+  const [selectedProject, setSelectedProject] = useState(() => {
+    try {
+      const saved = localStorage.getItem("timer_data");
+      const savedData = saved ? JSON.parse(saved) : {};
+      return savedData.projectId || "";
+    } catch (error) {
+      console.error("Error loading timer data:", error);
+      return "";
+    }
+  });
+
+  const [selectedCustomer, setSelectedCustomer] = useState(() => {
+    try {
+      const saved = localStorage.getItem("timer_data");
+      const savedData = saved ? JSON.parse(saved) : {};
+      return savedData.customerId || "";
+    } catch (error) {
+      console.error("Error loading timer data:", error);
+      return "";
+    }
+  });
+
   const [showSaveDialog, setShowSaveDialog] = useState(false);
 
-  const { state, time, start, pause, resume, stop, reset } = useTimerStore();
+  const { state, time, start, pause, resume, stop, reset, setTime } =
+    useTimerStore();
+
+  const saveToLocalStorage = (data: {
+    taskName: string;
+    projectId: string;
+    customerId: string;
+  }) => {
+    try {
+      localStorage.setItem("timer_data", JSON.stringify(data));
+    } catch (error) {
+      console.error("Error saving timer data:", error);
+    }
+  };
 
   const formatTime = useCallback((seconds: number) => {
     const h = Math.floor(seconds / 3600);
@@ -61,13 +98,14 @@ const TimeTracker = ({
 
   const formattedTime = formatTime(time);
 
-  const selectedProjectData = projects.find((p) => p.id === selectedProject);
-  const selectedCustomerData = customers.find((c) => c.id === selectedCustomer);
-
   const handleTimerAction = useMemoizedCallback(() => {
-    if (state === "stopped") start();
-    else if (state === "running") pause();
-    else if (state === "paused") resume();
+    try {
+      if (state === "stopped") start();
+      else if (state === "running") pause();
+      else if (state === "paused") resume();
+    } catch (error) {
+      handleError(error, "TimeTracker");
+    }
   }, [state, start, pause, resume]);
 
   const handleStop = useMemoizedCallback(() => {
@@ -78,16 +116,10 @@ const TimeTracker = ({
   const handleReset = useMemoizedCallback(() => {
     stop();
     reset();
-    localStorage.removeItem(STORAGE_KEYS.TIMER_STATE);
-    localStorage.removeItem(STORAGE_KEYS.TIMER_START);
-    localStorage.removeItem(STORAGE_KEYS.TIMER_ELAPSED);
-    setTaskName(localStorage.getItem(STORAGE_KEYS.LAST_TASK_NAME) || "");
-    setSelectedProject(
-      localStorage.getItem(STORAGE_KEYS.SELECTED_PROJECT_ID) || "",
-    );
-    setSelectedCustomer(
-      localStorage.getItem(STORAGE_KEYS.SELECTED_CUSTOMER_ID) || "",
-    );
+    setTaskName("");
+    setSelectedProject("");
+    setSelectedCustomer("");
+    localStorage.removeItem("timer_data");
   }, [stop, reset]);
 
   const handleSaveTimeEntry = useMemoizedCallback(
@@ -157,6 +189,7 @@ const TimeTracker = ({
           </div>
         </div>
 
+        {/* Customer and Project Selection */}
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1">
             <Label className="text-sm font-medium" htmlFor="customer-select">
@@ -167,7 +200,11 @@ const TimeTracker = ({
               onValueChange={(value) => {
                 setSelectedCustomer(value);
                 setSelectedProject("");
-                localStorage.setItem(STORAGE_KEYS.SELECTED_CUSTOMER_ID, value);
+                saveToLocalStorage({
+                  taskName,
+                  projectId: "",
+                  customerId: value,
+                });
               }}
             >
               <SelectTrigger
@@ -201,7 +238,11 @@ const TimeTracker = ({
               value={selectedProject}
               onValueChange={(value) => {
                 setSelectedProject(value);
-                localStorage.setItem(STORAGE_KEYS.SELECTED_PROJECT_ID, value);
+                saveToLocalStorage({
+                  taskName,
+                  projectId: value,
+                  customerId: selectedCustomer,
+                });
               }}
               disabled={!selectedCustomer}
             >
@@ -240,6 +281,7 @@ const TimeTracker = ({
           </div>
         </div>
 
+        {/* Task Name Input */}
         <div className="space-y-1">
           <Label className="text-sm font-medium" htmlFor="task-name">
             Task Name
@@ -250,8 +292,37 @@ const TimeTracker = ({
             placeholder="What are you working on?"
             value={taskName}
             onChange={(e) => {
-              setTaskName(e.target.value);
-              localStorage.setItem(STORAGE_KEYS.LAST_TASK_NAME, e.target.value);
+              const newValue = e.target.value;
+              setTaskName(newValue);
+              // Save to localStorage immediately and trigger storage event
+              const timerData = {
+                taskName: newValue,
+                projectId: selectedProject,
+                customerId: selectedCustomer,
+              };
+              try {
+                localStorage.setItem(
+                  STORAGE_CONSTANTS.TIMER.KEY,
+                  JSON.stringify(timerData),
+                );
+
+                // Dispatch storage event for real-time sync
+                window.dispatchEvent(
+                  new StorageEvent("storage", {
+                    key: STORAGE_CONSTANTS.TIMER.KEY,
+                    newValue: JSON.stringify(timerData),
+                  }),
+                );
+              } catch (error) {
+                handleError(error, "TimeTracker");
+              }
+              // Dispatch storage event for real-time sync
+              window.dispatchEvent(
+                new StorageEvent("storage", {
+                  key: STORAGE_CONSTANTS.TIMER.KEY,
+                  newValue: JSON.stringify(timerData),
+                }),
+              );
             }}
             onKeyDown={(e) => {
               if (e.key === "Enter" && state === "stopped") {
@@ -262,6 +333,7 @@ const TimeTracker = ({
           />
         </div>
 
+        {/* Timer Controls */}
         <div className="flex gap-2 pt-1">
           <Button
             onClick={handleTimerAction}
@@ -275,15 +347,11 @@ const TimeTracker = ({
               animate-slide-out-up
             `}
           >
-            {state === "stopped" && (
-              <>
+            {(state === "stopped" || !state) && (
+              <div className="flex items-center gap-2">
                 <Play className="h-4 w-4 animate-pulse" />
-                <span className="relative inline-block overflow-hidden">
-                  <span className="inline-block animate-slide-out-up">
-                    Start Timer
-                  </span>
-                </span>
-              </>
+                <span>Start Timer</span>
+              </div>
             )}
             {state === "running" && (
               <>
@@ -315,6 +383,7 @@ const TimeTracker = ({
           </Button>
         </div>
       </CardContent>
+
       <SaveTimeEntryDialog
         open={showSaveDialog}
         onOpenChange={setShowSaveDialog}
@@ -329,6 +398,7 @@ const TimeTracker = ({
       />
     </Card>
   );
-};
+}
 
-export default TimeTracker;
+const MemoizedTimeTracker = React.memo(TimeTracker);
+export default MemoizedTimeTracker;

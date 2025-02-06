@@ -1,17 +1,22 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import { useAuthStore } from "@/store/authStore";
+import { AvatarService } from "@/lib/services/avatarService";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Card, CardContent } from "../ui/card";
-import { Camera, Loader2 } from "lucide-react";
+import { Camera, Loader2, LogOut } from "lucide-react";
 import { handleError } from "@/lib/utils/error-handler";
+import { showSuccess } from "@/lib/utils/toast";
 
 interface UserProfileProps {
   user: {
+    id: string;
     email: string;
     full_name?: string;
+    avatar_url?: string;
   };
 }
 
@@ -45,11 +50,56 @@ export function UserProfile({ user }: UserProfileProps) {
     fetchUserData();
   }, []);
 
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      setLoading(true);
+
+      // Delete old avatar first
+      await AvatarService.deleteOldAvatar(user.id);
+
+      // Upload new avatar
+      const { publicUrl, error } = await AvatarService.uploadAvatar(
+        file,
+        user.id,
+      );
+
+      if (error) throw error;
+
+      // Update avatar image in UI
+      const avatarImage = document.querySelector(
+        "#profile-avatar",
+      ) as HTMLImageElement;
+      if (avatarImage) {
+        avatarImage.src = publicUrl;
+      }
+
+      showSuccess("Profil fotoğrafı güncellendi");
+    } catch (error) {
+      handleError(error, "UserProfile");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // TODO: Implement profile update
-    setTimeout(() => setLoading(false), 1000);
+
+    try {
+      const { error } = await supabase.auth.updateUser({
+        data: { full_name: formData.full_name },
+      });
+
+      if (error) throw error;
+      showSuccess("Profil başarıyla güncellendi");
+    } catch (error) {
+      handleError(error, "UserProfile");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -59,7 +109,11 @@ export function UserProfile({ user }: UserProfileProps) {
           <div className="flex items-center gap-6">
             <Avatar className="w-20 h-20">
               <AvatarImage
-                src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`}
+                id="profile-avatar"
+                src={
+                  user.avatar_url ||
+                  `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`
+                }
               />
               <AvatarFallback>
                 {user.full_name?.[0] || user.email[0]}
@@ -70,14 +124,33 @@ export function UserProfile({ user }: UserProfileProps) {
                 {user.full_name || "Add your name"}
               </h3>
               <p className="text-sm text-muted-foreground">{user.email}</p>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="mt-2"
-              >
-                <Camera className="h-4 w-4 mr-2" /> Change Photo
-              </Button>
+              <div className="relative">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarChange}
+                  className="hidden"
+                  id="avatar-upload"
+                  disabled={loading}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="mt-2"
+                  disabled={loading}
+                  onClick={() =>
+                    document.getElementById("avatar-upload")?.click()
+                  }
+                >
+                  {loading ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Camera className="h-4 w-4 mr-2" />
+                  )}
+                  Fotoğraf Değiştir
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -111,10 +184,26 @@ export function UserProfile({ user }: UserProfileProps) {
         </CardContent>
       </Card>
 
-      <div className="flex justify-end">
+      <div className="flex justify-between items-center">
+        <Button
+          type="button"
+          variant="destructive"
+          onClick={async () => {
+            try {
+              await useAuthStore.getState().signOut();
+            } catch (error) {
+              handleError(error, "UserProfile");
+            }
+          }}
+          className="gap-2"
+        >
+          <LogOut className="h-4 w-4" />
+          Çıkış Yap
+        </Button>
+
         <Button type="submit" disabled={loading}>
           {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Save Changes
+          Değişiklikleri Kaydet
         </Button>
       </div>
     </form>

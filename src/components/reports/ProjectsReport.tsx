@@ -4,11 +4,14 @@ import { Progress } from "../ui/progress";
 
 interface TimeEntry {
   id: string;
-  taskName: string;
-  projectName: string;
-  duration: string;
-  startTime: string;
-  projectColor: string;
+  task_name: string;
+  project?: {
+    name: string;
+    color: string;
+  } | null;
+  duration: number;
+  start_time: string;
+  created_at: string;
 }
 
 interface ProjectsReportProps {
@@ -22,13 +25,16 @@ export function ProjectsReport({ entries }: ProjectsReportProps) {
       const duration = typeof entry.duration === "number" ? entry.duration : 0;
       const durationInMinutes = Math.floor(duration / 60);
 
-      if (!acc[entry.projectName]) {
-        acc[entry.projectName] = {
+      const projectName = entry.project?.name || "No Project";
+      const projectColor = entry.project?.color || "#94A3B8";
+
+      if (!acc[projectName]) {
+        acc[projectName] = {
           duration: 0,
-          color: entry.projectColor,
+          color: projectColor,
         };
       }
-      acc[entry.projectName].duration += durationInMinutes;
+      acc[projectName].duration += durationInMinutes;
       return acc;
     },
     {} as Record<string, { duration: number; color: string }>,
@@ -68,7 +74,7 @@ export function ProjectsReport({ entries }: ProjectsReportProps) {
                 <Progress
                   value={(duration / totalDuration) * 100}
                   className="h-2"
-                  indicatorClassName={`bg-[${color}]`}
+                  style={{ "--progress-color": color }}
                 />
               </div>
             ),

@@ -1,64 +1,148 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
-import type { TimerData } from "@/types/timer";
+import { TimerState, TimerData } from "@/types/timer";
+import { preciseTimer } from "@/lib/services/preciseTimer";
+import { TIMER_CONSTANTS } from "@/lib/constants/timer";
 
-interface TimerStore extends TimerData {
+interface TimerStore {
+  state: TimerState;
+  time: number;
+  taskName: string;
+  projectId: string;
+  customerId: string;
   start: () => void;
   pause: () => void;
   resume: () => void;
   stop: () => void;
   reset: () => void;
   setTime: (time: number) => void;
+  setTaskName: (name: string) => void;
+  setProjectId: (id: string) => void;
+  setCustomerId: (id: string) => void;
 }
 
-let interval: number | undefined;
+const STORAGE_KEY = TIMER_CONSTANTS.STORAGE.KEY;
 
-export const useTimerStore = create<TimerStore>(
-  persist(
-    (set, get) => ({
-      state: "stopped",
-      time: 0,
-      startTime: null,
-      mode: "list",
+export const useTimerStore = create<TimerStore>((set, get) => {
+  const loadState = (): TimerData | null => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (!saved) return null;
 
-      start: () => {
-        clearInterval(interval);
-        const now = new Date().toISOString();
-        set({ state: "running", startTime: now, time: 0 });
-        interval = window.setInterval(() => {
-          set((state) => ({ time: state.time + 1 }));
-        }, 1000);
-      },
+      const state = JSON.parse(saved);
+      if (state.state === "running") {
+        const now = Date.now();
+        const start = new Date(state.startTime).getTime();
+        if (!isNaN(start)) {
+          const elapsed = Math.floor((now - start) / 1000);
+          const totalTime = state.time + elapsed;
 
-      pause: () => {
-        clearInterval(interval);
-        set({ state: "paused", startTime: null });
-      },
+          // Sayfa yüklendiğinde timer'ı otomatik başlat
+          setTimeout(() => {
+            preciseTimer.start((newElapsed) => {
+              set((state) => ({ ...state, time: totalTime + newElapsed }));
+            }, 0);
+          }, 0);
 
-      resume: () => {
-        clearInterval(interval);
-        const now = new Date().toISOString();
-        set({ state: "running", startTime: now });
-        interval = window.setInterval(() => {
-          const { time } = get();
-          set({ time: time + 1 });
-        }, 1000);
-      },
+          return { ...state, time: totalTime };
+        }
+      }
+      return state;
+    } catch (error) {
+      console.error("Error loading timer state:", error);
+      return null;
+    }
+  };
 
-      stop: () => {
-        clearInterval(interval);
-        set({ state: "stopped", startTime: null });
-      },
+  const persistState = (state: Partial<TimerStore>) => {
+    try {
+      const currentState = get();
+      const newState = {
+        ...currentState,
+        ...state,
+        startTime: state.state === "running" ? new Date().toISOString() : null,
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(newState));
+    } catch (error) {
+      console.error("Error saving timer state:", error);
+    }
+  };
 
-      reset: () => {
-        clearInterval(interval);
-        set({ state: "stopped", time: 0, startTime: null });
-      },
+  const savedState = loadState();
 
-      setTime: (time) => set({ time }),
-    }),
-    {
-      name: "timer-storage",
+  return {
+    state: savedState?.state ?? "stopped",
+    time: savedState?.time ?? 0,
+    taskName: savedState?.taskName ?? "",
+    projectId: savedState?.projectId ?? "",
+    customerId: savedState?.customerId ?? "",
+
+    start: () => {
+      set({ state: "running" });
+      persistState({ state: "running", time: 0 });
+
+      preciseTimer.start((elapsed) => {
+        set((state) => ({ ...state, time: elapsed }));
+      }, 0);
     },
-  ),
-);
+
+    pause: () => {
+      preciseTimer.stop();
+      const currentState = get();
+      const newState = { state: "paused" as TimerState };
+      set(newState);
+      persistState({ ...newState, time: currentState.time });
+    },
+
+    resume: () => {
+      const currentTime = get().time;
+      set({ state: "running" });
+      persistState({ state: "running", time: currentTime });
+
+      preciseTimer.start((elapsed) => {
+        set((state) => ({ ...state, time: currentTime + elapsed }));
+      }, currentTime);
+    },
+
+    stop: () => {
+      preciseTimer.stop();
+      const newState = { state: "stopped" as TimerState };
+      set(newState);
+      persistState(newState);
+    },
+
+    reset: () => {
+      preciseTimer.stop();
+      const newState = { state: "stopped" as TimerState, time: 0 };
+      set(newState);
+      persistState(newState);
+    },
+
+    setTime: (time: number) => {
+      const newState = { time: Math.max(0, time) };
+      set(newState);
+      persistState(newState);
+    },
+
+    setTaskName: (name: string) => {
+      const newState = { taskName: name };
+      set(newState);
+      persistState(newState);
+    },
+
+    setProjectId: (id: string) => {
+      const newState = { projectId: id };
+      set(newState);
+      persistState(newState);
+    },
+
+    setCustomerId: (id: string) => {
+      const newState = { customerId: id };
+      set(newState);
+      persistState(newState);
+    },
+  };
+});
+
+export const cleanupTimer = () => {
+  preciseTimer.stop();
+};

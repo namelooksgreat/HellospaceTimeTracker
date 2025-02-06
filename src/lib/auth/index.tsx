@@ -1,27 +1,9 @@
-import { createContext, useContext, useEffect, useState } from "react";
-import { Session } from "@supabase/supabase-js";
+import { useEffect } from "react";
 import { supabase } from "../supabase";
+import { useAuthStore } from "@/store/authStore";
 
-type AuthUser = {
-  id: string;
-  email: string;
-  role?: string;
-};
-
-type AuthContextType = {
-  session: Session | null;
-  loading: boolean;
-  user: AuthUser | null;
-};
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<AuthContextType>({
-    session: null,
-    loading: true,
-    user: null,
-  });
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const { setUser, setSession, setLoading } = useAuthStore();
 
   useEffect(() => {
     let mounted = true;
@@ -30,18 +12,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!mounted) return;
 
       if (session?.user) {
-        setState({
-          session,
-          user: {
-            id: session.user.id,
-            email: session.user.email!,
-            role: "user",
-          },
-          loading: false,
+        setSession(session);
+        setUser({
+          id: session.user.id,
+          email: session.user.email!,
+          role: session.user.user_metadata?.role || "user",
+          avatar_url: session.user.user_metadata?.avatar_url,
+          full_name: session.user.user_metadata?.full_name,
         });
-      } else {
-        setState((prev) => ({ ...prev, loading: false }));
       }
+      setLoading(false);
     });
 
     const {
@@ -50,56 +30,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!mounted) return;
 
       if (session?.user) {
-        setState({
-          session,
-          user: {
-            id: session.user.id,
-            email: session.user.email!,
-            role: "user",
-          },
-          loading: false,
+        setSession(session);
+        setUser({
+          id: session.user.id,
+          email: session.user.email!,
+          role: session.user.user_metadata?.role || "user",
+          avatar_url: session.user.user_metadata?.avatar_url,
+          full_name: session.user.user_metadata?.full_name,
         });
       } else {
-        setState({
-          session: null,
-          user: null,
-          loading: false,
-        });
+        setUser(null);
+        setSession(null);
       }
+      setLoading(false);
     });
 
     return () => {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [setUser, setSession, setLoading]);
 
-  return <AuthContext.Provider value={state}>{children}</AuthContext.Provider>;
-}
+  return children;
+};
 
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
-}
+export const useAuth = () => {
+  const { user, session, loading } = useAuthStore();
+  return { user, session, loading };
+};
 
-export async function login({
+export const login = async ({
   email,
   password,
 }: {
   email: string;
   password: string;
-}) {
+}) => {
   return await supabase.auth.signInWithPassword({ email, password });
-}
+};
 
-export async function register(data: {
+export const register = async (data: {
   email: string;
   password: string;
   full_name: string;
-}) {
+}) => {
   return await supabase.auth.signUp({
     email: data.email,
     password: data.password,
@@ -107,12 +81,12 @@ export async function register(data: {
       data: { full_name: data.full_name },
     },
   });
-}
+};
 
-export async function logout() {
-  return await supabase.auth.signOut();
-}
+export const logout = async () => {
+  return await useAuthStore.getState().signOut();
+};
 
-export async function logoutAllSessions() {
+export const logoutAllSessions = async () => {
   return await supabase.auth.signOut({ scope: "global" });
-}
+};

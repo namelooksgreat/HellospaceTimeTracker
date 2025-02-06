@@ -1,4 +1,6 @@
 import { Timer, BarChart3, Settings2, Play, Pause } from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
+import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { useTimerStore } from "@/store/timerStore";
@@ -11,6 +13,7 @@ interface BottomNavProps {
 }
 
 function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
+  const { user } = useAuth();
   const { state: timerState } = useTimerStore();
   const tabs: Array<{
     id: TabType;
@@ -92,6 +95,18 @@ function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
                       strokeWidth={isActive ? 2.5 : 2}
                     />
                   )
+                ) : tab.id === "profile" ? (
+                  <Avatar className="h-6 w-6 border border-border/50">
+                    <AvatarImage
+                      src={
+                        user?.avatar_url ||
+                        `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.email}`
+                      }
+                    />
+                    <AvatarFallback className="text-xs">
+                      {user?.full_name?.[0] || user?.email?.[0]}
+                    </AvatarFallback>
+                  </Avatar>
                 ) : (
                   <Icon
                     className={cn("transition-all duration-500", "h-6 w-6")}

@@ -20,6 +20,6 @@ export const showInfo = (message: string) => {
   toast({
     title: "Bilgi",
     description: message,
-    variant: "secondary",
+    variant: "default",
   });
 };

@@ -11,7 +11,6 @@ export function ThemeToggle() {
   const handleLogout = async () => {
     try {
       await logoutAllSessions();
-      navigate("/auth");
     } catch (error) {
       console.error("Logout failed:", error);
     }

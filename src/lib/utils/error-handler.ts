@@ -71,7 +71,7 @@ function handleSupabaseError(
       });
       break;
     case "PGRST404":
-      appError = new ValidationError(ERROR_MESSAGES.VALIDATION.INVALID_INPUT, {
+      appError = new ValidationError("Invalid input", {
         code: "VAL002",
         componentName,
       });

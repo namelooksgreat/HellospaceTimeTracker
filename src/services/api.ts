@@ -3,7 +3,7 @@ import { APIError } from "@/lib/utils/error";
 import type { Customer, Project, TimeEntry } from "@/types";
 
 export class ApiService {
-  static async handleError(error: unknown, message: string): never {
+  static async handleError(error: unknown, message: string): Promise<never> {
     console.error(`API Error - ${message}:`, error);
     throw error instanceof APIError ? error : new APIError(message);
   }

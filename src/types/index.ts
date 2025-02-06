@@ -21,10 +21,14 @@ export interface TimeEntry {
   description?: string;
   duration: number;
   start_time: string;
-  project_id?: string;
-  user_id: string;
   created_at: string;
-  project?: Project;
+  user_id: string;
+  project?: {
+    id: string;
+    name: string;
+    color: string;
+    customer_id: string;
+  } | null;
 }
 
 export interface TimeEntryTag {
