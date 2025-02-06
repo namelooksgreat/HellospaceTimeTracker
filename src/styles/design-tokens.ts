@@ -1,19 +1,17 @@
 export const tokens = {
   colors: {
-    // Brand Colors
     primary: {
-      50: "hsl(240, 100%, 97%)",
-      100: "hsl(240, 100%, 94%)",
-      200: "hsl(240, 95%, 86%)",
-      300: "hsl(240, 90%, 76%)",
-      400: "hsl(240, 85%, 66%)",
-      500: "hsl(240, 80%, 56%)", // Primary brand color
-      600: "hsl(240, 75%, 46%)",
-      700: "hsl(240, 70%, 36%)",
-      800: "hsl(240, 65%, 26%)",
-      900: "hsl(240, 60%, 16%)",
+      50: "hsl(265, 100%, 97%)",
+      100: "hsl(265, 100%, 94%)",
+      200: "hsl(265, 95%, 86%)",
+      300: "hsl(265, 90%, 76%)",
+      400: "hsl(265, 85%, 66%)",
+      500: "hsl(265, 80%, 56%)", // Primary brand color
+      600: "hsl(265, 75%, 46%)",
+      700: "hsl(265, 70%, 36%)",
+      800: "hsl(265, 65%, 26%)",
+      900: "hsl(265, 60%, 16%)",
     },
-    // Neutral Colors
     neutral: {
       50: "hsl(0, 0%, 98%)",
       100: "hsl(0, 0%, 96%)",
@@ -26,20 +24,10 @@ export const tokens = {
       800: "hsl(0, 0%, 15%)",
       900: "hsl(0, 0%, 9%)",
     },
-    // Semantic Colors
     success: "hsl(145, 80%, 42%)",
     warning: "hsl(45, 93%, 47%)",
     error: "hsl(0, 84%, 60%)",
     info: "hsl(200, 98%, 39%)",
-  },
-  spacing: {
-    xs: "0.25rem",
-    sm: "0.5rem",
-    md: "1rem",
-    lg: "1.5rem",
-    xl: "2rem",
-    "2xl": "3rem",
-    "3xl": "4rem",
   },
   typography: {
     fonts: {
@@ -68,22 +56,46 @@ export const tokens = {
       relaxed: "1.75",
     },
   },
+  spacing: {
+    0: "0",
+    px: "1px",
+    0.5: "0.125rem",
+    1: "0.25rem",
+    2: "0.5rem",
+    3: "0.75rem",
+    4: "1rem",
+    6: "1.5rem",
+    8: "2rem",
+    12: "3rem",
+    16: "4rem",
+  },
+  radii: {
+    none: "0",
+    sm: "0.25rem",
+    md: "0.375rem",
+    lg: "0.5rem",
+    xl: "0.75rem",
+    "2xl": "1rem",
+    full: "9999px",
+  },
   shadows: {
     sm: "0 1px 2px 0 rgb(0 0 0 / 0.05)",
     base: "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)",
     md: "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
     lg: "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
   },
-  radii: {
-    sm: "0.25rem",
-    base: "0.375rem",
-    md: "0.5rem",
-    lg: "0.75rem",
-    full: "9999px",
-  },
   transitions: {
     base: "150ms cubic-bezier(0.4, 0, 0.2, 1)",
     smooth: "250ms cubic-bezier(0.4, 0, 0.2, 1)",
     slow: "350ms cubic-bezier(0.4, 0, 0.2, 1)",
+  },
+  zIndices: {
+    0: "0",
+    10: "10",
+    20: "20",
+    30: "30",
+    40: "40",
+    50: "50",
+    auto: "auto",
   },
 };

@@ -17,7 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "./ui/dialog";
+} from "@/components/ui/dialog";
 import { Building2, Clock } from "lucide-react";
 import { TimeEntry } from "@/types";
 
@@ -37,6 +37,7 @@ interface EditTimeEntryDialogProps {
     projectId: string;
     customerId: string;
     description: string;
+    duration: number;
   }) => void;
 }
 
@@ -53,6 +54,7 @@ export function EditTimeEntryDialog({
     projectId: entry.project?.id || "",
     customerId: entry.project?.customer_id || "",
     description: entry.description || "",
+    duration: entry.duration,
   });
 
   const formatDuration = (seconds: number) => {
@@ -79,23 +81,97 @@ export function EditTimeEntryDialog({
             <DialogTitle className="text-lg font-semibold tracking-tight">
               Edit Time Entry
             </DialogTitle>
-            <p id="dialog-description" className="sr-only">
-              Edit your time entry details including task name, project, and
-              description
-            </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 mt-6">
-            <div className="bg-gradient-to-br from-card/50 to-card/30 dark:from-card/20 dark:to-card/10 border border-border/50 rounded-xl p-4 transition-all duration-300 hover:shadow-lg hover:border-border/80 group">
-              <div className="space-y-1.5">
-                <div className="text-sm text-muted-foreground">Duration</div>
-                <div className="font-mono text-xl sm:text-2xl font-bold tracking-wider text-foreground transition-colors duration-300 group-hover:text-primary">
-                  {formatDuration(entry.duration)}
+          <div className="mt-6">
+            <div className="bg-gradient-to-br from-card/50 to-card/30 dark:from-card/20 dark:to-card/10 border border-border/50 rounded-xl p-6 transition-all duration-300 hover:shadow-lg hover:border-border/80 group">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-muted-foreground font-medium">
+                    Total Duration
+                  </div>
+                  <div className="text-sm font-mono text-muted-foreground">
+                    {formatDuration(formData.duration)}
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="relative">
+                    <Input
+                      type="number"
+                      min="0"
+                      value={Math.floor(formData.duration / 3600)}
+                      onChange={(e) => {
+                        const hours = parseInt(e.target.value) || 0;
+                        const minutes = Math.floor(
+                          (formData.duration % 3600) / 60,
+                        );
+                        const seconds = formData.duration % 60;
+                        const newDuration =
+                          hours * 3600 + minutes * 60 + seconds;
+                        setFormData((prev) => ({
+                          ...prev,
+                          duration: newDuration,
+                        }));
+                      }}
+                      className="h-16 w-full text-center font-mono text-3xl font-bold bg-background/50 hover:bg-accent/50 transition-all duration-150 rounded-lg border-border/50 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 shadow-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground">
+                      h
+                    </span>
+                  </div>
+                  <div className="relative">
+                    <Input
+                      type="number"
+                      min="0"
+                      max="59"
+                      value={Math.floor((formData.duration % 3600) / 60)}
+                      onChange={(e) => {
+                        const hours = Math.floor(formData.duration / 3600);
+                        const minutes = parseInt(e.target.value) || 0;
+                        const seconds = formData.duration % 60;
+                        const newDuration =
+                          hours * 3600 + minutes * 60 + seconds;
+                        setFormData((prev) => ({
+                          ...prev,
+                          duration: newDuration,
+                        }));
+                      }}
+                      className="h-16 w-full text-center font-mono text-3xl font-bold bg-background/50 hover:bg-accent/50 transition-all duration-150 rounded-lg border-border/50 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 shadow-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground">
+                      m
+                    </span>
+                  </div>
+                  <div className="relative">
+                    <Input
+                      type="number"
+                      min="0"
+                      max="59"
+                      value={formData.duration % 60}
+                      onChange={(e) => {
+                        const hours = Math.floor(formData.duration / 3600);
+                        const minutes = Math.floor(
+                          (formData.duration % 3600) / 60,
+                        );
+                        const seconds = parseInt(e.target.value) || 0;
+                        const newDuration =
+                          hours * 3600 + minutes * 60 + seconds;
+                        setFormData((prev) => ({
+                          ...prev,
+                          duration: newDuration,
+                        }));
+                      }}
+                      className="h-16 w-full text-center font-mono text-3xl font-bold bg-background/50 hover:bg-accent/50 transition-all duration-150 rounded-lg border-border/50 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 shadow-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground">
+                      s
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="bg-gradient-to-br from-card/50 to-card/30 dark:from-card/20 dark:to-card/10 border border-border/50 rounded-xl p-4 transition-all duration-300 hover:shadow-lg hover:border-border/80 group">
+            <div className="bg-gradient-to-br from-card/50 to-card/30 dark:from-card/20 dark:to-card/10 border border-border/50 rounded-xl p-4 mt-4 transition-all duration-300 hover:shadow-lg hover:border-border/80 group">
               <div className="space-y-1.5">
                 <div className="text-sm text-muted-foreground">Start Time</div>
                 <div className="font-mono text-xl sm:text-2xl font-bold tracking-wider text-foreground transition-colors duration-300 group-hover:text-primary">

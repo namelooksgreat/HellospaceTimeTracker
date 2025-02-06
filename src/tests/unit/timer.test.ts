@@ -3,7 +3,13 @@ import { useTimerStore } from "@/store/timerStore";
 import { supabase } from "@/lib/supabase";
 import { Session } from "@supabase/supabase-js";
 
-describe("Timer Unit Tests", () => {
+describe("Timer Core Behavior Tests", () => {
+  // Timer State Management Rules:
+  // 1. Timer should maintain consistent state across pause/resume cycles
+  // 2. Timer should not accumulate extra time when modal operations occur
+  // 3. Timer should preserve exact duration when paused
+  // 4. Timer should resume from the exact paused time
+  // 5. Timer should handle modal interactions without state corruption
   beforeEach(() => {
     localStorage.clear();
     jest.useFakeTimers();
@@ -14,7 +20,7 @@ describe("Timer Unit Tests", () => {
     jest.clearAllMocks();
   });
 
-  describe("Timer Basic Operations", () => {
+  describe("Timer State Transitions", () => {
     it("starts from zero", () => {
       const { result } = renderHook(() => useTimerStore());
       expect(result.current.time).toBe(0);
@@ -30,7 +36,26 @@ describe("Timer Unit Tests", () => {
       expect(result.current.time).toBe(5);
     });
 
-    it("pauses correctly", () => {
+    it("maintains exact duration when paused", () => {
+      const { result } = renderHook(() => useTimerStore());
+      
+      act(() => {
+        result.current.start();
+        jest.advanceTimersByTime(5000);
+        result.current.pause();
+      });
+
+      const pausedTime = result.current.time;
+      
+      // Simulate modal operations
+      act(() => {
+        jest.advanceTimersByTime(3000);
+      });
+
+      // Time should not change while paused
+      expect(result.current.time).toBe(pausedTime);
+      expect(result.current.state).toBe("paused");
+    });
       const { result } = renderHook(() => useTimerStore());
       act(() => {
         result.current.start();
@@ -41,7 +66,32 @@ describe("Timer Unit Tests", () => {
       expect(result.current.time).toBe(5);
     });
 
-    it("resumes from correct time", () => {
+    it("resumes from exact paused time without accumulating extra duration", () => {
+      const { result } = renderHook(() => useTimerStore());
+      
+      // Start and pause timer
+      act(() => {
+        result.current.start();
+        jest.advanceTimersByTime(5000);
+        result.current.pause();
+      });
+
+      const pausedTime = result.current.time;
+
+      // Simulate modal operations
+      act(() => {
+        jest.advanceTimersByTime(3000);
+      });
+
+      // Resume timer
+      act(() => {
+        result.current.resume();
+        jest.advanceTimersByTime(2000);
+      });
+
+      // Should be exactly pausedTime + 2 seconds
+      expect(result.current.time).toBe(pausedTime + 2);
+    });
       const { result } = renderHook(() => useTimerStore());
       act(() => {
         result.current.start();

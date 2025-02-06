@@ -1,7 +1,6 @@
-import React, { useState, useCallback, useEffect } from "react";
-import { STORAGE_CONSTANTS } from "@/lib/constants/storage";
-import { useMemoizedCallback } from "@/hooks/useMemoizedCallback";
+import React, { useCallback } from "react";
 import { useTimerStore } from "@/store/timerStore";
+import { useTimerDataStore } from "@/store/timerDataStore";
 import { createTimeEntry } from "@/lib/api";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -12,6 +11,8 @@ import { showSuccess } from "@/lib/utils/toast";
 import { handleError } from "@/lib/utils/error-handler";
 import { ValidationError } from "@/config/errors";
 import { ERROR_MESSAGES } from "@/config/errors";
+import { styles } from "./ui/styles";
+import { cn } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -39,55 +40,18 @@ function TimeTracker({
   availableTags = [],
   onTimeEntrySaved,
 }: TimeTrackerProps) {
-  const [taskName, setTaskName] = useState(() => {
-    try {
-      const saved = localStorage.getItem("timer_data");
-      const savedData = saved ? JSON.parse(saved) : {};
-      return savedData.taskName || "";
-    } catch (error) {
-      console.error("Error loading timer data:", error);
-      return "";
-    }
-  });
+  const [showSaveDialog, setShowSaveDialog] = React.useState(false);
 
-  const [selectedProject, setSelectedProject] = useState(() => {
-    try {
-      const saved = localStorage.getItem("timer_data");
-      const savedData = saved ? JSON.parse(saved) : {};
-      return savedData.projectId || "";
-    } catch (error) {
-      console.error("Error loading timer data:", error);
-      return "";
-    }
-  });
-
-  const [selectedCustomer, setSelectedCustomer] = useState(() => {
-    try {
-      const saved = localStorage.getItem("timer_data");
-      const savedData = saved ? JSON.parse(saved) : {};
-      return savedData.customerId || "";
-    } catch (error) {
-      console.error("Error loading timer data:", error);
-      return "";
-    }
-  });
-
-  const [showSaveDialog, setShowSaveDialog] = useState(false);
-
-  const { state, time, start, pause, resume, stop, reset, setTime } =
-    useTimerStore();
-
-  const saveToLocalStorage = (data: {
-    taskName: string;
-    projectId: string;
-    customerId: string;
-  }) => {
-    try {
-      localStorage.setItem("timer_data", JSON.stringify(data));
-    } catch (error) {
-      console.error("Error saving timer data:", error);
-    }
-  };
+  const { state, time, start, pause, resume, stop, reset } = useTimerStore();
+  const {
+    taskName,
+    projectId: selectedProject,
+    customerId: selectedCustomer,
+    setTaskName,
+    setProjectId,
+    setCustomerId,
+    reset: resetTimerData,
+  } = useTimerDataStore();
 
   const formatTime = useCallback((seconds: number) => {
     const h = Math.floor(seconds / 3600);
@@ -98,7 +62,7 @@ function TimeTracker({
 
   const formattedTime = formatTime(time);
 
-  const handleTimerAction = useMemoizedCallback(() => {
+  const handleTimerAction = useCallback(() => {
     try {
       if (state === "stopped") start();
       else if (state === "running") pause();
@@ -108,21 +72,19 @@ function TimeTracker({
     }
   }, [state, start, pause, resume]);
 
-  const handleStop = useMemoizedCallback(() => {
+  const handleStop = useCallback(() => {
+    const currentTime = time;
     pause();
     setShowSaveDialog(true);
-  }, [pause]);
+  }, [pause, time]);
 
-  const handleReset = useMemoizedCallback(() => {
+  const handleReset = useCallback(() => {
     stop();
     reset();
-    setTaskName("");
-    setSelectedProject("");
-    setSelectedCustomer("");
-    localStorage.removeItem("timer_data");
-  }, [stop, reset]);
+    resetTimerData();
+  }, [stop, reset, resetTimerData]);
 
-  const handleSaveTimeEntry = useMemoizedCallback(
+  const handleSaveTimeEntry = useCallback(
     async (data: {
       taskName: string;
       projectId: string;
@@ -130,6 +92,7 @@ function TimeTracker({
       description: string;
       tags: string[];
     }) => {
+      stop();
       try {
         if (!data.taskName.trim()) {
           throw new ValidationError(ERROR_MESSAGES.TIME_TRACKING.INVALID_TASK, {
@@ -160,10 +123,10 @@ function TimeTracker({
   );
 
   return (
-    <Card className="bg-gradient-to-b from-background/95 via-background/80 to-background/90 backdrop-blur-xl border-border/50 overflow-hidden rounded-2xl shadow-2xl transition-all duration-300 -mx-4 sm:mx-0">
+    <Card className={cn(styles.card.base, "-mx-4 sm:mx-0")}>
       <CardContent className="p-3 space-y-3">
         {/* Timer Display */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-primary/2 to-transparent border border-border/50 rounded-2xl p-3 transition-all duration-300 hover:shadow-xl hover:border-primary/20 group">
+        <div className={cn(styles.components.timerDisplay)}>
           <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-50" />
           <div className="absolute inset-0 bg-grid-primary/5 mask-gradient" />
           <div className="relative z-10 flex items-center justify-between gap-2">
@@ -180,7 +143,7 @@ function TimeTracker({
                 onClick={handleReset}
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 rounded-lg hover:bg-accent/50 shrink-0"
+                className={cn(styles.components.iconButton)}
                 title="Reset timer"
               >
                 <RotateCcw className="h-4 w-4" />
@@ -195,30 +158,19 @@ function TimeTracker({
             <Label className="text-sm font-medium" htmlFor="customer-select">
               Customer
             </Label>
-            <Select
-              value={selectedCustomer}
-              onValueChange={(value) => {
-                setSelectedCustomer(value);
-                setSelectedProject("");
-                saveToLocalStorage({
-                  taskName,
-                  projectId: "",
-                  customerId: value,
-                });
-              }}
-            >
+            <Select value={selectedCustomer} onValueChange={setCustomerId}>
               <SelectTrigger
                 id="customer-select"
-                className="h-9 bg-background/50 hover:bg-accent/50 transition-all duration-150 rounded-lg border-border/50 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 shadow-sm"
+                className={cn(styles.input.base, styles.input.hover)}
               >
                 <SelectValue placeholder="Select customer" />
               </SelectTrigger>
-              <SelectContent className="max-h-[280px] rounded-xl border-border/50">
+              <SelectContent className={styles.components.selectContent}>
                 {customers.map((customer) => (
                   <SelectItem
                     key={customer.id}
                     value={customer.id}
-                    className="py-2"
+                    className={styles.components.selectItem}
                   >
                     <div className="flex items-center gap-2">
                       <Building2 className="h-4 w-4 text-muted-foreground" />
@@ -236,19 +188,12 @@ function TimeTracker({
             </Label>
             <Select
               value={selectedProject}
-              onValueChange={(value) => {
-                setSelectedProject(value);
-                saveToLocalStorage({
-                  taskName,
-                  projectId: value,
-                  customerId: selectedCustomer,
-                });
-              }}
+              onValueChange={setProjectId}
               disabled={!selectedCustomer}
             >
               <SelectTrigger
                 id="project-select"
-                className="h-9 bg-background/50 hover:bg-accent/50 transition-all duration-150 rounded-lg border-border/50 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 shadow-sm"
+                className={cn(styles.input.base, styles.input.hover)}
               >
                 <SelectValue
                   placeholder={
@@ -258,14 +203,14 @@ function TimeTracker({
                   }
                 />
               </SelectTrigger>
-              <SelectContent className="max-h-[280px] rounded-xl border-border/50">
+              <SelectContent className={styles.components.selectContent}>
                 {projects
                   .filter((project) => project.customer_id === selectedCustomer)
                   .map((project) => (
                     <SelectItem
                       key={project.id}
                       value={project.id}
-                      className="py-2"
+                      className={styles.components.selectItem}
                     >
                       <div className="flex items-center gap-2">
                         <div
@@ -291,45 +236,13 @@ function TimeTracker({
             type="text"
             placeholder="What are you working on?"
             value={taskName}
-            onChange={(e) => {
-              const newValue = e.target.value;
-              setTaskName(newValue);
-              // Save to localStorage immediately and trigger storage event
-              const timerData = {
-                taskName: newValue,
-                projectId: selectedProject,
-                customerId: selectedCustomer,
-              };
-              try {
-                localStorage.setItem(
-                  STORAGE_CONSTANTS.TIMER.KEY,
-                  JSON.stringify(timerData),
-                );
-
-                // Dispatch storage event for real-time sync
-                window.dispatchEvent(
-                  new StorageEvent("storage", {
-                    key: STORAGE_CONSTANTS.TIMER.KEY,
-                    newValue: JSON.stringify(timerData),
-                  }),
-                );
-              } catch (error) {
-                handleError(error, "TimeTracker");
-              }
-              // Dispatch storage event for real-time sync
-              window.dispatchEvent(
-                new StorageEvent("storage", {
-                  key: STORAGE_CONSTANTS.TIMER.KEY,
-                  newValue: JSON.stringify(timerData),
-                }),
-              );
-            }}
+            onChange={(e) => setTaskName(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter" && state === "stopped") {
                 handleTimerAction();
               }
             }}
-            className="h-9 bg-background/50 hover:bg-accent/50 transition-all duration-150 rounded-lg border-border/50 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 shadow-sm"
+            className={cn(styles.input.base, styles.input.hover)}
           />
         </div>
 
@@ -338,14 +251,10 @@ function TimeTracker({
           <Button
             onClick={handleTimerAction}
             variant={state === "paused" ? "outline" : "default"}
-            className={`
-              relative overflow-hidden flex-1 h-9 font-medium flex items-center justify-center gap-2 rounded-lg
-              transition-all duration-300 shadow-lg hover:shadow-xl
-              ${state === "running" ? "bg-primary hover:bg-primary/90 ring-1 ring-primary/50" : ""}
-              ${state === "paused" ? "bg-muted text-muted-foreground hover:bg-muted/90 ring-1 ring-border/50" : ""}
-              before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/10 before:to-transparent before:translate-x-[-200%] hover:before:translate-x-[200%] before:transition-transform before:duration-700
-              animate-slide-out-up
-            `}
+            className={cn(styles.components.timerButton, {
+              [styles.components.timerButtonRunning]: state === "running",
+              [styles.components.timerButtonPaused]: state === "paused",
+            })}
           >
             {(state === "stopped" || !state) && (
               <div className="flex items-center gap-2">
@@ -374,7 +283,7 @@ function TimeTracker({
           <Button
             onClick={handleStop}
             variant="destructive"
-            className="h-9 w-9 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300"
+            className={cn(styles.components.stopButton)}
             size="icon"
             title="Stop and save timer"
             disabled={state === "stopped"}
@@ -386,7 +295,10 @@ function TimeTracker({
 
       <SaveTimeEntryDialog
         open={showSaveDialog}
-        onOpenChange={setShowSaveDialog}
+        onOpenChange={(open) => {
+          setShowSaveDialog(open);
+          // Do not automatically resume when dialog is closed
+        }}
         taskName={taskName}
         projectId={selectedProject}
         customerId={selectedCustomer}

@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { STORAGE_CONSTANTS } from "@/lib/constants/storage";
 import { Building2, Clock } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -62,38 +61,23 @@ export function SaveTimeEntryDialog({
     customerId: string;
     description: string;
     tags: string[];
-  }>(() => {
-    const saved = localStorage.getItem(STORAGE_CONSTANTS.TIMER.KEY);
-    const savedData = saved ? JSON.parse(saved) : {};
-    return {
-      taskName: savedData.taskName || initialTaskName,
-      projectId: savedData.projectId || initialProjectId,
-      customerId: savedData.customerId || initialCustomerId,
-      description: "",
-      tags: [] as string[],
-    };
-  });
+  }>(() => ({
+    taskName: initialTaskName || "",
+    projectId: initialProjectId || "",
+    customerId: initialCustomerId || "",
+    description: "",
+    tags: [],
+  }));
 
   useEffect(() => {
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === STORAGE_CONSTANTS.TIMER.KEY && e.newValue) {
-        try {
-          const savedData = JSON.parse(e.newValue);
-          setFormData((prev) => ({
-            ...prev,
-            taskName: savedData.taskName || "",
-            projectId: savedData.projectId || "",
-            customerId: savedData.customerId || "",
-          }));
-        } catch (error) {
-          console.error("Error parsing storage data:", error);
-        }
-      }
-    };
-
-    window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
-  }, []);
+    setFormData((prev) => ({
+      ...prev,
+      taskName: initialTaskName,
+      projectId: initialProjectId,
+      customerId: initialCustomerId,
+      duration: duration,
+    }));
+  }, [initialTaskName, initialProjectId, initialCustomerId, duration]);
 
   const formatDuration = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
@@ -103,7 +87,13 @@ export function SaveTimeEntryDialog({
   };
 
   const handleSave = () => {
-    onSave(formData);
+    onSave({
+      taskName: formData.taskName,
+      projectId: formData.projectId,
+      customerId: formData.customerId,
+      description: formData.description,
+      tags: formData.tags,
+    });
   };
 
   return (
@@ -121,25 +111,102 @@ export function SaveTimeEntryDialog({
             </DialogTitle>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 mt-6">
-            <div className="bg-gradient-to-br from-card/50 to-card/30 dark:from-card/20 dark:to-card/10 border border-border/50 rounded-xl p-4 transition-all duration-300 hover:shadow-lg hover:border-border/80 group">
-              <div className="space-y-1.5">
-                <div className="text-sm text-muted-foreground">Duration</div>
-                <div className="font-mono text-xl sm:text-2xl font-bold tracking-wider text-foreground transition-colors duration-300 group-hover:text-primary">
-                  {formatDuration(duration)}
+          <div className="mt-6">
+            <div className="bg-gradient-to-br from-card/50 to-card/30 dark:from-card/20 dark:to-card/10 border border-border/50 rounded-xl p-6 transition-all duration-300 hover:shadow-lg hover:border-border/80 group">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-muted-foreground font-medium">
+                    Total Duration
+                  </div>
+                  <div className="text-sm font-mono text-muted-foreground">
+                    {formatDuration(formData.duration)}
+                  </div>
                 </div>
-              </div>
-            </div>
-
-            <div className="bg-gradient-to-br from-card/50 to-card/30 dark:from-card/20 dark:to-card/10 border border-border/50 rounded-xl p-4 transition-all duration-300 hover:shadow-lg hover:border-border/80 group">
-              <div className="space-y-1.5">
-                <div className="text-sm text-muted-foreground">Start Time</div>
-                <div className="font-mono text-xl sm:text-2xl font-bold tracking-wider text-foreground transition-colors duration-300 group-hover:text-primary">
-                  {new Date().toLocaleTimeString("en-US", {
-                    hour: "numeric",
-                    minute: "2-digit",
-                    hour12: true,
-                  })}
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="relative">
+                    <Input
+                      type="number"
+                      min="0"
+                      value={Math.floor(formData.duration / 3600)}
+                      onChange={(e) => {
+                        const hours = parseInt(e.target.value) || 0;
+                        const minutes = Math.floor(
+                          (formData.duration % 3600) / 60,
+                        );
+                        const seconds = formData.duration % 60;
+                        const newDuration =
+                          hours * 3600 + minutes * 60 + seconds;
+                        setFormData((prev) => ({
+                          ...prev,
+                          duration: newDuration,
+                        }));
+                      }}
+                      className="h-16 w-full text-center font-mono text-3xl font-bold bg-background/50 hover:bg-accent/50 transition-all duration-150 rounded-lg border-border/50 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 shadow-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground">
+                      h
+                    </span>
+                  </div>
+                  <div className="relative">
+                    <Input
+                      type="number"
+                      min="0"
+                      max="59"
+                      value={Math.floor((formData.duration % 3600) / 60)}
+                      onChange={(e) => {
+                        const hours = Math.floor(formData.duration / 3600);
+                        const minutes = parseInt(e.target.value) || 0;
+                        const seconds = formData.duration % 60;
+                        const newDuration =
+                          hours * 3600 + minutes * 60 + seconds;
+                        setFormData((prev) => ({
+                          ...prev,
+                          duration: newDuration,
+                        }));
+                      }}
+                      className="h-16 w-full text-center font-mono text-3xl font-bold bg-background/50 hover:bg-accent/50 transition-all duration-150 rounded-lg border-border/50 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 shadow-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground">
+                      m
+                    </span>
+                  </div>
+                  <div className="relative">
+                    <Input
+                      type="number"
+                      min="0"
+                      max="59"
+                      value={formData.duration % 60}
+                      onChange={(e) => {
+                        const hours = Math.floor(formData.duration / 3600);
+                        const minutes = Math.floor(
+                          (formData.duration % 3600) / 60,
+                        );
+                        const seconds = parseInt(e.target.value) || 0;
+                        const newDuration =
+                          hours * 3600 + minutes * 60 + seconds;
+                        setFormData((prev) => ({
+                          ...prev,
+                          duration: newDuration,
+                        }));
+                      }}
+                      className="h-16 w-full text-center font-mono text-3xl font-bold bg-background/50 hover:bg-accent/50 transition-all duration-150 rounded-lg border-border/50 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 shadow-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground">
+                      s
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 mt-2">
+                  <div className="text-sm text-muted-foreground">
+                    Started at
+                  </div>
+                  <div className="font-mono text-sm font-medium text-foreground">
+                    {new Date().toLocaleTimeString("en-US", {
+                      hour: "numeric",
+                      minute: "2-digit",
+                      hour12: true,
+                    })}
+                  </div>
                 </div>
               </div>
             </div>

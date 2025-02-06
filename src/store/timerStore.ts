@@ -94,13 +94,13 @@ export const useTimerStore = create<TimerStore>((set, get) => {
     },
 
     resume: () => {
-      const currentTime = get().time;
+      const { time: currentTime } = get();
       set({ state: "running" });
       persistState({ state: "running", time: currentTime });
 
       preciseTimer.start((elapsed) => {
-        set((state) => ({ ...state, time: currentTime + elapsed }));
-      }, currentTime);
+        set({ state: "running", time: currentTime + elapsed });
+      }, 0);
     },
 
     stop: () => {

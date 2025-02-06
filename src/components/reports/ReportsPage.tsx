@@ -103,6 +103,7 @@ export function ReportsPage({
           task_name: data.taskName,
           project_id: data.projectId || null,
           description: data.description,
+          duration: data.duration,
         });
 
         setEntries((prev) =>
