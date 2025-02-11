@@ -1,4 +1,5 @@
-import { render, fireEvent, screen } from "@testing-library/react";
+import { render } from "@testing-library/react";
+import { fireEvent, screen } from "@testing-library/dom";
 import { EditTimeEntryDialog } from "@/components/EditTimeEntryDialog";
 import { useTimeEntryStore } from "@/store/timeEntryStore";
 

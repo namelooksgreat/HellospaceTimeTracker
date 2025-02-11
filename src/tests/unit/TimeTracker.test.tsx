@@ -1,4 +1,5 @@
-import { render, fireEvent, screen, act } from "@testing-library/react";
+import { render } from "@testing-library/react";
+import { fireEvent, screen } from "@testing-library/dom";
 import TimeTracker from "@/components/TimeTracker";
 import { useTimerStore } from "@/store/timerStore";
 
