@@ -5,6 +5,7 @@ import path from "path";
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  // Vercel deployment configuration
   plugins: [
     react({
       plugins: process.env.TEMPO === "true" ? [["tempo-devtools/swc", {}]] : [],
@@ -15,6 +16,10 @@ export default defineConfig({
     include: ["tempo-devtools"],
   },
   base: "/",
+  // Enable SPA fallback for client-side routing
+  server: {
+    middlewareMode: true,
+  },
   build: {
     outDir: "dist",
     assetsDir: "assets",

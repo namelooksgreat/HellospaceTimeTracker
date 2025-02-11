@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "vercel-build": "npm run build",
     "dev": "vite",
     "build": "tsc && vite build --config vite.config.prod.ts",
     "build:analyze": "ANALYZE=true npm run build",
