@@ -17,12 +17,12 @@ export default defineConfig({
   },
   base: "/",
   build: {
-    sourcemap: false,
+    sourcemap: true,
     minify: "terser",
     terserOptions: {
       compress: {
-        drop_console: true,
-        drop_debugger: true,
+        drop_console: false,
+        drop_debugger: false,
       },
     },
     target: "esnext",

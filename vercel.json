@@ -1,1 +1,1 @@
-{"rewrites":[{"source":"/(.*)","destination":"/index.html"}],"buildCommand":"npm run build","outputDirectory":"dist","framework":"vite","installCommand":"npm install"}
+{"rewrites":[{"source":"/(.*)","destination":"/index.html"}],"buildCommand":"npm run build","outputDirectory":"dist","framework":"vite","installCommand":"npm install","env":{"VITE_SUPABASE_URL":"@vite_supabase_url","VITE_SUPABASE_ANON_KEY":"@vite_supabase_anon_key"}}

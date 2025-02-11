@@ -13,6 +13,17 @@ if (import.meta.env.VITE_TEMPO === "true") {
   await TempoDevtools.init();
 }
 
+// Error tracking for production
+window.addEventListener("error", (event) => {
+  console.error("Global error:", event.error);
+  // You could send this to an error tracking service
+});
+
+window.addEventListener("unhandledrejection", (event) => {
+  console.error("Unhandled promise rejection:", event.reason);
+  // You could send this to an error tracking service
+});
+
 // Initialize React app
 const rootElement = document.getElementById("root");
 if (!rootElement) throw new Error("Root element not found");
