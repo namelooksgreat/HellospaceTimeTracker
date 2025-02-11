@@ -16,16 +16,8 @@ import TimeEntryComponent from "./TimeEntry";
 
 // Lazy load components for better performance
 const TimeTracker = lazy(() => import("./TimeTracker"));
-const ReportsPage = lazy(() =>
-  import("./reports/ReportsPage").then((module) => ({
-    default: module.ReportsPage,
-  })),
-);
-const ProfilePage = lazy(() =>
-  import("./profile/ProfilePage").then((module) => ({
-    default: module.ProfilePage,
-  })),
-);
+const ReportsPage = lazy(() => import("./reports/ReportsPage"));
+const ProfilePage = lazy(() => import("./profile/ProfilePage"));
 
 function Home() {
   usePerformanceTracking("Home");

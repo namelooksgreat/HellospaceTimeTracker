@@ -7,7 +7,7 @@ import { UserPreferences } from "./UserPreferences";
 import { UserSecurity } from "./UserSecurity";
 import { Settings, Shield, Palette } from "lucide-react";
 
-export function ProfilePage() {
+export default function ProfilePage() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("profile");
 

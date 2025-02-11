@@ -340,5 +340,4 @@ function TimeTracker({
   );
 }
 
-const MemoizedTimeTracker = React.memo(TimeTracker);
-export default MemoizedTimeTracker;
+export default TimeTracker;

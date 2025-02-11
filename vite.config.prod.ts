@@ -4,12 +4,16 @@ import path from "path";
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  esbuild: {
-    jsxInject: `import React from 'react'`,
-  },
-  plugins: [react()],
+  plugins: [
+    react({
+      jsxRuntime: "automatic",
+      jsxImportSource: "react",
+      plugins: process.env.TEMPO === "true" ? [["tempo-devtools/swc", {}]] : [],
+    }),
+  ],
   optimizeDeps: {
     exclude: ["tempo-routes"],
+    include: ["react", "react-dom", "react-router-dom"],
   },
   base: "/",
   build: {
@@ -22,6 +26,12 @@ export default defineConfig({
       },
     },
     target: "esnext",
+    commonjsOptions: {
+      transformMixedEsModules: true,
+    },
+    modulePreload: {
+      polyfill: true,
+    },
     rollupOptions: {
       external: ["tempo-routes"],
       output: {
@@ -57,5 +67,9 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+  },
+  define: {
+    "process.env.NODE_ENV": JSON.stringify("production"),
+    global: "globalThis",
   },
 });

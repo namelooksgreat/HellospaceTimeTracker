@@ -3,7 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { register } from "@/lib/auth";
 
 export function RegisterForm() {
@@ -61,76 +67,77 @@ export function RegisterForm() {
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto p-6 space-y-6 bg-card">
-      <div className="space-y-2 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight">
+    <Card className="bg-gradient-to-br from-card/50 to-card/30 dark:from-card/20 dark:to-card/10 border border-border/50 rounded-xl transition-all duration-300 hover:shadow-lg hover:border-border/80 group overflow-hidden">
+      <CardHeader className="space-y-1 p-6">
+        <CardTitle className="text-2xl font-semibold tracking-tight">
           Create an account
-        </h1>
-        <p className="text-sm text-muted-foreground">
+        </CardTitle>
+        <CardDescription>
           Enter your details below to create your account
-        </p>
-      </div>
+        </CardDescription>
+      </CardHeader>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="full_name">Full Name</Label>
-          <Input
-            id="full_name"
-            placeholder="John Doe"
-            value={formData.full_name}
-            onChange={(e) =>
-              setFormData((prev) => ({ ...prev, full_name: e.target.value }))
-            }
-            required
-            className="bg-background"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            type="email"
-            placeholder="john@example.com"
-            value={formData.email}
-            onChange={(e) =>
-              setFormData((prev) => ({ ...prev, email: e.target.value }))
-            }
-            required
-            className="bg-background"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
-          <Input
-            id="password"
-            type="password"
-            value={formData.password}
-            onChange={(e) =>
-              setFormData((prev) => ({ ...prev, password: e.target.value }))
-            }
-            required
-            className="bg-background"
-            minLength={6}
-          />
-        </div>
-
-        {error && (
-          <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
-            {error}
+      <CardContent className="p-6 pt-0">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="full_name">Full Name</Label>
+            <Input
+              id="full_name"
+              placeholder="John Doe"
+              value={formData.full_name}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, full_name: e.target.value }))
+              }
+              required
+              className="bg-background/50 hover:bg-accent/50 transition-all duration-150 rounded-xl border-border/50"
+            />
           </div>
-        )}
 
-        <Button
-          type="submit"
-          className="w-full"
-          disabled={loading}
-          variant="default"
-        >
-          {loading ? "Creating account..." : "Create account"}
-        </Button>
-      </form>
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="john@example.com"
+              value={formData.email}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, email: e.target.value }))
+              }
+              required
+              className="bg-background/50 hover:bg-accent/50 transition-all duration-150 rounded-xl border-border/50"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              type="password"
+              value={formData.password}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, password: e.target.value }))
+              }
+              required
+              className="bg-background/50 hover:bg-accent/50 transition-all duration-150 rounded-xl border-border/50"
+              minLength={6}
+            />
+          </div>
+
+          {error && (
+            <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
+              {error}
+            </div>
+          )}
+
+          <Button
+            type="submit"
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0"
+            disabled={loading}
+          >
+            {loading ? "Creating account..." : "Create account"}
+          </Button>
+        </form>
+      </CardContent>
     </Card>
   );
 }

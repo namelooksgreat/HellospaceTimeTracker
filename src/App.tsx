@@ -1,4 +1,5 @@
-import { Routes, Route, Navigate, useRoutes } from "react-router-dom";
+import React from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { Suspense, lazy } from "react";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { LoadingPage } from "./components/ui/loading-spinner";
@@ -9,16 +10,8 @@ import { AuthPage } from "./components/auth/AuthPage";
 // Optimize code splitting with prefetch
 const Home = lazy(() => import("./components/home"));
 const TimeTracker = lazy(() => import("./components/TimeTracker"));
-const ReportsPage = lazy(() =>
-  import("./components/reports/ReportsPage").then((mod) => ({
-    default: mod.ReportsPage,
-  })),
-);
-const ProfilePage = lazy(() =>
-  import("./components/profile/ProfilePage").then((mod) => ({
-    default: mod.ProfilePage,
-  })),
-);
+const ReportsPage = lazy(() => import("./components/reports/ReportsPage"));
+const ProfilePage = lazy(() => import("./components/profile/ProfilePage"));
 
 export default function App() {
   const { session, loading } = useAuth();
@@ -33,12 +26,9 @@ export default function App() {
         <div className="min-h-screen bg-background">
           {/* For the tempo routes */}
           {import.meta.env.VITE_TEMPO && (
-            <Suspense fallback={null}>
-              {(() => {
-                const TempoRoutes = lazy(() => import("tempo-routes"));
-                return <TempoRoutes />;
-              })()}
-            </Suspense>
+            <Routes>
+              <Route path="/tempobook/*" element={<div />} />
+            </Routes>
           )}
 
           <Routes>

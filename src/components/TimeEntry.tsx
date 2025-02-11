@@ -134,8 +134,4 @@ function TimeEntryComponent({
   );
 }
 
-const TimeEntry = memo(TimeEntryComponent);
-
-TimeEntry.displayName = "TimeEntry";
-
-export default TimeEntry;
+export default memo(TimeEntryComponent);
