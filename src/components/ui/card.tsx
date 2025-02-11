@@ -76,6 +76,15 @@ const CardFooter = React.forwardRef<
 ));
 CardFooter.displayName = "CardFooter";
 
+export type {
+  CardProps,
+  CardHeaderProps,
+  CardFooterProps,
+  CardTitleProps,
+  CardDescriptionProps,
+  CardContentProps,
+};
+
 export {
   Card,
   CardHeader,
@@ -84,3 +93,12 @@ export {
   CardDescription,
   CardContent,
 };
+
+type CardProps = React.ComponentPropsWithoutRef<typeof Card>;
+type CardHeaderProps = React.ComponentPropsWithoutRef<typeof CardHeader>;
+type CardFooterProps = React.ComponentPropsWithoutRef<typeof CardFooter>;
+type CardTitleProps = React.ComponentPropsWithoutRef<typeof CardTitle>;
+type CardDescriptionProps = React.ComponentPropsWithoutRef<
+  typeof CardDescription
+>;
+type CardContentProps = React.ComponentPropsWithoutRef<typeof CardContent>;

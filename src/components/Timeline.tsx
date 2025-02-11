@@ -1,5 +1,5 @@
 import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "./ui/scroll-area";
 import TimeEntry from "./TimeEntry";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";

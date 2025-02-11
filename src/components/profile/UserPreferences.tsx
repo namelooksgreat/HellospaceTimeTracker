@@ -1,5 +1,5 @@
 import { useTheme } from "../theme-provider";
-import { Card, CardContent } from "../ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "../ui/label";
 import { Switch } from "../ui/switch";
 import {

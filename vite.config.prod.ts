@@ -4,6 +4,9 @@ import path from "path";
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  esbuild: {
+    jsxInject: `import React from 'react'`,
+  },
   plugins: [react()],
   optimizeDeps: {
     exclude: ["tempo-routes"],
@@ -18,6 +21,7 @@ export default defineConfig({
         drop_debugger: true,
       },
     },
+    target: "esnext",
     rollupOptions: {
       external: ["tempo-routes"],
       output: {
