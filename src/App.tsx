@@ -1,5 +1,4 @@
 import { Routes, Route, Navigate, useRoutes } from "react-router-dom";
-import routes from "tempo-routes";
 import { Suspense, lazy } from "react";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { LoadingPage } from "./components/ui/loading-spinner";
@@ -33,7 +32,14 @@ export default function App() {
       <Suspense fallback={<LoadingPage />}>
         <div className="min-h-screen bg-background">
           {/* For the tempo routes */}
-          {import.meta.env.VITE_TEMPO && useRoutes(routes)}
+          {import.meta.env.VITE_TEMPO && (
+            <Suspense fallback={null}>
+              {(() => {
+                const TempoRoutes = lazy(() => import("tempo-routes"));
+                return <TempoRoutes />;
+              })()}
+            </Suspense>
+          )}
 
           <Routes>
             <Route

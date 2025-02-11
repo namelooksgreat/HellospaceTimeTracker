@@ -5,6 +5,9 @@ import path from "path";
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
+  optimizeDeps: {
+    exclude: ["tempo-routes"],
+  },
   base: "/",
   build: {
     sourcemap: false,
@@ -16,7 +19,11 @@ export default defineConfig({
       },
     },
     rollupOptions: {
+      external: ["tempo-routes"],
       output: {
+        paths: {
+          "tempo-routes": "/tempo-routes",
+        },
         manualChunks: {
           vendor: ["react", "react-dom", "react-router-dom"],
           ui: ["@radix-ui/react-dialog", "@radix-ui/react-select"],
