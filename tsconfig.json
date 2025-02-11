@@ -21,6 +21,7 @@
     }
   },
   "include": ["src"],
-  "exclude": ["src/tempobook", "src/tests", "**/*.test.ts", "**/*.test.tsx"],
+  "exclude": ["src/tempobook", "src/tests", "**/*.test.ts", "**/*.test.tsx", "node_modules"],
+  "skipLibCheck": true,
   "references": [{ "path": "./tsconfig.node.json" }]
 }

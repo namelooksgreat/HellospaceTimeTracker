@@ -6,7 +6,9 @@
   "scripts": {
     "vercel-build": "npm run build",
     "dev": "vite",
-    "build": "tsc && vite build --config vite.config.prod.ts",
+    "vercel-build": "npm run build",
+    "build": "tsc && vite build",
+    "build:analyze": "ANALYZE=true npm run build",
     "build:analyze": "ANALYZE=true npm run build",
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
