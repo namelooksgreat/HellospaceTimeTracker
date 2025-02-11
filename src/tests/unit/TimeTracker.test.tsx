@@ -1,11 +1,9 @@
-import { render, fireEvent, act } from "@testing-library/react";
+import { render, fireEvent, screen, act } from "@testing-library/react";
 import TimeTracker from "@/components/TimeTracker";
 import { useTimerStore } from "@/store/timerStore";
 
 // Mock the store
-jest.mock("@/store/timerStore", () => ({
-  useTimerStore: jest.fn(),
-}));
+jest.mock("@/store/timerStore");
 
 describe("TimeTracker", () => {
   const mockProjects = [
@@ -32,7 +30,7 @@ describe("TimeTracker", () => {
       stop: jest.fn(),
     };
 
-    (useTimerStore as jest.Mock).mockReturnValue(mockStore);
+    (useTimerStore as unknown as jest.Mock).mockReturnValue(mockStore);
 
     const { getByText, rerender } = render(
       <TimeTracker projects={mockProjects} customers={mockCustomers} />,
@@ -62,7 +60,7 @@ describe("TimeTracker", () => {
       stop: jest.fn(),
     };
 
-    (useTimerStore as jest.Mock).mockReturnValue(mockStore);
+    (useTimerStore as unknown as jest.Mock).mockReturnValue(mockStore);
 
     const { getByText } = render(
       <TimeTracker projects={mockProjects} customers={mockCustomers} />,
@@ -94,7 +92,7 @@ describe("TimeTracker", () => {
       stop: jest.fn(),
     };
 
-    (useTimerStore as jest.Mock).mockReturnValue(mockStore);
+    (useTimerStore as unknown as jest.Mock).mockReturnValue(mockStore);
 
     const { getByText, rerender } = render(
       <TimeTracker projects={mockProjects} customers={mockCustomers} />,

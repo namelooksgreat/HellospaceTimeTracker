@@ -17,8 +17,8 @@ export function UserSecurity() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <Card className="p-6">
-        <CardContent className="p-0 space-y-6">
+      <Card className="bg-gradient-to-br from-card/50 to-card/30 dark:from-card/20 dark:to-card/10 border border-border/50 rounded-xl transition-all duration-300 hover:shadow-lg hover:border-border/80 group overflow-hidden">
+        <CardContent className="p-6 space-y-6">
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="current_password">Current Password</Label>

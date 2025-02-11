@@ -1,9 +1,5 @@
 # Dependencies
 node_modules
-**/tempobook/dynamic/
-**/tempobook/storyboards/
-**/tempobook/dynamic/
-**/tempobook/storyboards/
 .pnp
 .pnp.js
 
@@ -44,3 +40,13 @@ yarn-error.log*
 # Tempo specific
 **/tempobook/dynamic/
 **/tempobook/storyboards/
+.tempo/
+.env.tempo
+.tempo-sync/
+
+# Tempo specific
+**/tempobook/dynamic/
+**/tempobook/storyboards/
+.tempo/
+.env.tempo
+.tempo-sync/

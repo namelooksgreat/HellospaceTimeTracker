@@ -1,5 +1,6 @@
 import React, { useCallback } from "react";
 import { useTimerStore } from "@/store/timerStore";
+import { useTimeEntryStore } from "@/store/timeEntryStore";
 import { useTimerDataStore } from "@/store/timerDataStore";
 import { createTimeEntry } from "@/lib/api";
 import { Button } from "./ui/button";
@@ -20,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import { Timer, Play, Pause, Square, Building2, RotateCcw } from "lucide-react";
+import { Clock, Play, Pause, Square, Building2, RotateCcw } from "lucide-react";
 
 interface TimeTrackerProps {
   projects?: Array<{
@@ -34,6 +35,8 @@ interface TimeTrackerProps {
   onTimeEntrySaved?: () => void;
 }
 
+import { useTimerLogic } from "@/lib/timer/hooks/useTimerLogic";
+
 function TimeTracker({
   projects = [],
   customers = [],
@@ -42,7 +45,15 @@ function TimeTracker({
 }: TimeTrackerProps) {
   const [showSaveDialog, setShowSaveDialog] = React.useState(false);
 
-  const { state, time, start, pause, resume, stop, reset } = useTimerStore();
+  const {
+    state,
+    time,
+    formattedTime,
+    handleTimerAction: timerAction,
+    handleStop: timerStop,
+    handleReset: timerReset,
+  } = useTimerLogic();
+
   const {
     taskName,
     projectId: selectedProject,
@@ -53,36 +64,25 @@ function TimeTracker({
     reset: resetTimerData,
   } = useTimerDataStore();
 
-  const formatTime = useCallback((seconds: number) => {
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = seconds % 60;
-    return `${String(h).padStart(2, "0")} : ${String(m).padStart(2, "0")} : ${String(s).padStart(2, "0")}`;
-  }, []);
-
-  const formattedTime = formatTime(time);
+  const { setDuration } = useTimeEntryStore();
 
   const handleTimerAction = useCallback(() => {
     try {
-      if (state === "stopped") start();
-      else if (state === "running") pause();
-      else if (state === "paused") resume();
+      timerAction();
     } catch (error) {
       handleError(error, "TimeTracker");
     }
-  }, [state, start, pause, resume]);
+  }, [timerAction]);
 
   const handleStop = useCallback(() => {
-    const currentTime = time;
-    pause();
+    timerStop();
     setShowSaveDialog(true);
-  }, [pause, time]);
+  }, [timerStop]);
 
   const handleReset = useCallback(() => {
-    stop();
-    reset();
+    timerReset();
     resetTimerData();
-  }, [stop, reset, resetTimerData]);
+  }, [timerReset, resetTimerData]);
 
   const handleSaveTimeEntry = useCallback(
     async (data: {
@@ -91,9 +91,11 @@ function TimeTracker({
       customerId: string;
       description: string;
       tags: string[];
+      duration: number;
     }) => {
-      stop();
       try {
+        console.debug("TimeTracker - Saving time entry with data:", data);
+
         if (!data.taskName.trim()) {
           throw new ValidationError(ERROR_MESSAGES.TIME_TRACKING.INVALID_TASK, {
             componentName: "TimeTracker",
@@ -104,51 +106,77 @@ function TimeTracker({
         const entry = {
           task_name: data.taskName,
           project_id: data.projectId || null,
-          duration: Math.max(0, time),
+          duration: data.duration,
           start_time: new Date().toISOString(),
-          description: data.description || null,
+          description: data.description || undefined,
         };
 
-        await createTimeEntry(entry, data.tags);
+        console.debug("TimeTracker - Creating entry:", entry);
+
+        await createTimeEntry(entry);
         showSuccess("Time entry saved successfully");
         onTimeEntrySaved?.();
-        reset();
+        timerReset();
         setShowSaveDialog(false);
       } catch (error) {
+        console.error("TimeTracker - Error saving entry:", error);
         handleError(error, "TimeTracker");
         setShowSaveDialog(false);
       }
     },
-    [time, onTimeEntrySaved, reset],
+    [onTimeEntrySaved, timerReset],
   );
 
   return (
     <Card className={cn(styles.card.base, "-mx-4 sm:mx-0")}>
       <CardContent className="p-3 space-y-3">
         {/* Timer Display */}
-        <div className={cn(styles.components.timerDisplay)}>
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-card/50 to-card/30 dark:from-card/20 dark:to-card/10 border border-border/50 p-6 transition-all duration-300 hover:shadow-lg hover:border-border/80 group">
           <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-50" />
-          <div className="absolute inset-0 bg-grid-primary/5 mask-gradient" />
-          <div className="relative z-10 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <div className="p-2 rounded-xl bg-primary/10 text-primary ring-1 ring-primary/20 shadow-lg shadow-primary/10">
-                <Timer className="h-5 w-5" />
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,transparent_0%,transparent_49%,rgb(var(--primary))_50%,transparent_51%,transparent_100%)] opacity-[0.03] bg-[length:8px_100%]" />
+          <div className="absolute inset-0 bg-grid-white/[0.02]" />
+
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="relative p-2 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 text-primary ring-1 ring-primary/20 shadow-lg shadow-primary/10 overflow-hidden group/icon">
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent opacity-0 group-hover/icon:opacity-100 transition-opacity duration-500" />
+                  <div className="absolute inset-0 bg-[linear-gradient(to_right,transparent_0%,transparent_49%,rgb(var(--primary))_50%,transparent_51%,transparent_100%)] opacity-[0.03] bg-[length:8px_100%]" />
+                  <Clock
+                    className={cn(
+                      "relative h-5 w-5 transition-all duration-300",
+                      state === "running" && "animate-timer-pulse",
+                      "group-hover/icon:scale-110 group-hover/icon:text-primary",
+                    )}
+                  />
+                </div>
+                <div className="text-sm font-medium text-muted-foreground">
+                  {state === "running"
+                    ? "Timer Running"
+                    : state === "paused"
+                      ? "Timer Paused"
+                      : "Timer Stopped"}
+                </div>
               </div>
-              <div className="font-mono text-xl font-bold tracking-tight text-foreground transition-colors duration-300 group-hover:text-primary flex items-center justify-center min-w-[120px] static">
+              {time > 0 && (
+                <Button
+                  onClick={handleReset}
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-lg bg-background/80 hover:bg-accent/80 text-muted-foreground hover:text-foreground transition-all duration-200 ring-1 ring-border/50 hover:ring-border shadow-sm"
+                  title="Reset timer"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+
+            <div className="flex items-center justify-center">
+              <div className="font-mono text-4xl sm:text-5xl font-bold tracking-tight text-foreground transition-colors duration-300 group-hover:text-primary relative">
                 {formattedTime}
+                <div className="absolute -bottom-2 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               </div>
             </div>
-            {time > 0 && (
-              <Button
-                onClick={handleReset}
-                variant="ghost"
-                size="icon"
-                className={cn(styles.components.iconButton)}
-                title="Reset timer"
-              >
-                <RotateCcw className="h-4 w-4" />
-              </Button>
-            )}
           </div>
         </div>
 

@@ -15,7 +15,7 @@ export function useTimeEntries() {
       setLoading(true);
       setError(null);
       const entries = await apiClient.get<TimeEntry[]>("time_entries");
-      setTimeEntries(entries);
+      setTimeEntries(Array.isArray(entries) ? entries.flat() : []);
     } catch (err) {
       const error =
         err instanceof Error ? err : new Error("Failed to fetch time entries");

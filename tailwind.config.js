@@ -100,6 +100,10 @@ module.exports = {
           "0%": { transform: "translateY(0)", opacity: "1" },
           "100%": { transform: "translateY(-100%)", opacity: "0" },
         },
+        "timer-pulse": {
+          "0%, 100%": { transform: "scale(1)", opacity: "0.5" },
+          "50%": { transform: "scale(1.05)", opacity: "1" },
+        },
       },
       animation: {
         "slide-out-up": "slide-out-up 0.3s ease-out forwards",
@@ -110,6 +114,7 @@ module.exports = {
         "slide-up": "slide-up 0.2s ease-out",
         "slide-up-fade-in": "slide-up-fade-in 0.3s ease-out forwards",
         "slide-up-fade-out": "slide-up-fade-out 0.3s ease-out forwards",
+        "timer-pulse": "timer-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
       },
     },
   },

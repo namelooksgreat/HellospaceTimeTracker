@@ -14,8 +14,12 @@ export function UserPreferences() {
   const { theme, setTheme } = useTheme();
 
   return (
-    <Card className="p-6">
-      <CardContent className="p-0 space-y-6">
+    <Card className="relative overflow-hidden bg-gradient-to-br from-card/50 to-card/30 dark:from-card/20 dark:to-card/10 border border-border/50 rounded-xl transition-all duration-300 hover:shadow-lg hover:border-border/80 group">
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-50" />
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,transparent_0%,transparent_49%,rgb(var(--primary))_50%,transparent_51%,transparent_100%)] opacity-[0.03] bg-[length:8px_100%]" />
+      <div className="absolute inset-0 bg-grid-white/[0.02]" />
+
+      <CardContent className="relative z-10 p-6 space-y-6">
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
@@ -25,13 +29,28 @@ export function UserPreferences() {
               </p>
             </div>
             <Select value={theme} onValueChange={setTheme}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-[180px] bg-background/50 hover:bg-accent/50 transition-all duration-150 rounded-xl border-border/50">
                 <SelectValue placeholder="Select theme" />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="light">Light</SelectItem>
-                <SelectItem value="dark">Dark</SelectItem>
-                <SelectItem value="system">System</SelectItem>
+              <SelectContent className="rounded-xl border-border/50 bg-popover/95 backdrop-blur-sm shadow-lg">
+                <SelectItem
+                  value="light"
+                  className="py-2.5 cursor-pointer focus:bg-accent/50"
+                >
+                  Light
+                </SelectItem>
+                <SelectItem
+                  value="dark"
+                  className="py-2.5 cursor-pointer focus:bg-accent/50"
+                >
+                  Dark
+                </SelectItem>
+                <SelectItem
+                  value="system"
+                  className="py-2.5 cursor-pointer focus:bg-accent/50"
+                >
+                  System
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -43,7 +62,7 @@ export function UserPreferences() {
                 Receive email updates about your activity
               </p>
             </div>
-            <Switch />
+            <Switch className="data-[state=checked]:bg-primary" />
           </div>
 
           <div className="flex items-center justify-between">
@@ -54,12 +73,22 @@ export function UserPreferences() {
               </p>
             </div>
             <Select defaultValue="12h">
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-[180px] bg-background/50 hover:bg-accent/50 transition-all duration-150 rounded-xl border-border/50">
                 <SelectValue placeholder="Select format" />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="12h">12-hour</SelectItem>
-                <SelectItem value="24h">24-hour</SelectItem>
+              <SelectContent className="rounded-xl border-border/50 bg-popover/95 backdrop-blur-sm shadow-lg">
+                <SelectItem
+                  value="12h"
+                  className="py-2.5 cursor-pointer focus:bg-accent/50"
+                >
+                  12-hour
+                </SelectItem>
+                <SelectItem
+                  value="24h"
+                  className="py-2.5 cursor-pointer focus:bg-accent/50"
+                >
+                  24-hour
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>

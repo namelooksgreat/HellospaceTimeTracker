@@ -7,7 +7,7 @@ import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Card, CardContent } from "../ui/card";
-import { Camera, Loader2, LogOut } from "lucide-react";
+import { Camera, LogOut, Loader2 } from "lucide-react";
 import { handleError } from "@/lib/utils/error-handler";
 import { showSuccess } from "@/lib/utils/toast";
 
@@ -17,6 +17,7 @@ interface UserProfileProps {
     email: string;
     full_name?: string;
     avatar_url?: string;
+    role?: string;
   };
 }
 
@@ -25,30 +26,54 @@ export function UserProfile({ user }: UserProfileProps) {
   const [formData, setFormData] = useState({
     full_name: user.full_name || "",
     email: user.email,
+    hourly_rate: 0,
   });
 
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const {
-          data: { user: currentUser },
-          error,
-        } = await supabase.auth.getUser();
-        if (error) throw error;
+        // Fetch user metadata and rate in parallel
+        const [userResponse, rateResponse] = await Promise.all([
+          supabase.auth.getUser(),
+          supabase
+            .from("developer_rates")
+            .select("*")
+            .eq("user_id", user.id)
+            .single(),
+        ]);
 
-        if (currentUser?.user_metadata?.full_name) {
+        if (userResponse.error) throw userResponse.error;
+
+        // Update full name if available
+        if (userResponse.data.user?.user_metadata?.full_name) {
           setFormData((prev) => ({
             ...prev,
-            full_name: currentUser.user_metadata.full_name,
+            full_name: userResponse.data.user.user_metadata.full_name,
           }));
         }
+
+        // Update hourly rate if available
+        if (!rateResponse.error && rateResponse.data) {
+          console.log("Found rate data:", rateResponse.data);
+          setFormData((prev) => ({
+            ...prev,
+            hourly_rate: rateResponse.data.hourly_rate,
+          }));
+        } else if (
+          rateResponse.error &&
+          rateResponse.error.code !== "PGRST116"
+        ) {
+          console.error("Error fetching rate:", rateResponse.error);
+          throw rateResponse.error;
+        }
       } catch (error) {
+        console.error("Error in fetchUserData:", error);
         handleError(error, "UserProfile");
       }
     };
 
     fetchUserData();
-  }, []);
+  }, [user.id]);
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     try {
@@ -57,10 +82,7 @@ export function UserProfile({ user }: UserProfileProps) {
 
       setLoading(true);
 
-      // Delete old avatar first
       await AvatarService.deleteOldAvatar(user.id);
-
-      // Upload new avatar
       const { publicUrl, error } = await AvatarService.uploadAvatar(
         file,
         user.id,
@@ -68,7 +90,6 @@ export function UserProfile({ user }: UserProfileProps) {
 
       if (error) throw error;
 
-      // Update avatar image in UI
       const avatarImage = document.querySelector(
         "#profile-avatar",
       ) as HTMLImageElement;
@@ -94,6 +115,20 @@ export function UserProfile({ user }: UserProfileProps) {
       });
 
       if (error) throw error;
+
+      // Update hourly rate if admin
+      if (user.role === "admin") {
+        const { error: rateError } = await supabase
+          .from("developer_rates")
+          .upsert({
+            user_id: user.id,
+            hourly_rate: formData.hourly_rate,
+            currency: "USD",
+          });
+
+        if (rateError) throw rateError;
+      }
+
       showSuccess("Profil başarıyla güncellendi");
     } catch (error) {
       handleError(error, "UserProfile");
@@ -104,8 +139,8 @@ export function UserProfile({ user }: UserProfileProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <Card className="p-6">
-        <CardContent className="p-0 space-y-6">
+      <Card className="bg-gradient-to-br from-card/50 to-card/30 dark:from-card/20 dark:to-card/10 border border-border/50 rounded-xl transition-all duration-300 hover:shadow-lg hover:border-border/80 group overflow-hidden">
+        <CardContent className="p-6 space-y-6">
           <div className="flex items-center gap-6">
             <Avatar className="w-20 h-20">
               <AvatarImage
@@ -179,6 +214,30 @@ export function UserProfile({ user }: UserProfileProps) {
                 disabled
                 className="bg-muted"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="hourly_rate">Hourly Rate (USD)</Label>
+              <Input
+                id="hourly_rate"
+                type="number"
+                value={formData.hourly_rate}
+                disabled={user.role !== "admin"}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    hourly_rate: parseFloat(e.target.value) || 0,
+                  }))
+                }
+                min="0"
+                step="0.01"
+                className={user.role !== "admin" ? "bg-muted" : ""}
+              />
+              <p className="text-sm text-muted-foreground">
+                {user.role === "admin"
+                  ? "Set the hourly rate for this user."
+                  : "Only administrators can change hourly rates."}
+              </p>
             </div>
           </div>
         </CardContent>

@@ -114,7 +114,9 @@ function showErrorToast(
   toast({
     title: config[severity].title,
     description: message,
-    variant: config[severity].variant as "default" | "destructive" | "warning",
+    variant: (config[severity].variant === "warning"
+      ? "default"
+      : config[severity].variant) as "default" | "destructive",
   });
 }
 

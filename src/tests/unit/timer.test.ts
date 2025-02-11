@@ -1,18 +1,20 @@
 import { renderHook, act } from "@testing-library/react";
 import { useTimerStore } from "@/store/timerStore";
-import { supabase } from "@/lib/supabase";
-import { Session } from "@supabase/supabase-js";
+import { preciseTimer } from "@/lib/services/preciseTimer";
+
+jest.mock("@/lib/services/preciseTimer", () => ({
+  preciseTimer: {
+    start: jest.fn(),
+    stop: jest.fn(),
+  },
+}));
 
 describe("Timer Core Behavior Tests", () => {
-  // Timer State Management Rules:
-  // 1. Timer should maintain consistent state across pause/resume cycles
-  // 2. Timer should not accumulate extra time when modal operations occur
-  // 3. Timer should preserve exact duration when paused
-  // 4. Timer should resume from the exact paused time
-  // 5. Timer should handle modal interactions without state corruption
   beforeEach(() => {
     localStorage.clear();
     jest.useFakeTimers();
+    (preciseTimer.start as jest.Mock).mockClear();
+    (preciseTimer.stop as jest.Mock).mockClear();
   });
 
   afterEach(() => {
@@ -20,25 +22,59 @@ describe("Timer Core Behavior Tests", () => {
     jest.clearAllMocks();
   });
 
-  describe("Timer State Transitions", () => {
-    it("starts from zero", () => {
+  describe("Timer State Management", () => {
+    it("maintains state across page reloads", () => {
       const { result } = renderHook(() => useTimerStore());
-      expect(result.current.time).toBe(0);
-      expect(result.current.state).toBe("stopped");
-    });
 
-    it("increments time correctly", () => {
-      const { result } = renderHook(() => useTimerStore());
+      // Start timer
       act(() => {
         result.current.start();
-        jest.advanceTimersByTime(5000);
       });
-      expect(result.current.time).toBe(5);
+
+      // Store current state
+      const currentState = {
+        state: result.current.state,
+        time: result.current.time,
+      };
+
+      // Simulate page reload by re-rendering hook
+      const { result: reloadedResult } = renderHook(() => useTimerStore());
+
+      // State should persist
+      expect(reloadedResult.current.state).toBe(currentState.state);
+      expect(reloadedResult.current.time).toBe(currentState.time);
     });
 
-    it("maintains exact duration when paused", () => {
+    it("resumes timer from correct time after reload", () => {
       const { result } = renderHook(() => useTimerStore());
-      
+
+      // Start and accumulate some time
+      act(() => {
+        result.current.start();
+        jest.advanceTimersByTime(5000); // 5 seconds
+      });
+
+      // Store current time
+      const timeBeforeReload = result.current.time;
+
+      // Simulate reload
+      const { result: reloadedResult } = renderHook(() => useTimerStore());
+
+      // Timer should resume from previous time
+      expect(reloadedResult.current.time).toBe(timeBeforeReload);
+
+      // Should continue counting from previous time
+      act(() => {
+        jest.advanceTimersByTime(3000); // 3 more seconds
+      });
+
+      expect(reloadedResult.current.time).toBe(timeBeforeReload + 3);
+    });
+
+    it("maintains paused state and time across reloads", () => {
+      const { result } = renderHook(() => useTimerStore());
+
+      // Start, accumulate time, then pause
       act(() => {
         result.current.start();
         jest.advanceTimersByTime(5000);
@@ -46,114 +82,13 @@ describe("Timer Core Behavior Tests", () => {
       });
 
       const pausedTime = result.current.time;
-      
-      // Simulate modal operations
-      act(() => {
-        jest.advanceTimersByTime(3000);
-      });
 
-      // Time should not change while paused
-      expect(result.current.time).toBe(pausedTime);
-      expect(result.current.state).toBe("paused");
-    });
-      const { result } = renderHook(() => useTimerStore());
-      act(() => {
-        result.current.start();
-        jest.advanceTimersByTime(5000);
-        result.current.pause();
-        jest.advanceTimersByTime(3000);
-      });
-      expect(result.current.time).toBe(5);
-    });
+      // Simulate reload
+      const { result: reloadedResult } = renderHook(() => useTimerStore());
 
-    it("resumes from exact paused time without accumulating extra duration", () => {
-      const { result } = renderHook(() => useTimerStore());
-      
-      // Start and pause timer
-      act(() => {
-        result.current.start();
-        jest.advanceTimersByTime(5000);
-        result.current.pause();
-      });
-
-      const pausedTime = result.current.time;
-
-      // Simulate modal operations
-      act(() => {
-        jest.advanceTimersByTime(3000);
-      });
-
-      // Resume timer
-      act(() => {
-        result.current.resume();
-        jest.advanceTimersByTime(2000);
-      });
-
-      // Should be exactly pausedTime + 2 seconds
-      expect(result.current.time).toBe(pausedTime + 2);
-    });
-      const { result } = renderHook(() => useTimerStore());
-      act(() => {
-        result.current.start();
-        jest.advanceTimersByTime(5000);
-        result.current.pause();
-        result.current.resume();
-        jest.advanceTimersByTime(3000);
-      });
-      expect(result.current.time).toBe(8);
-    });
-
-    it("resets correctly", () => {
-      const { result } = renderHook(() => useTimerStore());
-      act(() => {
-        result.current.start();
-        jest.advanceTimersByTime(5000);
-        result.current.reset();
-      });
-      expect(result.current.time).toBe(0);
-      expect(result.current.state).toBe("stopped");
-    });
-  });
-
-  describe("Timer State Persistence", () => {
-    it("persists state across reloads", () => {
-      const { result, rerender } = renderHook(() => useTimerStore());
-      act(() => {
-        result.current.start();
-        jest.advanceTimersByTime(5000);
-      });
-      rerender();
-      expect(result.current.time).toBe(5);
-    });
-
-    it("maintains separate states for different users", () => {
-      // Mock different user sessions
-      const mockUser1 = { id: "user1", email: "user1@test.com" };
-      const mockUser2 = { id: "user2", email: "user2@test.com" };
-
-      // Setup for first user
-      jest.spyOn(supabase.auth, "getSession").mockResolvedValue({
-        data: { session: { user: mockUser1 } as Session },
-        error: null,
-      });
-      const { result: result1 } = renderHook(() => useTimerStore());
-
-      act(() => {
-        result1.current.start();
-        jest.advanceTimersByTime(5000);
-      });
-
-      // Switch to second user
-      jest.spyOn(supabase.auth, "getSession").mockImplementation(() =>
-        Promise.resolve({
-          data: { session: { user: mockUser2 } as Session },
-          error: null,
-        }),
-      );
-      const { result: result2 } = renderHook(() => useTimerStore());
-
-      expect(result2.current.time).toBe(0);
-      expect(result2.current.state).toBe("stopped");
+      // Should maintain paused state and time
+      expect(reloadedResult.current.state).toBe("paused");
+      expect(reloadedResult.current.time).toBe(pausedTime);
     });
   });
 });

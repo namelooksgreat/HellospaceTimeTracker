@@ -13,6 +13,7 @@ interface TimelineProps {
     projectName: string;
     duration: string;
     startTime: string;
+    createdAt: string;
     projectColor: string;
   }>;
   onEditEntry?: (id: string) => void;
@@ -25,7 +26,8 @@ const Timeline = ({
   onDeleteEntry = () => {},
 }: TimelineProps) => {
   const totalDuration = entries.reduce((acc, entry) => {
-    const duration = typeof entry.duration === "number" ? entry.duration : 0;
+    const duration =
+      typeof entry.duration === "string" ? parseInt(entry.duration) : 0;
     return acc + duration;
   }, 0);
 
@@ -87,8 +89,9 @@ const Timeline = ({
                         key={entry.id}
                         taskName={entry.taskName}
                         projectName={entry.projectName}
-                        duration={entry.duration}
+                        duration={parseInt(entry.duration)}
                         startTime={entry.startTime}
+                        createdAt={entry.createdAt}
                         projectColor={entry.projectColor}
                         onEdit={() => onEditEntry(entry.id)}
                         onDelete={() => onDeleteEntry(entry.id)}

@@ -93,7 +93,7 @@ export class TimerService {
         onUpdate,
       )
       .subscribe();
-    return channel;
+    return Promise.resolve();
   }
 
   cleanup(): void {

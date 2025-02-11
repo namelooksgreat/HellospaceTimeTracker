@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Suspense, lazy, useMemo } from "react";
+import React, { useState, useEffect, Suspense, lazy } from "react";
 import { Navigate } from "react-router-dom";
 import { MainLayout } from "./layouts/MainLayout";
 import { useAuth } from "@/lib/auth";
@@ -10,20 +10,17 @@ import {
   getTimeEntries,
   deleteTimeEntry,
   getCustomers,
-  Project,
-  Customer,
-  TimeEntry,
 } from "@/lib/api";
+import type { Project, Customer, TimeEntry as TimeEntryType } from "@/types";
+import TimeEntryComponent from "./TimeEntry";
 
 // Lazy load components for better performance
 const TimeTracker = lazy(() => import("./TimeTracker"));
-
 const ReportsPage = lazy(() =>
   import("./reports/ReportsPage").then((module) => ({
     default: module.ReportsPage,
   })),
 );
-
 const ProfilePage = lazy(() =>
   import("./profile/ProfilePage").then((module) => ({
     default: module.ProfilePage,
@@ -35,7 +32,7 @@ function Home() {
   const { session } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
-  const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
+  const [timeEntries, setTimeEntries] = useState<TimeEntryType[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"timer" | "reports" | "profile">(
     "timer",
@@ -45,7 +42,6 @@ function Home() {
     if (!session) return;
     try {
       const timeEntriesData = await getTimeEntries();
-      console.debug("Fetched time entries:", timeEntriesData);
       if (Array.isArray(timeEntriesData)) {
         setTimeEntries(timeEntriesData);
       } else {
@@ -53,7 +49,6 @@ function Home() {
         setTimeEntries([]);
       }
     } catch (error) {
-      console.error("Error fetching time entries:", error);
       handleError(error, "Home");
       setTimeEntries([]);
     }
@@ -61,23 +56,12 @@ function Home() {
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!session?.user) {
-        console.debug("No session user, skipping data fetch");
-        return;
-      }
-      console.debug("Fetching data for user:", session.user.id);
+      if (!session?.user) return;
 
       try {
         setLoading(true);
-        console.debug("Starting data fetch...");
         const [projectsData, customersData, timeEntriesData] =
           await Promise.all([getProjects(), getCustomers(), getTimeEntries()]);
-
-        console.debug("Data fetch results:", {
-          projectsCount: projectsData?.length || 0,
-          customersCount: customersData?.length || 0,
-          timeEntriesCount: timeEntriesData?.length || 0,
-        });
 
         setProjects(projectsData || []);
         setCustomers(customersData || []);
@@ -104,49 +88,82 @@ function Home() {
     }
   };
 
+  const handleEditEntry = (id: string) => {
+    // Implement edit functionality
+    console.log("Edit entry:", id);
+  };
+
   if (!session?.user) {
     return <Navigate to="/auth" replace />;
   }
 
   const LoadingFallback = () => (
-    <div className="space-y-6">
-      <Skeleton className="h-[300px] w-full rounded-xl" />
-      <Skeleton className="h-[400px] w-full rounded-xl" />
+    <div className="space-y-4 p-4">
+      <Skeleton className="h-[300px] w-full rounded-xl bg-card/50" />
+      <Skeleton className="h-[400px] w-full rounded-xl bg-card/50" />
     </div>
   );
 
   return (
     <MainLayout activeTab={activeTab} onTabChange={setActiveTab}>
-      <div className="space-y-6 animate-in fade-in-50 duration-500">
-        {loading ? (
-          <LoadingFallback />
-        ) : (
-          <Suspense fallback={<LoadingFallback />}>
-            {activeTab === "timer" && (
-              <TimeTracker
-                projects={projects}
-                customers={customers}
-                availableTags={[
-                  { value: "bug", label: "Bug" },
-                  { value: "feature", label: "Feature" },
-                  { value: "documentation", label: "Documentation" },
-                  { value: "design", label: "Design" },
-                  { value: "testing", label: "Testing" },
-                ]}
-                onTimeEntrySaved={fetchTimeEntriesData}
-              />
-            )}
-            {activeTab === "reports" && (
-              <ReportsPage
-                entries={timeEntries}
-                projects={projects}
-                customers={customers}
-                onDeleteEntry={handleDeleteTimeEntry}
-              />
-            )}
-            {activeTab === "profile" && <ProfilePage />}
-          </Suspense>
-        )}
+      <div className="min-h-[100dvh] bg-gradient-to-b from-background via-background/95 to-background/90">
+        <main className="container max-w-5xl mx-auto px-4 py-6 space-y-6 pb-20 animate-in fade-in-50 duration-500">
+          {loading ? (
+            <LoadingFallback />
+          ) : (
+            <Suspense fallback={<LoadingFallback />}>
+              <div className="space-y-6">
+                {activeTab === "timer" && (
+                  <div className="space-y-6">
+                    <TimeTracker
+                      projects={projects}
+                      customers={customers}
+                      availableTags={[
+                        { value: "bug", label: "Bug" },
+                        { value: "feature", label: "Feature" },
+                        { value: "documentation", label: "Documentation" },
+                        { value: "design", label: "Design" },
+                        { value: "testing", label: "Testing" },
+                      ]}
+                      onTimeEntrySaved={fetchTimeEntriesData}
+                    />
+
+                    {/* Recent Time Entries */}
+                    {timeEntries.length > 0 && (
+                      <div className="space-y-3">
+                        <div className="text-sm font-medium text-muted-foreground">
+                          Recent Entries
+                        </div>
+                        {timeEntries.slice(0, 2).map((entry) => (
+                          <TimeEntryComponent
+                            key={entry.id}
+                            taskName={entry.task_name}
+                            projectName={entry.project?.name || ""}
+                            duration={entry.duration}
+                            startTime={entry.start_time}
+                            createdAt={entry.created_at}
+                            projectColor={entry.project?.color || "#94A3B8"}
+                            onDelete={() => handleDeleteTimeEntry(entry.id)}
+                            onEdit={() => handleEditEntry(entry.id)}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+                {activeTab === "reports" && (
+                  <ReportsPage
+                    entries={timeEntries}
+                    projects={projects}
+                    customers={customers}
+                    onDeleteEntry={handleDeleteTimeEntry}
+                  />
+                )}
+                {activeTab === "profile" && <ProfilePage />}
+              </div>
+            </Suspense>
+          )}
+        </main>
       </div>
     </MainLayout>
   );

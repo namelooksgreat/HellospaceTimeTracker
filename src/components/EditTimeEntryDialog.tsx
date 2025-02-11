@@ -1,4 +1,5 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useTimeEntryStore } from "@/store/timeEntryStore";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -49,13 +50,35 @@ export function EditTimeEntryDialog({
   customers,
   onSave,
 }: EditTimeEntryDialogProps) {
+  const initialRender = React.useRef(true);
+  const { duration, setDuration } = useTimeEntryStore();
+
+  useEffect(() => {
+    if (open && initialRender.current) {
+      const activeElement = document.activeElement as HTMLElement;
+      activeElement?.blur?.();
+      initialRender.current = false;
+    }
+  }, [open]);
+
   const [formData, setFormData] = useState({
     taskName: entry.task_name,
     projectId: entry.project?.id || "",
     customerId: entry.project?.customer_id || "",
     description: entry.description || "",
-    duration: entry.duration,
   });
+
+  useEffect(() => {
+    if (open) {
+      setFormData({
+        taskName: entry.task_name,
+        projectId: entry.project?.id || "",
+        customerId: entry.project?.customer_id || "",
+        description: entry.description || "",
+      });
+      setDuration(entry.duration);
+    }
+  }, [open, entry, setDuration]);
 
   const formatDuration = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
@@ -65,12 +88,25 @@ export function EditTimeEntryDialog({
   };
 
   const handleSave = () => {
-    onSave(formData);
+    const validDuration = Math.max(0, duration);
+
+    console.debug("EditTimeEntryDialog - Saving with data:", {
+      ...formData,
+      duration: validDuration,
+    });
+
+    onSave({
+      ...formData,
+      duration: validDuration,
+    });
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg w-full p-0 gap-0 overflow-hidden rounded-2xl border-border/50 shadow-xl dark:shadow-2xl dark:shadow-primary/10">
+      <DialogContent
+        className="max-w-lg w-full p-0 gap-0 overflow-hidden rounded-2xl border-border/50 shadow-xl dark:shadow-2xl dark:shadow-primary/10"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
         <DialogDescription className="sr-only">
           Edit your time entry details including task name, project, and
           description
@@ -91,7 +127,7 @@ export function EditTimeEntryDialog({
                     Total Duration
                   </div>
                   <div className="text-sm font-mono text-muted-foreground">
-                    {formatDuration(formData.duration)}
+                    {formatDuration(duration)}
                   </div>
                 </div>
                 <div className="grid grid-cols-3 gap-4">
@@ -99,19 +135,14 @@ export function EditTimeEntryDialog({
                     <Input
                       type="number"
                       min="0"
-                      value={Math.floor(formData.duration / 3600)}
+                      value={Math.floor(duration / 3600)}
                       onChange={(e) => {
                         const hours = parseInt(e.target.value) || 0;
-                        const minutes = Math.floor(
-                          (formData.duration % 3600) / 60,
-                        );
-                        const seconds = formData.duration % 60;
+                        const minutes = Math.floor((duration % 3600) / 60);
+                        const seconds = duration % 60;
                         const newDuration =
                           hours * 3600 + minutes * 60 + seconds;
-                        setFormData((prev) => ({
-                          ...prev,
-                          duration: newDuration,
-                        }));
+                        setDuration(newDuration);
                       }}
                       className="h-16 w-full text-center font-mono text-3xl font-bold bg-background/50 hover:bg-accent/50 transition-all duration-150 rounded-lg border-border/50 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 shadow-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
@@ -124,17 +155,14 @@ export function EditTimeEntryDialog({
                       type="number"
                       min="0"
                       max="59"
-                      value={Math.floor((formData.duration % 3600) / 60)}
+                      value={Math.floor((duration % 3600) / 60)}
                       onChange={(e) => {
-                        const hours = Math.floor(formData.duration / 3600);
+                        const hours = Math.floor(duration / 3600);
                         const minutes = parseInt(e.target.value) || 0;
-                        const seconds = formData.duration % 60;
+                        const seconds = duration % 60;
                         const newDuration =
                           hours * 3600 + minutes * 60 + seconds;
-                        setFormData((prev) => ({
-                          ...prev,
-                          duration: newDuration,
-                        }));
+                        setDuration(newDuration);
                       }}
                       className="h-16 w-full text-center font-mono text-3xl font-bold bg-background/50 hover:bg-accent/50 transition-all duration-150 rounded-lg border-border/50 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 shadow-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
@@ -147,19 +175,14 @@ export function EditTimeEntryDialog({
                       type="number"
                       min="0"
                       max="59"
-                      value={formData.duration % 60}
+                      value={duration % 60}
                       onChange={(e) => {
-                        const hours = Math.floor(formData.duration / 3600);
-                        const minutes = Math.floor(
-                          (formData.duration % 3600) / 60,
-                        );
+                        const hours = Math.floor(duration / 3600);
+                        const minutes = Math.floor((duration % 3600) / 60);
                         const seconds = parseInt(e.target.value) || 0;
                         const newDuration =
                           hours * 3600 + minutes * 60 + seconds;
-                        setFormData((prev) => ({
-                          ...prev,
-                          duration: newDuration,
-                        }));
+                        setDuration(newDuration);
                       }}
                       className="h-16 w-full text-center font-mono text-3xl font-bold bg-background/50 hover:bg-accent/50 transition-all duration-150 rounded-lg border-border/50 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 shadow-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />

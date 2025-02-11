@@ -6,6 +6,7 @@ import path from "path";
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
+  base: "./",
   build: {
     sourcemap: false,
     minify: "terser",
@@ -22,6 +23,9 @@ export default defineConfig({
           ui: ["@radix-ui/react-dialog", "@radix-ui/react-select"],
           utils: ["date-fns", "zustand"],
         },
+        assetFileNames: "assets/[name].[hash][extname]",
+        chunkFileNames: "assets/[name].[hash].js",
+        entryFileNames: "assets/[name].[hash].js",
       },
     },
   },

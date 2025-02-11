@@ -35,9 +35,12 @@ export class TimerManager {
   }
 }
 
-// Add cleanup listeners
+// Add cleanup listener with visibilitychange
 if (typeof window !== "undefined") {
   const timerManager = TimerManager.getInstance();
-  window.addEventListener("unload", () => timerManager.cleanup());
-  window.addEventListener("beforeunload", () => timerManager.cleanup());
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") {
+      timerManager.cleanup();
+    }
+  });
 }

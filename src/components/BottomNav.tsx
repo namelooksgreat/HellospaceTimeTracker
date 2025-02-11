@@ -1,4 +1,4 @@
-import { Timer, BarChart3, Settings2, Play, Pause } from "lucide-react";
+import { Timer, BarChart, Settings2, Play, Pause } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
@@ -22,7 +22,7 @@ function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
   }> = [
     {
       id: "reports",
-      icon: BarChart3,
+      icon: BarChart,
       description: "View your statistics",
     },
     {
@@ -38,9 +38,9 @@ function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-background/80 dark:bg-background/70 backdrop-blur-2xl border-t border-border/50 safe-area-bottom z-50">
+    <div className="fixed bottom-0 left-0 right-0 bg-background/95 dark:bg-background/90 backdrop-blur-xl border-t border-border/50 safe-area-bottom z-50">
       <motion.div
-        className="max-w-md mx-auto flex justify-between items-center px-8 h-16 relative"
+        className="container max-w-lg mx-auto flex justify-between items-center px-6 h-20 relative"
         initial={false}
       >
         {tabs.map((tab) => {
@@ -54,11 +54,12 @@ function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
               onClick={() => onTabChange(tab.id)}
               className={cn(
                 "relative flex items-center justify-center outline-none",
-                isTimer ? "-mt-8 h-20 w-20" : "h-12 w-12",
+                isTimer ? "-mt-10 h-20 w-20" : "h-14 w-14",
                 isTimer ? "rounded-2xl" : "rounded-xl",
                 isActive && !isTimer && "bg-primary/10",
                 isTimer && "bg-background shadow-2xl border border-border/50",
                 "transition-all duration-500 ease-out-expo touch-none",
+                !isTimer && "relative overflow-hidden",
               )}
               whileTap={{ scale: 0.95 }}
               whileHover={{ scale: isTimer ? 1.05 : 1.02 }}
@@ -96,20 +97,41 @@ function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
                     />
                   )
                 ) : tab.id === "profile" ? (
-                  <Avatar className="h-6 w-6 border border-border/50">
+                  <Avatar
+                    className={cn(
+                      "h-6 w-6 bg-gradient-to-br from-primary/20 to-primary/10 ring-1 ring-primary/20 shadow-lg shadow-primary/10 overflow-hidden transition-all duration-300",
+                      "group-hover:scale-110 group-hover:shadow-xl group-hover:shadow-primary/20",
+                      isActive &&
+                        "scale-110 shadow-xl shadow-primary/20 ring-2 ring-primary/50 from-primary/30 to-primary/20",
+                    )}
+                  >
                     <AvatarImage
                       src={
                         user?.avatar_url ||
                         `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.email}`
                       }
+                      className={cn(
+                        "object-cover transition-transform duration-300",
+                        "group-hover:scale-110",
+                        isActive && "scale-110",
+                      )}
                     />
-                    <AvatarFallback className="text-xs">
+                    <AvatarFallback
+                      className={cn(
+                        "text-xs font-medium text-primary bg-gradient-to-br from-primary/20 to-primary/10",
+                        isActive && "from-primary/30 to-primary/20",
+                      )}
+                    >
                       {user?.full_name?.[0] || user?.email?.[0]}
                     </AvatarFallback>
                   </Avatar>
                 ) : (
                   <Icon
-                    className={cn("transition-all duration-500", "h-6 w-6")}
+                    className={cn(
+                      "relative h-6 w-6 transition-all duration-300",
+                      "group-hover:scale-110",
+                      isActive && "text-primary scale-110",
+                    )}
                     strokeWidth={isActive ? 2.5 : 2}
                   />
                 )}
@@ -117,7 +139,7 @@ function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
 
               {isActive && !isTimer && (
                 <motion.div
-                  className="absolute bottom-1.5 h-1 w-6 bg-primary rounded-full"
+                  className="absolute inset-0 bg-primary/10 rounded-xl"
                   layoutId="activeTab"
                   transition={{ type: "spring", stiffness: 400, damping: 25 }}
                 />

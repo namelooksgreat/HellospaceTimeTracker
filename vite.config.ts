@@ -1,7 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
-import path from "path";
 import { tempo } from "tempo-devtools/dist/vite";
+import path from "path";
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -11,6 +11,21 @@ export default defineConfig({
     }),
     tempo(),
   ],
+  optimizeDeps: {
+    include: ["tempo-devtools"],
+  },
+  base: "/",
+  build: {
+    outDir: "dist",
+    assetsDir: "assets",
+    rollupOptions: {
+      output: {
+        assetFileNames: "assets/[name].[hash][extname]",
+        chunkFileNames: "assets/[name].[hash].js",
+        entryFileNames: "assets/[name].[hash].js",
+      },
+    },
+  },
   server: {
     // @ts-ignore
     allowedHosts: process.env.TEMPO === "true" ? true : undefined,
@@ -18,22 +33,6 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-    },
-  },
-  build: {
-    sourcemap: process.env.TEMPO === "true" ? true : false,
-    minify: false,
-    rollupOptions: {
-      output: {
-        manualChunks: undefined,
-      },
-    },
-  },
-  base: "/",
-  optimizeDeps: {
-    exclude: ["framer-motion"],
-    esbuildOptions: {
-      sourcemap: false,
     },
   },
 });

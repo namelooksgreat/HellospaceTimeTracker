@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useTimeEntryStore } from "@/store/timeEntryStore";
 import { Building2, Clock } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -41,6 +42,7 @@ interface SaveTimeEntryDialogProps {
     customerId: string;
     description: string;
     tags: string[];
+    duration: number;
   }) => void;
 }
 
@@ -52,9 +54,19 @@ export function SaveTimeEntryDialog({
   customerId: initialCustomerId,
   projects,
   customers,
-  duration,
+  duration: initialDuration,
   onSave,
 }: SaveTimeEntryDialogProps) {
+  const initialRender = React.useRef(true);
+
+  useEffect(() => {
+    if (open && initialRender.current) {
+      const activeElement = document.activeElement as HTMLElement;
+      activeElement?.blur?.();
+      initialRender.current = false;
+    }
+  }, [open]);
+
   const [formData, setFormData] = useState<{
     taskName: string;
     projectId: string;
@@ -69,15 +81,26 @@ export function SaveTimeEntryDialog({
     tags: [],
   }));
 
+  const { duration, setDuration } = useTimeEntryStore();
+
   useEffect(() => {
-    setFormData((prev) => ({
-      ...prev,
-      taskName: initialTaskName,
-      projectId: initialProjectId,
-      customerId: initialCustomerId,
-      duration: duration,
-    }));
-  }, [initialTaskName, initialProjectId, initialCustomerId, duration]);
+    if (open) {
+      setFormData({
+        taskName: initialTaskName || "",
+        projectId: initialProjectId || "",
+        customerId: initialCustomerId || "",
+        description: "",
+        tags: [],
+      });
+      setDuration(initialDuration);
+    }
+  }, [
+    open,
+    initialTaskName,
+    initialProjectId,
+    initialCustomerId,
+    initialDuration,
+  ]);
 
   const formatDuration = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
@@ -87,18 +110,27 @@ export function SaveTimeEntryDialog({
   };
 
   const handleSave = () => {
+    // Ensure duration is a positive number
+    const validDuration = Math.max(0, duration);
+
+    // Log the data being saved
+    console.debug("Saving time entry:", {
+      ...formData,
+      duration: validDuration,
+    });
+
     onSave({
-      taskName: formData.taskName,
-      projectId: formData.projectId,
-      customerId: formData.customerId,
-      description: formData.description,
-      tags: formData.tags,
+      ...formData,
+      duration: validDuration,
     });
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg w-full p-0 gap-0 overflow-hidden rounded-2xl border-border/50 shadow-xl dark:shadow-2xl dark:shadow-primary/10">
+      <DialogContent
+        className="max-w-lg w-full p-0 gap-0 overflow-hidden rounded-2xl border-border/50 shadow-xl dark:shadow-2xl dark:shadow-primary/10"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
         <DialogDescription className="sr-only">
           Save your time entry details including task name, project, and
           description
@@ -119,7 +151,7 @@ export function SaveTimeEntryDialog({
                     Total Duration
                   </div>
                   <div className="text-sm font-mono text-muted-foreground">
-                    {formatDuration(formData.duration)}
+                    {formatDuration(duration)}
                   </div>
                 </div>
                 <div className="grid grid-cols-3 gap-4">
@@ -127,19 +159,14 @@ export function SaveTimeEntryDialog({
                     <Input
                       type="number"
                       min="0"
-                      value={Math.floor(formData.duration / 3600)}
+                      value={Math.floor(duration / 3600)}
                       onChange={(e) => {
                         const hours = parseInt(e.target.value) || 0;
-                        const minutes = Math.floor(
-                          (formData.duration % 3600) / 60,
-                        );
-                        const seconds = formData.duration % 60;
+                        const minutes = Math.floor((duration % 3600) / 60);
+                        const seconds = duration % 60;
                         const newDuration =
                           hours * 3600 + minutes * 60 + seconds;
-                        setFormData((prev) => ({
-                          ...prev,
-                          duration: newDuration,
-                        }));
+                        setDuration(newDuration);
                       }}
                       className="h-16 w-full text-center font-mono text-3xl font-bold bg-background/50 hover:bg-accent/50 transition-all duration-150 rounded-lg border-border/50 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 shadow-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
@@ -152,17 +179,14 @@ export function SaveTimeEntryDialog({
                       type="number"
                       min="0"
                       max="59"
-                      value={Math.floor((formData.duration % 3600) / 60)}
+                      value={Math.floor((duration % 3600) / 60)}
                       onChange={(e) => {
-                        const hours = Math.floor(formData.duration / 3600);
+                        const hours = Math.floor(duration / 3600);
                         const minutes = parseInt(e.target.value) || 0;
-                        const seconds = formData.duration % 60;
+                        const seconds = duration % 60;
                         const newDuration =
                           hours * 3600 + minutes * 60 + seconds;
-                        setFormData((prev) => ({
-                          ...prev,
-                          duration: newDuration,
-                        }));
+                        setDuration(newDuration);
                       }}
                       className="h-16 w-full text-center font-mono text-3xl font-bold bg-background/50 hover:bg-accent/50 transition-all duration-150 rounded-lg border-border/50 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 shadow-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
@@ -175,19 +199,14 @@ export function SaveTimeEntryDialog({
                       type="number"
                       min="0"
                       max="59"
-                      value={formData.duration % 60}
+                      value={duration % 60}
                       onChange={(e) => {
-                        const hours = Math.floor(formData.duration / 3600);
-                        const minutes = Math.floor(
-                          (formData.duration % 3600) / 60,
-                        );
+                        const hours = Math.floor(duration / 3600);
+                        const minutes = Math.floor((duration % 3600) / 60);
                         const seconds = parseInt(e.target.value) || 0;
                         const newDuration =
                           hours * 3600 + minutes * 60 + seconds;
-                        setFormData((prev) => ({
-                          ...prev,
-                          duration: newDuration,
-                        }));
+                        setDuration(newDuration);
                       }}
                       className="h-16 w-full text-center font-mono text-3xl font-bold bg-background/50 hover:bg-accent/50 transition-all duration-150 rounded-lg border-border/50 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 shadow-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />

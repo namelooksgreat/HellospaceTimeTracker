@@ -1,5 +1,5 @@
 import { act, renderHook } from "@testing-library/react";
-import { useTimerStore, cleanupTimer } from "@/store/timerStore";
+import { useTimerStore } from "@/store/timerStore";
 import { supabase } from "@/lib/supabase";
 
 // Mock Supabase Auth
@@ -22,13 +22,21 @@ describe("Timer Store Tests", () => {
     localStorage.clear();
     jest.useFakeTimers();
     jest.spyOn(supabase.auth, "getUser").mockResolvedValue({
-      data: { user: mockUser1 },
+      data: {
+        user: {
+          ...mockUser1,
+          app_metadata: {},
+          user_metadata: {},
+          aud: "authenticated",
+          created_at: new Date().toISOString(),
+        },
+      },
       error: null,
     });
   });
 
   afterEach(() => {
-    cleanupTimer();
+    useTimerStore.getState().reset();
     jest.useRealTimers();
     jest.clearAllMocks();
   });
@@ -61,7 +69,15 @@ describe("Timer Store Tests", () => {
 
       // Switch to second user
       jest.spyOn(supabase.auth, "getUser").mockResolvedValue({
-        data: { user: mockUser2 },
+        data: {
+          user: {
+            ...mockUser2,
+            app_metadata: {},
+            user_metadata: {},
+            aud: "authenticated",
+            created_at: new Date().toISOString(),
+          },
+        },
         error: null,
       });
 

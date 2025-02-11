@@ -1,5 +1,5 @@
 import { renderHook, act } from "@testing-library/react";
-import { useTimerStore } from "@/store/timerStore";
+import { useTimeEntryStore } from "@/store/timeEntryStore";
 import { createTimeEntry, getTimeEntries } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
 
@@ -16,17 +16,15 @@ describe("Time Entry Integration Tests", () => {
 
   describe("Time Entry Creation", () => {
     it("creates time entry with correct duration", async () => {
-      const { result } = renderHook(() => useTimerStore());
+      const { result } = renderHook(() => useTimeEntryStore());
 
       act(() => {
-        result.current.start();
-        jest.advanceTimersByTime(5000);
-        result.current.stop();
+        result.current.setDuration(5);
       });
 
       const entry = {
         task_name: "Test Task",
-        duration: result.current.time,
+        duration: result.current.duration,
         start_time: new Date().toISOString(),
       };
 
@@ -67,6 +65,7 @@ describe("Time Entry Integration Tests", () => {
   describe("Time Entry Validation", () => {
     it("validates required fields", async () => {
       const invalidEntry = {
+        task_name: "",
         duration: 300,
         start_time: new Date().toISOString(),
       };

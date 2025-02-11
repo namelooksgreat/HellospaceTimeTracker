@@ -1,53 +1,89 @@
 export class PreciseTimer {
-  private static instance: PreciseTimer;
   private startTime: number | null = null;
-  private baseTime: number = 0;
+  private elapsedTime: number = 0;
   private animationFrameId: number | null = null;
-  private callback: ((elapsed: number) => void) | null = null;
+  private onTick: ((time: number) => void) | null = null;
+  private lastVisibilityTime: number | null = null;
 
-  private constructor() {}
-
-  static getInstance(): PreciseTimer {
-    if (!PreciseTimer.instance) {
-      PreciseTimer.instance = new PreciseTimer();
+  constructor() {
+    if (typeof document !== "undefined") {
+      document.addEventListener(
+        "visibilitychange",
+        this.handleVisibilityChange,
+      );
     }
-    return PreciseTimer.instance;
   }
 
-  start(
-    callback: (elapsedSeconds: number) => void,
-    initialTime: number = 0,
-  ): void {
+  private handleVisibilityChange = () => {
+    if (document.visibilityState === "hidden") {
+      if (this.startTime !== null) {
+        // Save state before page becomes hidden
+        this.lastVisibilityTime = performance.now();
+        this.elapsedTime = this.getCurrentTime();
+        this.cleanup();
+      }
+    } else if (document.visibilityState === "visible") {
+      if (this.lastVisibilityTime && this.onTick) {
+        // Calculate time passed while hidden
+        const hiddenDuration = performance.now() - this.lastVisibilityTime;
+        const elapsedSeconds = Math.floor(hiddenDuration / 1000);
+        const newElapsedTime = this.elapsedTime + elapsedSeconds;
+
+        // Restart timer with adjusted time
+        this.start(this.onTick, newElapsedTime);
+      }
+    }
+  };
+
+  start(onTick: (time: number) => void, initialTime: number = 0) {
     this.cleanup();
     this.startTime = performance.now();
-    this.baseTime = initialTime;
-    this.callback = callback;
+    this.elapsedTime = initialTime;
+    this.onTick = onTick;
     this.tick();
   }
 
   private tick = () => {
-    if (!this.startTime || !this.callback) return;
+    if (!this.startTime || !this.onTick) return;
 
     const now = performance.now();
-    const elapsed = Math.floor((now - this.startTime) / 1000);
-    this.callback(this.baseTime + elapsed);
+    const elapsedMs = now - this.startTime;
+    const elapsedSeconds = Math.floor(elapsedMs / 1000);
+    const totalTime = this.elapsedTime + elapsedSeconds;
 
+    this.onTick(totalTime);
+
+    // Use requestAnimationFrame for smoother updates
     this.animationFrameId = requestAnimationFrame(this.tick);
   };
 
-  stop(): void {
+  pause() {
+    this.elapsedTime = this.getCurrentTime();
     this.cleanup();
   }
 
-  private cleanup(): void {
+  stop() {
+    const finalTime = this.getCurrentTime();
+    this.cleanup();
+    this.elapsedTime = 0;
+    return finalTime;
+  }
+
+  private cleanup() {
     if (this.animationFrameId !== null) {
-      cancelAnimationFrame(this.animationFrameId);
+      clearTimeout(this.animationFrameId);
       this.animationFrameId = null;
     }
     this.startTime = null;
-    this.baseTime = 0;
-    this.callback = null;
+  }
+
+  getCurrentTime(): number {
+    if (!this.startTime) return this.elapsedTime;
+
+    const now = performance.now();
+    const elapsedSeconds = Math.floor((now - this.startTime) / 1000);
+    return this.elapsedTime + elapsedSeconds;
   }
 }
 
-export const preciseTimer = PreciseTimer.getInstance();
+export const preciseTimer = new PreciseTimer();

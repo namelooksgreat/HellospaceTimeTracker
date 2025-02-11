@@ -10,7 +10,11 @@ const localStorageMock = {
   removeItem: jest.fn(),
   clear: jest.fn(),
 };
-global.localStorage = localStorageMock;
+global.localStorage = {
+  ...localStorageMock,
+  length: 0,
+  key: (index: number) => null,
+};
 
 // Mock sessionStorage
 const sessionStorageMock = {
@@ -19,7 +23,11 @@ const sessionStorageMock = {
   removeItem: jest.fn(),
   clear: jest.fn(),
 };
-global.sessionStorage = sessionStorageMock;
+global.sessionStorage = {
+  ...sessionStorageMock,
+  length: 0,
+  key: (index: number) => null,
+};
 
 // Reset mocks after each test
 afterEach(() => {

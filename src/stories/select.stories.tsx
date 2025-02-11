@@ -1,24 +1,26 @@
-// [build] library: 'shadcn'
+import type { Meta, StoryObj } from "@storybook/react";
 import {
   Select,
   SelectContent,
   SelectGroup,
   SelectItem,
-  SelectLabel,
-  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from "../components/ui/select";
 
 const meta = {
-  title: "ui/Select",
+  title: "UI/Select",
   component: Select,
+  parameters: {
+    layout: "centered",
+  },
   tags: ["autodocs"],
-  argTypes: {},
-};
-export default meta;
+} as Meta<typeof Select>;
 
-export const Base = {
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+export const Basic: Story = {
   render: () => (
     <Select>
       <SelectTrigger className="w-[180px]">
@@ -26,34 +28,51 @@ export const Base = {
       </SelectTrigger>
       <SelectContent>
         <SelectGroup>
-          <SelectLabel>Fruits</SelectLabel>
+          <div className="px-2 py-1.5 text-sm font-medium">Fruits</div>
           <SelectItem value="apple">Apple</SelectItem>
           <SelectItem value="banana">Banana</SelectItem>
-          <SelectItem value="blueberry">Blueberry</SelectItem>
-          <SelectItem value="grapes">Grapes</SelectItem>
-          <SelectItem value="pineapple">Pineapple</SelectItem>
+          <SelectItem value="orange">Orange</SelectItem>
         </SelectGroup>
-        <SelectSeparator />
+      </SelectContent>
+    </Select>
+  ),
+};
+
+export const WithGroups: Story = {
+  render: () => (
+    <Select>
+      <SelectTrigger className="w-[180px]">
+        <SelectValue placeholder="Select a food" />
+      </SelectTrigger>
+      <SelectContent>
         <SelectGroup>
-          <SelectLabel>Vegetables</SelectLabel>
-          <SelectItem value="aubergine">Aubergine</SelectItem>
-          <SelectItem value="broccoli">Broccoli</SelectItem>
-          <SelectItem value="carrot" disabled>
-            Carrot
-          </SelectItem>
-          <SelectItem value="courgette">Courgette</SelectItem>
-          <SelectItem value="leek">Leek</SelectItem>
+          <div className="px-2 py-1.5 text-sm font-medium">Vegetables</div>
+          <SelectItem value="carrot">Carrot</SelectItem>
+          <SelectItem value="potato">Potato</SelectItem>
+          <SelectItem value="tomato">Tomato</SelectItem>
         </SelectGroup>
-        <SelectSeparator />
         <SelectGroup>
-          <SelectLabel>Meat</SelectLabel>
-          <SelectItem value="beef">Beef</SelectItem>
+          <div className="px-2 py-1.5 text-sm font-medium">Meat</div>
           <SelectItem value="chicken">Chicken</SelectItem>
-          <SelectItem value="lamb">Lamb</SelectItem>
+          <SelectItem value="beef">Beef</SelectItem>
           <SelectItem value="pork">Pork</SelectItem>
         </SelectGroup>
       </SelectContent>
     </Select>
   ),
-  args: {},
+};
+
+export const Disabled: Story = {
+  render: () => (
+    <Select disabled>
+      <SelectTrigger className="w-[180px]">
+        <SelectValue placeholder="Select a fruit" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="apple">Apple</SelectItem>
+        <SelectItem value="banana">Banana</SelectItem>
+        <SelectItem value="orange">Orange</SelectItem>
+      </SelectContent>
+    </Select>
+  ),
 };

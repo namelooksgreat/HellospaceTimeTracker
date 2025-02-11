@@ -37,8 +37,8 @@ export function WeeklyReport({ entries }: WeeklyReportProps) {
   });
 
   return (
-    <Card>
-      <CardContent className="p-6">
+    <Card className="bg-gradient-to-br from-card/50 to-card/30 dark:from-card/20 dark:to-card/10 border border-border/50 rounded-xl transition-all duration-300 hover:shadow-lg hover:border-border/80 group overflow-hidden">
+      <CardContent className="p-4 sm:p-6">
         <div className="space-y-6">
           {dailyHours.map(({ day, hours, color }) => (
             <div key={day} className="space-y-2">

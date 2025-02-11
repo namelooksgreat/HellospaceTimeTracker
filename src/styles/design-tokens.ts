@@ -43,6 +43,9 @@ export const tokens = {
       "2xl": "1.5rem",
       "3xl": "1.875rem",
       "4xl": "2.25rem",
+      "5xl": "3rem",
+      timer: "4rem", // Special size for timer display
+      "timer-sm": "3rem", // Timer size for mobile
     },
     weights: {
       normal: "400",
@@ -68,6 +71,8 @@ export const tokens = {
     8: "2rem",
     12: "3rem",
     16: "4rem",
+    20: "5rem",
+    24: "6rem",
   },
   radii: {
     none: "0",
@@ -76,6 +81,7 @@ export const tokens = {
     lg: "0.5rem",
     xl: "0.75rem",
     "2xl": "1rem",
+    "3xl": "1.5rem",
     full: "9999px",
   },
   shadows: {
@@ -83,11 +89,15 @@ export const tokens = {
     base: "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)",
     md: "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
     lg: "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
+    glow: "0 0 15px -3px rgb(var(--primary) / 0.15)",
+    "glow-lg": "0 0 30px -5px rgb(var(--primary) / 0.15)",
   },
   transitions: {
     base: "150ms cubic-bezier(0.4, 0, 0.2, 1)",
     smooth: "250ms cubic-bezier(0.4, 0, 0.2, 1)",
     slow: "350ms cubic-bezier(0.4, 0, 0.2, 1)",
+    bounce: "500ms cubic-bezier(0.68, -0.55, 0.265, 1.55)",
+    spring: "700ms cubic-bezier(0.25, 0.1, 0.25, 1.0)",
   },
   zIndices: {
     0: "0",
@@ -96,6 +106,32 @@ export const tokens = {
     30: "30",
     40: "40",
     50: "50",
+    modal: "100",
+    overlay: "200",
+    toast: "300",
     auto: "auto",
   },
-};
+  effects: {
+    gradients: {
+      subtle:
+        "linear-gradient(to bottom right, var(--card) / 0.5, var(--card) / 0.3)",
+      primary:
+        "linear-gradient(to bottom right, rgb(var(--primary)) / 0.1, transparent)",
+      glow: "radial-gradient(circle at center, rgb(var(--primary)) / 0.15, transparent 70%)",
+      timer:
+        "linear-gradient(to bottom right, rgb(var(--primary)) / 0.05, transparent)",
+    },
+    patterns: {
+      grid: "linear-gradient(to right, rgb(var(--primary)) / 0.05 1px, transparent 1px) 0 0 / 8px 100%",
+      dots: "radial-gradient(rgb(var(--primary)) / 0.2 1px, transparent 1px) 0 0 / 16px 16px",
+      stripes:
+        "linear-gradient(45deg, rgb(var(--primary)) / 0.05 25%, transparent 25%, transparent 50%, rgb(var(--primary)) / 0.05 50%, rgb(var(--primary)) / 0.05 75%, transparent 75%, transparent)",
+    },
+    animations: {
+      fadeIn: "fade-in 0.3s ease-out",
+      slideUp: "slide-up 0.4s ease-out",
+      bounce: "bounce 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55)",
+      pulse: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+    },
+  },
+} as const;

@@ -24,8 +24,8 @@ export function DailyReport({
   onEditEntry,
 }: DailyReportProps) {
   return (
-    <ScrollArea className="h-[calc(100vh-20rem)] sm:h-[500px]">
-      <div className="space-y-2">
+    <ScrollArea className="h-[calc(100vh-24rem)] pr-4 -mr-4">
+      <div className="space-y-3 pb-20">
         {entries.length > 0 ? (
           entries.map((entry) => (
             <TimeEntry

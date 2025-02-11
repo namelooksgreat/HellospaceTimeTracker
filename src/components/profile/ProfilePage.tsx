@@ -14,70 +14,70 @@ export function ProfilePage() {
   if (!user) return null;
 
   return (
-    <Card className="bg-background/50 backdrop-blur-sm border-border/50 shadow-sm overflow-hidden sm:rounded-lg rounded-none border-x-0 sm:border-x">
-      <CardContent className="p-6">
-        <div className="mb-6">
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-xl bg-primary/10 text-primary ring-1 ring-primary/20">
-              <Settings className="h-5 w-5" />
-            </div>
-            <h1 className="text-xl font-semibold tracking-tight">
-              Account Settings
-            </h1>
+    <div className="space-y-6">
+      <div className="mb-6">
+        <div className="flex items-center gap-2">
+          <div className="p-2 rounded-xl bg-primary/10 text-primary ring-1 ring-primary/20">
+            <Settings className="h-5 w-5" />
           </div>
+          <h1 className="text-xl font-semibold tracking-tight">
+            Account Settings
+          </h1>
         </div>
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="w-full h-10 p-1 bg-muted/50 rounded-lg grid grid-cols-3 gap-1">
-            <TabsTrigger
-              value="profile"
-              className="h-9 rounded-md data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all"
-            >
-              <div className="flex items-center justify-center gap-1.5">
-                <Settings className="h-4 w-4" />
-                <span>Profile</span>
-              </div>
-            </TabsTrigger>
-            <TabsTrigger
-              value="preferences"
-              className="h-9 rounded-md data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all"
-            >
-              <div className="flex items-center justify-center gap-1.5">
-                <Palette className="h-4 w-4" />
-                <span>Preferences</span>
-              </div>
-            </TabsTrigger>
-            <TabsTrigger
-              value="security"
-              className="h-9 rounded-md data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all"
-            >
-              <div className="flex items-center justify-center gap-1.5">
-                <Shield className="h-4 w-4" />
-                <span>Security</span>
-              </div>
-            </TabsTrigger>
-          </TabsList>
-          <div className="mt-6">
-            <TabsContent
-              value="profile"
-              className="mt-0 focus-visible:outline-none focus-visible:ring-0"
-            >
-              <UserProfile user={user} />
-            </TabsContent>
-            <TabsContent
-              value="preferences"
-              className="mt-0 focus-visible:outline-none focus-visible:ring-0"
-            >
-              <UserPreferences />
-            </TabsContent>
-            <TabsContent
-              value="security"
-              className="mt-0 focus-visible:outline-none focus-visible:ring-0"
-            >
-              <UserSecurity />
-            </TabsContent>
-          </div>
-        </Tabs>
-      </CardContent>
-    </Card>
+      </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="w-full h-14 p-1.5 bg-muted/50 dark:bg-muted/30 rounded-xl ring-1 ring-border transition-all duration-300 ease-in-out grid grid-cols-3 gap-1">
+          <TabsTrigger
+            value="profile"
+            className="flex-1 h-11 rounded-lg data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all hover:bg-accent/50 active:scale-95 touch-none"
+          >
+            <div className="flex items-center justify-center gap-1.5">
+              <Settings className="h-4 w-4" />
+              <span>Profile</span>
+            </div>
+          </TabsTrigger>
+          <TabsTrigger
+            value="preferences"
+            className="flex-1 h-11 rounded-lg data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all hover:bg-accent/50 active:scale-95 touch-none"
+          >
+            <div className="flex items-center justify-center gap-1.5">
+              <Palette className="h-4 w-4" />
+              <span>Preferences</span>
+            </div>
+          </TabsTrigger>
+          <TabsTrigger
+            value="security"
+            className="flex-1 h-11 rounded-lg data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all hover:bg-accent/50 active:scale-95 touch-none"
+          >
+            <div className="flex items-center justify-center gap-1.5">
+              <Shield className="h-4 w-4" />
+              <span>Security</span>
+            </div>
+          </TabsTrigger>
+        </TabsList>
+
+        <div className="mt-6">
+          <TabsContent
+            value="profile"
+            className="mt-0 focus-visible:outline-none focus-visible:ring-0"
+          >
+            <UserProfile user={user} />
+          </TabsContent>
+          <TabsContent
+            value="preferences"
+            className="mt-0 focus-visible:outline-none focus-visible:ring-0"
+          >
+            <UserPreferences />
+          </TabsContent>
+          <TabsContent
+            value="security"
+            className="mt-0 focus-visible:outline-none focus-visible:ring-0"
+          >
+            <UserSecurity />
+          </TabsContent>
+        </div>
+      </Tabs>
+    </div>
   );
 }

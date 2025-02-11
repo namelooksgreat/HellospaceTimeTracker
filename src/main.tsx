@@ -1,15 +1,17 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { BrowserRouter } from "react-router-dom";
-import { ThemeProvider } from "./components/theme-provider";
-import { AuthProvider } from "./lib/auth";
-import { ErrorBoundary } from "./lib/utils/error-boundary";
 import App from "./App";
 import "./index.css";
+import { BrowserRouter } from "react-router-dom";
+import { AuthProvider } from "./lib/auth";
+import { ThemeProvider } from "./components/theme-provider";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
-// Initialize Tempo DevTools
-import { TempoDevtools } from "tempo-devtools";
-TempoDevtools.init();
+// Import and initialize Tempo Devtools
+if (import.meta.env.VITE_TEMPO === "true") {
+  const { TempoDevtools } = await import("tempo-devtools");
+  await TempoDevtools.init();
+}
 
 // Initialize React app
 const rootElement = document.getElementById("root");
@@ -17,14 +19,14 @@ if (!rootElement) throw new Error("Root element not found");
 
 ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
-    <BrowserRouter>
-      <ErrorBoundary>
+    <ErrorBoundary>
+      <BrowserRouter>
         <AuthProvider>
           <ThemeProvider defaultTheme="dark">
             <App />
           </ThemeProvider>
         </AuthProvider>
-      </ErrorBoundary>
-    </BrowserRouter>
+      </BrowserRouter>
+    </ErrorBoundary>
   </React.StrictMode>,
 );
