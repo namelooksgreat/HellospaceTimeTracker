@@ -9,7 +9,7 @@ import {
   CardHeader,
   CardTitle,
   CardDescription,
-} from "@/components/ui/card";
+} from "../ui/card";
 import { register } from "@/lib/auth";
 
 export function RegisterForm() {

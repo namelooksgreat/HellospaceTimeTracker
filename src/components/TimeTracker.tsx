@@ -7,7 +7,7 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { SaveTimeEntryDialog } from "./SaveTimeEntryDialog";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "./ui/card";
 import { showSuccess } from "@/lib/utils/toast";
 import { handleError } from "@/lib/utils/error-handler";
 import { ValidationError } from "@/config/errors";
