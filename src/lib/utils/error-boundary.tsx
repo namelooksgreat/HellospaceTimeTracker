@@ -1,10 +1,12 @@
 import React, { Component, ErrorInfo } from "react";
 import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { trackError } from "./error-tracking";
 
 interface Props {
   children: React.ReactNode;
   fallback?: React.ReactNode;
+  componentName?: string;
 }
 
 interface State {
@@ -12,7 +14,7 @@ interface State {
   error?: Error;
 }
 
-class ErrorBoundaryComponent extends Component<Props, State> {
+export class ErrorBoundary extends Component<Props, State> {
   public state: State = {
     hasError: false,
   };
@@ -22,7 +24,10 @@ class ErrorBoundaryComponent extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error("Uncaught error:", error, errorInfo);
+    trackError(error, "high", {
+      componentName: this.props.componentName || "ErrorBoundary",
+      metadata: { errorInfo },
+    });
   }
 
   public render() {
@@ -52,5 +57,3 @@ class ErrorBoundaryComponent extends Component<Props, State> {
     return this.props.children;
   }
 }
-
-export const ErrorBoundary = ErrorBoundaryComponent;

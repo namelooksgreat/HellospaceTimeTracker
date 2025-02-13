@@ -5,7 +5,6 @@ import path from "path";
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  // Vercel deployment configuration
   plugins: [
     react({
       plugins: process.env.TEMPO === "true" ? [["tempo-devtools/swc", {}]] : [],
@@ -13,17 +12,20 @@ export default defineConfig({
     tempo(),
   ],
   optimizeDeps: {
-    include: ["tempo-devtools"],
+    include: ["tempo-devtools", "framer-motion"],
+    exclude: ["tempo-routes"],
   },
   base: "/",
-  // Enable SPA fallback for client-side routing
   server: {
-    middlewareMode: true,
+    // @ts-ignore
+    allowedHosts: process.env.TEMPO === "true" ? true : undefined,
+    host: true,
+    port: 3000,
   },
   build: {
     outDir: "dist",
     assetsDir: "assets",
-    sourcemap: true,
+    sourcemap: false,
     minify: "terser",
     terserOptions: {
       compress: {
@@ -32,9 +34,16 @@ export default defineConfig({
       },
     },
     rollupOptions: {
+      external: ["tempo-routes"],
       output: {
+        paths: {
+          "tempo-routes": "/tempo-routes",
+        },
         manualChunks: (id) => {
           if (id.includes("node_modules")) {
+            if (id.includes("framer-motion")) {
+              return "framer-motion";
+            }
             if (
               id.includes("react") ||
               id.includes("react-dom") ||
@@ -57,10 +66,6 @@ export default defineConfig({
         entryFileNames: "assets/[name].[hash].js",
       },
     },
-  },
-  server: {
-    // @ts-ignore
-    allowedHosts: process.env.TEMPO === "true" ? true : undefined,
   },
   resolve: {
     alias: {

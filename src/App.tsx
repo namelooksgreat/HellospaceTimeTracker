@@ -44,8 +44,33 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
-            {/* Add this before the catchall route */}
+            <Route
+              path="/timer"
+              element={
+                <ProtectedRoute>
+                  <TimeTracker />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports"
+              element={
+                <ProtectedRoute>
+                  <ReportsPage entries={[]} onDeleteEntry={() => {}} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <ProfilePage />
+                </ProtectedRoute>
+              }
+            />
+            {/* Tempo routes */}
             {import.meta.env.VITE_TEMPO && <Route path="/tempobook/*" />}
+            {/* Catch-all route */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>

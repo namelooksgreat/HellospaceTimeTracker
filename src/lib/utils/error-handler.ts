@@ -1,133 +1,74 @@
 import { toast } from "@/components/ui/use-toast";
-import type { ErrorSeverity } from "@/config/errors";
-import { ERROR_MESSAGES } from "@/config/errors";
-import { logger } from "./logger";
-import { trackError } from "./errorTracking";
-import {
-  AppError,
-  ValidationError,
-  NetworkError,
-  AuthError,
-} from "@/config/errors";
+import { trackError } from "./error-tracking";
+
+type ErrorSeverity = "low" | "medium" | "high" | "critical";
+
+interface ErrorContext {
+  componentName?: string;
+  action?: string;
+  metadata?: Record<string, any>;
+}
+
+export class AppError extends Error {
+  constructor(
+    message: string,
+    public context: ErrorContext = {},
+    public severity: ErrorSeverity = "medium",
+  ) {
+    super(message);
+    this.name = "AppError";
+  }
+}
+
+export class ValidationError extends AppError {
+  constructor(message: string, context: ErrorContext = {}) {
+    super(message, context, "low");
+    this.name = "ValidationError";
+  }
+}
+
+export class NetworkError extends AppError {
+  constructor(message: string, context: ErrorContext = {}) {
+    super(message, context, "high");
+    this.name = "NetworkError";
+  }
+}
+
+export class AuthError extends AppError {
+  constructor(message: string, context: ErrorContext = {}) {
+    super(message, context, "high");
+    this.name = "AuthError";
+  }
+}
 
 export function handleError(error: unknown, componentName?: string): void {
-  // Already handled errors
-  if (error instanceof AppError) {
-    showErrorToast(error.message);
-    logError(error, componentName);
-    return;
-  }
+  const appError =
+    error instanceof AppError
+      ? error
+      : new AppError(
+          error instanceof Error
+            ? error.message
+            : "An unexpected error occurred",
+          { componentName },
+        );
 
-  // Network errors
-  if (error instanceof TypeError && error.message === "Failed to fetch") {
-    const networkError = new NetworkError(ERROR_MESSAGES.NETWORK.OFFLINE, {
-      componentName,
-      code: "NET001",
-    });
-    showErrorToast(networkError.message);
-    logError(networkError, componentName);
-    return;
-  }
+  // Log error
+  console.error(`[${componentName || "Unknown"}] ${appError.name}:`, appError);
 
-  // Supabase errors
-  if (isSupabaseError(error)) {
-    handleSupabaseError(error, componentName);
-    return;
-  }
-
-  // Unknown errors
-  const unknownError = new AppError(ERROR_MESSAGES.NETWORK.SERVER_ERROR, {
+  // Track error
+  trackError(appError, appError.severity, {
     componentName,
-    severity: "high",
-    code: "UNK001",
-    metadata: { originalError: error },
+    ...appError.context,
   });
-  showErrorToast(unknownError.message);
-  logError(unknownError, componentName);
-}
 
-function isSupabaseError(
-  error: unknown,
-): error is { code: string; message: string } {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    "message" in error
-  );
-}
-
-function handleSupabaseError(
-  error: { code: string; message: string },
-  componentName?: string,
-): void {
-  let appError: AppError;
-
-  switch (error.code) {
-    case "PGRST301":
-      appError = new AuthError(ERROR_MESSAGES.AUTH.SESSION_EXPIRED, {
-        code: "AUTH002",
-        componentName,
-      });
-      break;
-    case "PGRST404":
-      appError = new ValidationError("Invalid input", {
-        code: "VAL002",
-        componentName,
-      });
-      break;
-    default:
-      appError = new AppError(ERROR_MESSAGES.NETWORK.SERVER_ERROR, {
-        code: error.code,
-        componentName,
-        metadata: { originalError: error },
-      });
-  }
-
-  showErrorToast(appError.message);
-  logError(appError, componentName);
-}
-
-function showErrorToast(
-  message: string,
-  severity: ErrorSeverity = "medium",
-): void {
-  const config = {
-    low: {
-      title: "Info",
-      variant: "default",
-    },
-    medium: {
-      title: "Warning",
-      variant: "warning",
-    },
-    high: {
-      title: "Error",
-      variant: "destructive",
-    },
-    critical: {
-      title: "Critical Error",
-      variant: "destructive",
-    },
-  };
-
+  // Show toast notification
   toast({
-    title: config[severity].title,
-    description: message,
-    variant: (config[severity].variant === "warning"
-      ? "default"
-      : config[severity].variant) as "default" | "destructive",
-  });
-}
-
-function logError(error: AppError, componentName?: string): void {
-  logger.error(
-    `[${componentName || "Unknown"}] ${error.name}: ${error.message}`,
-    error,
-  );
-  trackError(error, error.context.severity || "high", {
-    componentName,
-    ...error.context,
+    title: appError.name,
+    description: appError.message,
+    variant:
+      appError.severity === "high" || appError.severity === "critical"
+        ? "destructive"
+        : "default",
   });
 }
 

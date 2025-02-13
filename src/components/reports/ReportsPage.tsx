@@ -137,7 +137,15 @@ export default function ReportsPage({
             className="mt-0 focus-visible:outline-none focus-visible:ring-0"
           >
             <DailyReport
-              entries={entries}
+              entries={entries.map((entry) => ({
+                id: entry.id,
+                taskName: entry.task_name,
+                projectName: entry.project?.name || "",
+                duration: entry.duration,
+                startTime: entry.start_time,
+                createdAt: entry.created_at,
+                projectColor: entry.project?.color || "#94A3B8",
+              }))}
               onDeleteEntry={(id) => {
                 const entry = entries.find((e) => e.id === id);
                 if (entry) {
