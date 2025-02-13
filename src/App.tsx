@@ -25,7 +25,7 @@ export default function App() {
       <Suspense fallback={<LoadingPage />}>
         <div className="min-h-screen bg-background">
           {/* For the tempo routes */}
-          {import.meta.env.VITE_TEMPO && (
+          {import.meta.env.VITE_TEMPO === "true" && (
             <Routes>
               <Route path="/tempobook/*" element={<div />} />
             </Routes>
@@ -69,7 +69,9 @@ export default function App() {
               }
             />
             {/* Tempo routes */}
-            {import.meta.env.VITE_TEMPO && <Route path="/tempobook/*" />}
+            {import.meta.env.VITE_TEMPO === "true" && (
+              <Route path="/tempobook/*" />
+            )}
             {/* Catch-all route */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
