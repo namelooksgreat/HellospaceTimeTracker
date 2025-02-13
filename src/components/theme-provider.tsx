@@ -1,5 +1,4 @@
-import React from "react";
-import { useIsomorphicLayoutEffect } from "@/lib/utils/use-isomorphic-layout-effect";
+import * as React from "react";
 import { STORAGE_KEYS, getStorageItem, setStorageItem } from "@/lib/storage";
 
 type Theme = "dark" | "light" | "system";
@@ -18,15 +17,15 @@ const ThemeProviderContext = React.createContext<
   ThemeProviderState | undefined
 >(undefined);
 
-const ThemeProvider = ({
+function ThemeProvider({
   children,
   defaultTheme = "system",
-}: ThemeProviderProps) => {
+}: ThemeProviderProps) {
   const [theme, setTheme] = React.useState<Theme>(() =>
     getStorageItem(STORAGE_KEYS.THEME_PREFERENCE, defaultTheme),
   );
 
-  useIsomorphicLayoutEffect(() => {
+  React.useEffect(() => {
     const root = window.document.documentElement;
     root.classList.remove("light", "dark");
 
@@ -57,15 +56,16 @@ const ThemeProvider = ({
       {children}
     </ThemeProviderContext.Provider>
   );
-};
+}
 
-const useTheme = () => {
+function useTheme() {
   const context = React.useContext(ThemeProviderContext);
+
   if (context === undefined) {
     throw new Error("useTheme must be used within a ThemeProvider");
   }
+
   return context;
-};
+}
 
 export { ThemeProvider, useTheme };
-export default ThemeProvider;
