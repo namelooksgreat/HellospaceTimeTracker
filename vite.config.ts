@@ -32,6 +32,10 @@ export default defineConfig({
         drop_console: false,
         drop_debugger: false,
       },
+      mangle: {
+        keep_fnames: true,
+        keep_classnames: true,
+      },
     },
     commonjsOptions: {
       include: [/framer-motion/, /node_modules/],
