@@ -27,6 +27,7 @@ export default defineConfig({
     assetsDir: "assets",
     sourcemap: false,
     minify: "terser",
+    target: "esnext",
     terserOptions: {
       compress: {
         drop_console: false,
