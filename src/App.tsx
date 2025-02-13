@@ -14,6 +14,8 @@ const ReportsPage = lazy(() => import("./components/reports/ReportsPage"));
 const ProfilePage = lazy(() => import("./components/profile/ProfilePage"));
 
 export default function App() {
+  // Ensure routes are properly handled
+  const basename = import.meta.env.BASE_URL;
   const { session, loading } = useAuth();
 
   if (loading) {
@@ -24,57 +26,59 @@ export default function App() {
     <ErrorBoundary>
       <Suspense fallback={<LoadingPage />}>
         <div className="min-h-screen bg-background">
-          {/* For the tempo routes */}
-          {import.meta.env.VITE_TEMPO === "true" && (
-            <Routes>
-              <Route path="/tempobook/*" element={<div />} />
-            </Routes>
-          )}
-
-          <Routes>
-            <Route
-              path="/auth"
-              element={session ? <Navigate to="/" replace /> : <AuthPage />}
-            />
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <Home />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/timer"
-              element={
-                <ProtectedRoute>
-                  <TimeTracker />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/reports"
-              element={
-                <ProtectedRoute>
-                  <ReportsPage entries={[]} onDeleteEntry={() => {}} />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/profile"
-              element={
-                <ProtectedRoute>
-                  <ProfilePage />
-                </ProtectedRoute>
-              }
-            />
-            {/* Tempo routes */}
+          <div className="min-h-screen bg-background">
+            {/* For the tempo routes */}
             {import.meta.env.VITE_TEMPO === "true" && (
-              <Route path="/tempobook/*" />
+              <Routes>
+                <Route path="/tempobook/*" element={<div />} />
+              </Routes>
             )}
-            {/* Catch-all route */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+
+            <Routes>
+              <Route
+                path="/auth"
+                element={session ? <Navigate to="/" replace /> : <AuthPage />}
+              />
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
+                    <Home />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/timer"
+                element={
+                  <ProtectedRoute>
+                    <TimeTracker />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/reports"
+                element={
+                  <ProtectedRoute>
+                    <ReportsPage entries={[]} onDeleteEntry={() => {}} />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <ProfilePage />
+                  </ProtectedRoute>
+                }
+              />
+              {/* Tempo routes */}
+              {import.meta.env.VITE_TEMPO === "true" && (
+                <Route path="/tempobook/*" />
+              )}
+              {/* Catch-all route */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </div>
         </div>
       </Suspense>
     </ErrorBoundary>
