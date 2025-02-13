@@ -11,7 +11,15 @@ export default defineConfig({
     tempo(),
   ],
   optimizeDeps: {
-    include: ["tempo-devtools"],
+    include: [
+      "tempo-devtools",
+      "@supabase/supabase-js",
+      "@supabase/auth-js",
+      "zustand",
+      "react",
+      "react-dom",
+      "react/jsx-runtime",
+    ],
     exclude: ["tempo-routes"],
   },
   base: "/",
@@ -47,38 +55,14 @@ export default defineConfig({
         paths: {
           "tempo-routes": "/tempo-routes",
         },
-        manualChunks(id) {
+        manualChunks: (id) => {
           if (id.includes("node_modules")) {
-            if (id.includes("@supabase/supabase-js")) {
-              return "supabase";
-            }
-            if (
-              id.includes("react") ||
-              id.includes("react-dom") ||
-              id.includes("react-router")
-            ) {
-              return "vendor";
-            }
-            if (id.includes("@radix-ui")) {
-              return "ui";
-            }
-            if (id.includes("zustand") || id.includes("date-fns")) {
+            if (id.includes("@supabase")) return "supabase";
+            if (id.includes("react")) return "react-vendor";
+            if (id.includes("@radix-ui")) return "ui";
+            if (id.includes("zustand") || id.includes("date-fns"))
               return "utils";
-            }
-            return "deps";
-          }
-          // Group components by feature
-          if (id.includes("/components/")) {
-            if (id.includes("/profile/")) {
-              return "profile";
-            }
-            if (id.includes("/reports/")) {
-              return "reports";
-            }
-            if (id.includes("/auth/")) {
-              return "auth";
-            }
-            return "components";
+            return "vendor";
           }
         },
       },
