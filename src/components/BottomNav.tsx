@@ -2,8 +2,8 @@ import { Timer, BarChart, Settings2, Play, Pause } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
 import { useTimerStore } from "@/store/timerStore";
+import { useClient } from "@/lib/utils/use-client";
 
 type TabType = "timer" | "reports" | "profile";
 
@@ -37,19 +37,18 @@ function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
     },
   ];
 
+  if (!useClient) return null;
+
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-background/95 dark:bg-background/90 backdrop-blur-xl border-t border-border/50 safe-area-bottom z-50">
-      <motion.div
-        className="container max-w-lg mx-auto flex justify-between items-center px-6 h-20 relative"
-        initial={false}
-      >
+      <div className="container max-w-lg mx-auto flex justify-between items-center px-6 h-20 relative">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
           const isTimer = tab.id === "timer";
 
           return (
-            <motion.button
+            <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
               className={cn(
@@ -61,22 +60,16 @@ function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
                 "transition-all duration-500 ease-out-expo touch-none",
                 !isTimer && "relative overflow-hidden",
               )}
-              whileTap={{ scale: 0.95 }}
-              whileHover={{ scale: isTimer ? 1.05 : 1.02 }}
             >
-              <motion.div
+              <div
                 className={cn(
                   "relative z-10 transition-colors duration-500",
                   isActive ? "text-primary" : "text-muted-foreground",
                 )}
-                animate={{
-                  scale: isActive ? 1.1 : 1,
-                  rotate: isActive && isTimer ? 360 : 0,
-                }}
-                transition={{
-                  type: "spring",
-                  stiffness: 200,
-                  damping: 10,
+                style={{
+                  transform: isActive ? "scale(1.1)" : "scale(1)",
+                  rotate: isActive && isTimer ? "360deg" : "0deg",
+                  transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                 }}
               >
                 {isTimer ? (
@@ -135,23 +128,24 @@ function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
                     strokeWidth={isActive ? 2.5 : 2}
                   />
                 )}
-              </motion.div>
+              </div>
 
               {isActive && !isTimer && (
-                <motion.div
+                <div
                   className="absolute inset-0 bg-primary/10 rounded-xl"
-                  layoutId="activeTab"
-                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                  style={{
+                    animation: "fadeIn 0.3s ease-out",
+                  }}
                 />
               )}
 
               {isTimer && (
                 <div className="absolute inset-0 bg-gradient-to-t from-primary/5 via-transparent to-transparent rounded-2xl pointer-events-none" />
               )}
-            </motion.button>
+            </button>
           );
         })}
-      </motion.div>
+      </div>
     </div>
   );
 }
