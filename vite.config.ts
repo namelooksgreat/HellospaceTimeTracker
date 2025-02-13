@@ -24,7 +24,7 @@ export default defineConfig({
   build: {
     outDir: "dist",
     assetsDir: "assets",
-    sourcemap: false,
+    sourcemap: true,
     minify: "terser",
     target: "esnext",
     terserOptions: {
@@ -32,6 +32,10 @@ export default defineConfig({
         drop_console: false,
         drop_debugger: false,
       },
+    },
+    commonjsOptions: {
+      include: [/framer-motion/, /node_modules/],
+      transformMixedEsModules: true,
     },
     rollupOptions: {
       external: ["tempo-routes"],
@@ -41,6 +45,9 @@ export default defineConfig({
         },
         manualChunks(id) {
           if (id.includes("node_modules")) {
+            if (id.includes("@supabase/supabase-js")) {
+              return "supabase";
+            }
             if (
               id.includes("react") ||
               id.includes("react-dom") ||
