@@ -14,10 +14,24 @@ import {
 import type { Project, Customer, TimeEntry as TimeEntryType } from "@/types";
 import TimeEntryComponent from "./TimeEntry";
 
-// Lazy load components for better performance
-const TimeTracker = lazy(() => import("./TimeTracker"));
-const ReportsPage = lazy(() => import("./reports/ReportsPage"));
-const ProfilePage = lazy(() => import("./profile/ProfilePage"));
+// Lazy load components with proper dynamic imports
+const TimeTracker = lazy(() =>
+  import("./TimeTracker").then((module) => ({
+    default: module.default,
+  })),
+);
+
+const ReportsPage = lazy(() =>
+  import("./reports/ReportsPage").then((module) => ({
+    default: module.default,
+  })),
+);
+
+const ProfilePage = lazy(() =>
+  import("./profile/ProfilePage").then((module) => ({
+    default: module.default,
+  })),
+);
 
 function Home() {
   usePerformanceTracking("Home");

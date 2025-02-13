@@ -8,7 +8,7 @@ import { ThemeProvider } from "./components/theme-provider";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 
 // Import and initialize Tempo Devtools
-if (import.meta.env.VITE_TEMPO === "true" && import.meta.env.DEV) {
+if (import.meta.env.VITE_TEMPO === "true") {
   const { TempoDevtools } = await import("tempo-devtools");
   await TempoDevtools.init();
 }

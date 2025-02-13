@@ -3,7 +3,6 @@ import react from "@vitejs/plugin-react-swc";
 import { tempo } from "tempo-devtools/dist/vite";
 import path from "path";
 
-// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
     react({
@@ -12,7 +11,7 @@ export default defineConfig({
     tempo(),
   ],
   optimizeDeps: {
-    include: ["tempo-devtools", "framer-motion"],
+    include: ["tempo-devtools"],
     exclude: ["tempo-routes"],
   },
   base: "/",
@@ -40,11 +39,8 @@ export default defineConfig({
         paths: {
           "tempo-routes": "/tempo-routes",
         },
-        manualChunks: (id) => {
+        manualChunks(id) {
           if (id.includes("node_modules")) {
-            if (id.includes("framer-motion")) {
-              return "framer-motion";
-            }
             if (
               id.includes("react") ||
               id.includes("react-dom") ||
@@ -60,18 +56,26 @@ export default defineConfig({
             }
             return "deps";
           }
+          // Group components by feature
+          if (id.includes("/components/")) {
+            if (id.includes("/profile/")) {
+              return "profile";
+            }
+            if (id.includes("/reports/")) {
+              return "reports";
+            }
+            if (id.includes("/auth/")) {
+              return "auth";
+            }
+            return "components";
+          }
         },
-        format: "es",
-        assetFileNames: "assets/[name].[hash][extname]",
-        chunkFileNames: "assets/[name].[hash].js",
-        entryFileNames: "assets/[name].[hash].js",
       },
     },
   },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      "@id": path.resolve(__dirname, "."),
     },
   },
 });
