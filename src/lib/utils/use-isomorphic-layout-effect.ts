@@ -1,5 +1,3 @@
-import { useEffect, useLayoutEffect } from "react";
+import { useIsomorphicLayoutEffect } from "@/hooks/useIsomorphicLayoutEffect";
 
-// Use useLayoutEffect in browser, useEffect in SSR
-export const useIsomorphicLayoutEffect =
-  typeof window !== "undefined" ? useLayoutEffect : useEffect;
+export { useIsomorphicLayoutEffect };

@@ -7,9 +7,13 @@ export default defineConfig({
   plugins: [
     react({
       plugins: process.env.TEMPO === "true" ? [["tempo-devtools/swc", {}]] : [],
+      fastRefresh: true,
     }),
     tempo(),
   ],
+  ssr: {
+    noExternal: ["@radix-ui/*"],
+  },
   optimizeDeps: {
     include: [
       "tempo-devtools",
