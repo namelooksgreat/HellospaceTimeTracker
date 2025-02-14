@@ -9,6 +9,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { handleError } from "@/lib/utils/error-handler";
 import { showSuccess } from "@/lib/utils/toast";
 import { Customer } from "@/types";
@@ -25,6 +32,12 @@ interface CustomerDialogProps {
   onSave: () => void;
 }
 
+interface CustomerRate {
+  id?: string;
+  hourly_rate: number;
+  currency: string;
+}
+
 export function CustomerDialog({
   customer,
   open,
@@ -34,6 +47,8 @@ export function CustomerDialog({
   const [formData, setFormData] = useState({
     name: "",
     logo_url: "",
+    hourly_rate: 0,
+    currency: "USD",
   });
   const [loading, setLoading] = useState(false);
   const [projects, setProjects] = useState<
@@ -46,10 +61,40 @@ export function CustomerDialog({
 
   useEffect(() => {
     if (customer && open) {
-      setFormData({
-        name: customer.name || "",
-        logo_url: customer.logo_url || "",
-      });
+      const loadCustomerData = async () => {
+        setFormData({
+          name: customer.name || "",
+          logo_url: customer.logo_url || "",
+          hourly_rate: 0,
+          currency: "USD",
+        });
+
+        try {
+          // Load customer rate
+          const { data: rateData, error: rateError } = await supabase
+            .from("customer_rates")
+            .select("hourly_rate, currency")
+            .eq("customer_id", customer.id)
+            .maybeSingle();
+
+          if (rateError) {
+            console.error("Error loading customer rate:", rateError);
+            return;
+          }
+
+          if (rateData) {
+            setFormData((prev) => ({
+              ...prev,
+              hourly_rate: rateData.hourly_rate,
+              currency: rateData.currency,
+            }));
+          }
+        } catch (error) {
+          console.error("Error loading customer data:", error);
+        }
+      };
+
+      loadCustomerData();
 
       // Load customer's projects
       const loadProjects = async () => {
@@ -87,29 +132,81 @@ export function CustomerDialog({
       if (!user) throw new Error("Kullanıcı bulunamadı");
 
       if (customer?.id) {
-        const { error } = await supabase
+        // Update customer
+        const { error: customerError } = await supabase
           .from("customers")
           .update({
             name: formData.name,
             logo_url: formData.logo_url || null,
-            updated_at: new Date().toISOString(),
           })
-          .eq("id", customer.id)
-          .eq("user_id", user.id);
+          .eq("id", customer.id);
 
-        if (error) throw error;
+        if (customerError) throw customerError;
+
+        // Check if rate exists
+        const { data: existingRate, error: checkError } = await supabase
+          .from("customer_rates")
+          .select("id")
+          .eq("customer_id", customer.id)
+          .maybeSingle();
+
+        if (checkError) throw checkError;
+
+        if (existingRate) {
+          // Update existing rate
+          const { error: rateError } = await supabase
+            .from("customer_rates")
+            .update({
+              hourly_rate: formData.hourly_rate,
+              currency: formData.currency,
+            })
+            .eq("customer_id", customer.id);
+
+          if (rateError) throw rateError;
+        } else {
+          // Insert new rate
+          const { error: rateError } = await supabase
+            .from("customer_rates")
+            .insert({
+              customer_id: customer.id,
+              hourly_rate: formData.hourly_rate,
+              currency: formData.currency,
+            });
+
+          if (rateError) throw rateError;
+        }
+
         showSuccess("Müşteri başarıyla güncellendi");
       } else {
-        const { error } = await supabase.from("customers").insert([
-          {
-            name: formData.name,
-            logo_url: formData.logo_url || null,
-            user_id: user.id,
-            created_at: new Date().toISOString(),
-          },
-        ]);
+        const { data: newCustomer, error: customerError } = await supabase
+          .from("customers")
+          .insert([
+            {
+              name: formData.name,
+              logo_url: formData.logo_url || null,
+              user_id: user.id,
+            },
+          ])
+          .select()
+          .single();
 
-        if (error) throw error;
+        if (customerError) throw customerError;
+
+        // Insert customer rate for new customer
+        if (newCustomer) {
+          const { error: rateError } = await supabase
+            .from("customer_rates")
+            .insert([
+              {
+                customer_id: newCustomer.id,
+                hourly_rate: formData.hourly_rate,
+                currency: formData.currency,
+              },
+            ]);
+
+          if (rateError) throw rateError;
+        }
+
         showSuccess("Müşteri başarıyla eklendi");
       }
 
@@ -159,6 +256,40 @@ export function CustomerDialog({
               placeholder="Logo URL (opsiyonel)"
               type="url"
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Saatlik Ücret</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <Input
+                type="number"
+                value={formData.hourly_rate}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    hourly_rate: parseFloat(e.target.value) || 0,
+                  }))
+                }
+                placeholder="Saatlik ücret"
+                min="0"
+                step="0.01"
+              />
+              <Select
+                value={formData.currency}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({ ...prev, currency: value }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Para birimi" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="USD">USD</SelectItem>
+                  <SelectItem value="EUR">EUR</SelectItem>
+                  <SelectItem value="TRY">TRY</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {customer && (
