@@ -12,6 +12,8 @@ import { useEffect, useState } from "react";
 import { getDashboardStats } from "@/lib/api/admin";
 import TimeEntry from "@/components/TimeEntry";
 import { TimeEntry as TimeEntryType } from "@/types";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { useTranslation } from "@/lib/i18n";
 
 interface DashboardStats {
   users: number;
@@ -25,6 +27,8 @@ interface DashboardStats {
 }
 
 export function DashboardPage() {
+  const { language } = useLanguage();
+  const { t } = useTranslation(language);
   const [stats, setStats] = useState<DashboardStats>({
     users: 0,
     customers: 0,
@@ -49,19 +53,21 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <h1 className="text-3xl font-bold tracking-tight">Yönetim Paneli</h1>
+      <h1 className="text-3xl font-bold tracking-tight">
+        {t("admin.dashboard.title")}
+      </h1>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Toplam Kullanıcı
+              {t("admin.dashboard.stats.totalUsers")}
             </CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {loading ? "..." : stats.users}
+              {loading ? t("common.loading") : stats.users}
             </div>
           </CardContent>
         </Card>
@@ -69,13 +75,13 @@ export function DashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Toplam Müşteri
+              {t("admin.dashboard.stats.totalCustomers")}
             </CardTitle>
             <Building2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {loading ? "..." : stats.customers}
+              {loading ? t("common.loading") : stats.customers}
             </div>
           </CardContent>
         </Card>
@@ -83,28 +89,36 @@ export function DashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Bugünkü Çalışma
+              {t("admin.dashboard.stats.todayWork")}
             </CardTitle>
             <Timer className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {loading ? "..." : `${stats.todayHours.toFixed(1)}s`}
+              {loading
+                ? t("common.loading")
+                : `${stats.todayHours.toFixed(1)}s`}
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Bu Ay Kazanç</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {t("admin.dashboard.stats.monthlyEarnings")}
+            </CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {loading ? "..." : `${stats.monthlyEarnings.toFixed(2)}`}
+              {loading
+                ? t("common.loading")
+                : `${stats.monthlyEarnings.toFixed(2)}`}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              {loading ? "..." : `${stats.totalEntries} kayıt`}
+              {loading
+                ? t("common.loading")
+                : `${stats.totalEntries} ${t("admin.dashboard.stats.records")}`}
             </p>
           </CardContent>
         </Card>
@@ -112,18 +126,20 @@ export function DashboardPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Son Zaman Kayıtları</CardTitle>
+          <CardTitle className="text-lg">
+            {t("admin.dashboard.recentEntries")}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <ScrollArea className="h-[400px] pr-4">
             <div className="space-y-4">
               {loading ? (
                 <div className="text-center text-muted-foreground">
-                  Yükleniyor...
+                  {t("common.loading")}
                 </div>
               ) : stats.recentEntries.length === 0 ? (
                 <div className="text-center text-muted-foreground">
-                  Henüz kayıt yok
+                  {t("admin.dashboard.noEntries")}
                 </div>
               ) : (
                 stats.recentEntries.map((entry) => (

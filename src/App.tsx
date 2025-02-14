@@ -4,6 +4,7 @@ import { Suspense, lazy } from "react";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { LoadingPage } from "./components/ui/loading-spinner";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { LanguageProvider } from "./lib/i18n/LanguageContext";
 import { useAuth } from "./lib/auth";
 import { AuthPage } from "./components/auth/AuthPage";
 import { AdminLayout } from "./components/admin/AdminLayout";
@@ -31,79 +32,81 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <Suspense fallback={<LoadingPage />}>
-        <div className="min-h-screen bg-background">
+      <LanguageProvider>
+        <Suspense fallback={<LoadingPage />}>
           <div className="min-h-screen bg-background">
-            {/* For the tempo routes */}
-            {import.meta.env.VITE_TEMPO === "true" && (
-              <Routes>
-                <Route path="/tempobook/*" element={<div />} />
-              </Routes>
-            )}
-
-            <Routes>
-              <Route
-                path="/auth"
-                element={session ? <Navigate to="/" replace /> : <AuthPage />}
-              />
-              <Route
-                path="/"
-                element={
-                  <ProtectedRoute>
-                    <Home />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/timer"
-                element={
-                  <ProtectedRoute>
-                    <TimeTracker />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/reports"
-                element={
-                  <ProtectedRoute>
-                    <ReportsPage entries={[]} onDeleteEntry={() => {}} />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/profile"
-                element={
-                  <ProtectedRoute>
-                    <ProfilePage />
-                  </ProtectedRoute>
-                }
-              />
-              {/* Tempo routes */}
+            <div className="min-h-screen bg-background">
+              {/* For the tempo routes */}
               {import.meta.env.VITE_TEMPO === "true" && (
-                <Route path="/tempobook/*" />
+                <Routes>
+                  <Route path="/tempobook/*" element={<div />} />
+                </Routes>
               )}
-              {/* Admin routes */}
-              <Route
-                path="admin"
-                element={
-                  <ProtectedRoute>
-                    <AdminLayout />
-                  </ProtectedRoute>
-                }
-              >
-                <Route index element={<DashboardPage />} />
-                <Route path="users" element={<UsersPage />} />
-                <Route path="customers" element={<CustomersPage />} />
-                <Route path="projects" element={<ProjectsPage />} />
-                <Route path="time-entries" element={<TimeEntriesPage />} />
-                <Route path="settings" element={<SettingsPage />} />
-              </Route>
-              {/* Catch-all route */}
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
+
+              <Routes>
+                <Route
+                  path="/auth"
+                  element={session ? <Navigate to="/" replace /> : <AuthPage />}
+                />
+                <Route
+                  path="/"
+                  element={
+                    <ProtectedRoute>
+                      <Home />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/timer"
+                  element={
+                    <ProtectedRoute>
+                      <TimeTracker />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/reports"
+                  element={
+                    <ProtectedRoute>
+                      <ReportsPage entries={[]} onDeleteEntry={() => {}} />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/profile"
+                  element={
+                    <ProtectedRoute>
+                      <ProfilePage />
+                    </ProtectedRoute>
+                  }
+                />
+                {/* Tempo routes */}
+                {import.meta.env.VITE_TEMPO === "true" && (
+                  <Route path="/tempobook/*" />
+                )}
+                {/* Admin routes */}
+                <Route
+                  path="admin"
+                  element={
+                    <ProtectedRoute>
+                      <AdminLayout />
+                    </ProtectedRoute>
+                  }
+                >
+                  <Route index element={<DashboardPage />} />
+                  <Route path="users" element={<UsersPage />} />
+                  <Route path="customers" element={<CustomersPage />} />
+                  <Route path="projects" element={<ProjectsPage />} />
+                  <Route path="time-entries" element={<TimeEntriesPage />} />
+                  <Route path="settings" element={<SettingsPage />} />
+                </Route>
+                {/* Catch-all route */}
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </div>
           </div>
-        </div>
-      </Suspense>
+        </Suspense>
+      </LanguageProvider>
     </ErrorBoundary>
   );
 }
