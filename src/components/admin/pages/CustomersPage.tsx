@@ -54,28 +54,43 @@ export function CustomersPage() {
           logo_url,
           created_at,
           user_id,
-          projects (id, name, color)
+          projects:projects(id, name, color),
+          customer_rates:customer_rates!left(hourly_rate, currency)
         `,
         )
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      const formattedCustomers: Customer[] = (data || []).map((item) => ({
-        id: item.id,
-        name: item.name,
-        logo_url: item.logo_url,
-        created_at: item.created_at,
-        user_id: item.user_id,
-        projects: item.projects?.map((project) => ({
-          id: project.id,
-          name: project.name,
-          color: project.color,
+      console.log("Raw customer data:", data);
+      const formattedCustomers: Customer[] = (data || []).map((item: any) => {
+        console.log(
+          "Processing customer:",
+          item.name,
+          "rates:",
+          item.customer_rates,
+        );
+        return {
+          id: item.id,
+          name: item.name,
+          logo_url: item.logo_url,
           created_at: item.created_at,
           user_id: item.user_id,
-          customer_id: item.id,
-        })),
-      }));
+          customer_rates: item.customer_rates
+            ? [item.customer_rates].flat()
+            : [],
+          projects: Array.isArray(item.projects)
+            ? item.projects.map((project: any) => ({
+                id: project.id,
+                name: project.name,
+                color: project.color,
+                created_at: item.created_at,
+                user_id: item.user_id,
+                customer_id: item.id,
+              }))
+            : [],
+        };
+      });
       setCustomers(formattedCustomers);
     } catch (error) {
       handleError(error, "CustomersPage");
@@ -138,8 +153,8 @@ export function CustomersPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Müşteri Adı</TableHead>
+              <TableHead>Saatlik Ücret</TableHead>
               <TableHead>Projeler</TableHead>
-              <TableHead>Logo</TableHead>
               <TableHead>İşlemler</TableHead>
             </TableRow>
           </TableHeader>
@@ -161,6 +176,16 @@ export function CustomersPage() {
                 <TableRow key={customer.id}>
                   <TableCell>{customer.name}</TableCell>
                   <TableCell>
+                    {customer.customer_rates?.[0] ? (
+                      <div className="font-mono text-sm">
+                        {customer.customer_rates[0].hourly_rate}{" "}
+                        {customer.customer_rates[0].currency}
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
                     {customer.projects?.length ? (
                       <div className="flex flex-wrap gap-1">
                         {customer.projects.map((project) => (
@@ -179,15 +204,6 @@ export function CustomersPage() {
                       </div>
                     ) : (
                       <span className="text-muted-foreground">Proje yok</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {customer.logo_url && (
-                      <img
-                        src={customer.logo_url}
-                        alt={customer.name}
-                        className="h-8 w-8 object-contain rounded-full bg-muted"
-                      />
                     )}
                   </TableCell>
                   <TableCell>

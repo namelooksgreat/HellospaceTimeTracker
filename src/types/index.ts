@@ -5,6 +5,10 @@ export interface Customer {
   created_at: string;
   user_id: string;
   projects?: Project[];
+  customer_rates?: Array<{
+    hourly_rate: number;
+    currency: string;
+  }>;
 }
 
 export interface Project {
