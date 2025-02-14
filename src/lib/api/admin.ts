@@ -79,8 +79,47 @@ export async function getTimeEntries() {
 
 // İstatistikleri getir
 export async function getDashboardStats() {
+  const calculateEarnings = async (entries: any[]) => {
+    if (!entries.length) return 0;
+
+    // Get unique user IDs from entries
+    const userIds = [...new Set(entries.map((entry) => entry.user_id))];
+
+    // Fetch all developer rates at once
+    const { data: developerRates } = await supabase
+      .from("developer_rates")
+      .select("user_id, hourly_rate")
+      .in("user_id", userIds);
+
+    // Create a map of user_id to hourly_rate for quick lookup
+    const rateMap = (developerRates || []).reduce(
+      (acc, rate) => {
+        acc[rate.user_id] = rate.hourly_rate;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
+
+    // Calculate total earnings
+    return entries.reduce((total, entry) => {
+      const hours = entry.duration / 3600;
+      const customerRate =
+        entry.project?.customer?.customer_rates?.[0]?.hourly_rate;
+
+      if (customerRate) {
+        return total + customerRate * hours;
+      }
+
+      const developerRate = rateMap[entry.user_id];
+      if (developerRate) {
+        return total + developerRate * hours;
+      }
+
+      return total;
+    }, 0);
+  };
   try {
-    const [users, customers, projects, timeEntries, recentEntries] =
+    const [users, customers, projects, timeEntries, monthlyEntries] =
       await Promise.all([
         supabase.from("users").select("count").single(),
         supabase.from("customers").select("count").single(),
@@ -94,16 +133,32 @@ export async function getDashboardStats() {
           project:projects!left(id, name, color, customer:customers!left(id, name, customer_rates(hourly_rate, currency)))
         `,
           )
-          .order("created_at", { ascending: false })
-          .limit(5),
+          .gte(
+            "created_at",
+            new Date(
+              new Date().getFullYear(),
+              new Date().getMonth(),
+              1,
+            ).toISOString(),
+          )
+          .lte(
+            "created_at",
+            new Date(
+              new Date().getFullYear(),
+              new Date().getMonth() + 1,
+              0,
+            ).toISOString(),
+          )
+          .order("created_at", { ascending: false }),
       ]);
 
     if (timeEntries.error) throw timeEntries.error;
-    if (recentEntries.error) throw recentEntries.error;
+    if (monthlyEntries.error) throw monthlyEntries.error;
 
-    // Calculate total earnings
-    let totalEarnings = 0;
-    const todayEntries = (recentEntries.data || []).filter((entry) => {
+    // Calculate today's hours
+    let todayHours = 0;
+
+    const todayEntries = (monthlyEntries.data || []).filter((entry) => {
       const entryDate = new Date(entry.created_at);
       const today = new Date();
       return (
@@ -113,28 +168,22 @@ export async function getDashboardStats() {
       );
     });
 
-    let todayHours = 0;
-
     todayEntries.forEach((entry) => {
       todayHours += entry.duration / 3600; // Convert seconds to hours
     });
 
-    (recentEntries.data || []).forEach((entry) => {
-      if (entry.project?.customer?.customer_rates?.[0]) {
-        const rate = entry.project.customer.customer_rates[0].hourly_rate;
-        const hours = entry.duration / 3600; // Convert seconds to hours
-        totalEarnings += rate * hours;
-      }
-    });
+    // Calculate monthly earnings using the calculateEarnings function
+    const monthlyEarnings = await calculateEarnings(monthlyEntries.data || []);
 
     return {
       users: users.data?.count || 0,
       customers: customers.data?.count || 0,
       projects: projects.data?.count || 0,
       timeEntries: timeEntries.data?.count || 0,
-      recentEntries: recentEntries.data || [],
+      recentEntries: monthlyEntries.data?.slice(0, 5) || [],
       todayHours,
-      totalEarnings,
+      monthlyEarnings,
+      totalEntries: monthlyEntries.data?.length || 0,
     };
   } catch (error) {
     handleError(error, "getDashboardStats");
@@ -145,7 +194,8 @@ export async function getDashboardStats() {
       timeEntries: 0,
       recentEntries: [],
       todayHours: 0,
-      totalEarnings: 0,
+      monthlyEarnings: 0,
+      totalEntries: 0,
     };
   }
 }

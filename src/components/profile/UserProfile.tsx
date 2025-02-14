@@ -6,6 +6,13 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
 import { Card, CardContent } from "../ui/card";
 import { Camera, LogOut, Loader2 } from "lucide-react";
 import { handleError } from "@/lib/utils/error-handler";
@@ -27,6 +34,7 @@ export function UserProfile({ user }: UserProfileProps) {
     full_name: user.full_name || "",
     email: user.email,
     hourly_rate: 0,
+    currency: "USD",
   });
 
   useEffect(() => {
@@ -123,7 +131,8 @@ export function UserProfile({ user }: UserProfileProps) {
           .upsert({
             user_id: user.id,
             hourly_rate: formData.hourly_rate,
-            currency: "USD",
+            currency: formData.currency,
+            updated_at: new Date().toISOString(),
           });
 
         if (rateError) throw rateError;
@@ -217,26 +226,44 @@ export function UserProfile({ user }: UserProfileProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="hourly_rate">Hourly Rate (USD)</Label>
-              <Input
-                id="hourly_rate"
-                type="number"
-                value={formData.hourly_rate}
-                disabled={user.role !== "admin"}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    hourly_rate: parseFloat(e.target.value) || 0,
-                  }))
-                }
-                min="0"
-                step="0.01"
-                className={user.role !== "admin" ? "bg-muted" : ""}
-              />
+              <Label htmlFor="hourly_rate">Saatlik Ücret</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <Input
+                  id="hourly_rate"
+                  type="number"
+                  value={formData.hourly_rate}
+                  disabled={user.role !== "admin"}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      hourly_rate: parseFloat(e.target.value) || 0,
+                    }))
+                  }
+                  min="0"
+                  step="0.01"
+                  className={user.role !== "admin" ? "bg-muted" : ""}
+                />
+                <Select
+                  value={formData.currency}
+                  onValueChange={(value: string) =>
+                    setFormData((prev) => ({ ...prev, currency: value }))
+                  }
+                  disabled={user.role !== "admin"}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Para birimi" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="USD">USD</SelectItem>
+                    <SelectItem value="EUR">EUR</SelectItem>
+                    <SelectItem value="TRY">TRY</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <p className="text-sm text-muted-foreground">
                 {user.role === "admin"
-                  ? "Set the hourly rate for this user."
-                  : "Only administrators can change hourly rates."}
+                  ? "Bu kullanıcı için saatlik ücreti ayarlayın."
+                  : "Sadece yöneticiler saatlik ücretleri değiştirebilir."}
               </p>
             </div>
           </div>
