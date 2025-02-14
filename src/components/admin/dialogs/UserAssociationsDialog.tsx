@@ -77,60 +77,55 @@ export function UserAssociationsDialog({
       // Check user permission first
       await checkUserPermission();
 
-      // Load all projects with their customers
-      const { data: projectsData, error: projectsError } = await supabase.from(
-        "projects",
-      ).select(`
-          id,
-          name,
-          customer:customers!left(id, name)
-        `);
+      // Load all customers and projects in parallel
+      const [projectsResponse, customersResponse] = await Promise.all([
+        supabase
+          .from("projects")
+          .select(
+            `
+            id,
+            name,
+            customer:customers(id, name)
+          `,
+          )
+          .order("name"),
+        supabase.from("customers").select("id, name").order("name"),
+      ]);
 
-      if (projectsError) throw projectsError;
+      if (projectsResponse.error) throw projectsResponse.error;
+      if (customersResponse.error) throw customersResponse.error;
 
-      const projects = (projectsData || []).map((p) => ({
-        id: p.id,
-        name: p.name,
-        customer: p.customer?.[0],
-      }));
+      setProjects(
+        (projectsResponse.data || []).map((p) => ({
+          id: p.id,
+          name: p.name,
+        })),
+      );
+      setCustomers(customersResponse.data || []);
 
-      if (projectsError) throw projectsError;
+      // Load user's current project and customer associations in parallel
+      const [userProjects, userCustomers] = await Promise.all([
+        supabase
+          .from("user_projects")
+          .select("project_id")
+          .eq("user_id", userId),
+        supabase
+          .from("user_customers")
+          .select("customer_id")
+          .eq("user_id", userId),
+      ]);
 
-      // Extract unique customers from projects
-      const uniqueCustomers = Array.from(
-        new Map(
-          projects
-            .filter((p) => p.customer)
-            .map((p) => [
-              p.customer.id,
-              { id: p.customer.id, name: p.customer.name },
-            ]),
-        ).values(),
+      if (userProjects.error) throw userProjects.error;
+      if (userCustomers.error) throw userCustomers.error;
+
+      const projectIds = (userProjects.data || []).map(
+        (item) => item.project_id,
+      );
+      const customerIds = (userCustomers.data || []).map(
+        (item) => item.customer_id,
       );
 
-      setProjects(projects.map((p) => ({ id: p.id, name: p.name })));
-      setCustomers(uniqueCustomers);
-
-      // Load user's current project associations
-      const { data: userProjects, error: userProjectsError } = await supabase
-        .from("user_projects")
-        .select("project_id")
-        .eq("user_id", userId);
-
-      if (userProjectsError) throw userProjectsError;
-
-      const projectIds = (userProjects || []).map((item) => item.project_id);
       setSelectedProjects(projectIds);
-
-      // Get customer IDs from selected projects
-      const customerIds = [
-        ...new Set(
-          projects
-            .filter((p) => projectIds.includes(p.id))
-            .filter((p) => p.customer)
-            .map((p) => p.customer.id),
-        ),
-      ];
       setSelectedCustomers(customerIds);
     } catch (error) {
       handleError(error, "UserAssociationsDialog");
@@ -146,17 +141,14 @@ export function UserAssociationsDialog({
       // Check user permission before saving
       await checkUserPermission();
 
-      // Delete existing associations
-      const { error: deleteError } = await supabase
-        .from("user_projects")
-        .delete()
-        .eq("user_id", userId);
+      // Delete existing project and customer associations
+      await Promise.all([
+        supabase.from("user_projects").delete().eq("user_id", userId),
+        supabase.from("user_customers").delete().eq("user_id", userId),
+      ]);
 
-      if (deleteError) throw deleteError;
-
-      // Insert new associations if any
+      // Insert new project associations if any
       if (selectedProjects.length > 0) {
-        // Verify selected projects exist and are accessible
         const { data: validProjects, error: verifyError } = await supabase
           .from("projects")
           .select("id")
@@ -165,18 +157,44 @@ export function UserAssociationsDialog({
         if (verifyError) throw verifyError;
 
         const validProjectIds = (validProjects || []).map((p) => p.id);
+        if (validProjectIds.length > 0) {
+          const { error: insertProjectError } = await supabase
+            .from("user_projects")
+            .insert(
+              validProjectIds.map((projectId) => ({
+                user_id: userId,
+                project_id: projectId,
+                created_at: new Date().toISOString(),
+              })),
+            );
 
-        const { error: insertError } = await supabase
-          .from("user_projects")
-          .insert(
-            validProjectIds.map((projectId) => ({
-              user_id: userId,
-              project_id: projectId,
-              created_at: new Date().toISOString(),
-            })),
-          );
+          if (insertProjectError) throw insertProjectError;
+        }
+      }
 
-        if (insertError) throw insertError;
+      // Insert new customer associations if any
+      if (selectedCustomers.length > 0) {
+        const { data: validCustomers, error: verifyError } = await supabase
+          .from("customers")
+          .select("id")
+          .in("id", selectedCustomers);
+
+        if (verifyError) throw verifyError;
+
+        const validCustomerIds = (validCustomers || []).map((c) => c.id);
+        if (validCustomerIds.length > 0) {
+          const { error: insertCustomerError } = await supabase
+            .from("user_customers")
+            .insert(
+              validCustomerIds.map((customerId) => ({
+                user_id: userId,
+                customer_id: customerId,
+                created_at: new Date().toISOString(),
+              })),
+            );
+
+          if (insertCustomerError) throw insertCustomerError;
+        }
       }
 
       showSuccess("User associations updated successfully");
