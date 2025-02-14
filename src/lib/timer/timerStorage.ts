@@ -1,4 +1,4 @@
-import { TimerState } from "@/types";
+import { TimerState } from "@/types/timer";
 
 export interface TimerData {
   state: TimerState;

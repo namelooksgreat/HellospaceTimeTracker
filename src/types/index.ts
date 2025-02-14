@@ -1,8 +1,10 @@
 export interface Customer {
   id: string;
   name: string;
+  logo_url?: string | null;
   created_at: string;
   user_id: string;
+  projects?: Project[];
 }
 
 export interface Project {
@@ -18,34 +20,27 @@ export interface Project {
 export interface TimeEntry {
   id: string;
   task_name: string;
-  description?: string;
+  description?: string | null;
   duration: number;
   start_time: string;
   created_at: string;
   user_id: string;
+  project_id?: string | null;
   project?: {
     id: string;
     name: string;
     color: string;
-    customer_id: string;
+    customer?: {
+      id: string;
+      name: string;
+    };
   } | null;
-}
-
-export interface TimeEntryTag {
-  id: string;
-  time_entry_id: string;
-  tag: string;
-  created_at: string;
 }
 
 export interface User {
   id: string;
   email: string;
-  full_name: string;
-  role?: string;
+  full_name?: string | null;
+  role?: string | null;
   created_at: string;
 }
-
-export type TimerState = "stopped" | "running" | "paused" | "break";
-export type TimerMode = "list" | "pomodoro";
-export type PomodoroMode = "classic" | "long" | "short";

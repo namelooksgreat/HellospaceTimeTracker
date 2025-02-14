@@ -1,4 +1,4 @@
-import { TimerState } from "@/types";
+import { TimerState } from "@/types/timer";
 
 export class TimerManager {
   private static instance: TimerManager;
