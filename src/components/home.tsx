@@ -1,7 +1,10 @@
-import React, { useState, Suspense, lazy } from "react";
+import React, { useState, Suspense, lazy, useCallback } from "react";
+import { supabase } from "@/lib/supabase";
+import { showSuccess } from "@/lib/utils/toast";
+import { EditTimeEntryDialog } from "./EditTimeEntryDialog";
 import { useHomeData } from "@/lib/hooks/useHomeData";
 import { Navigate } from "react-router-dom";
-import { MainLayout } from "./layouts/MainLayout";
+import { MainLayout } from "@/components/layouts/MainLayout";
 import { useAuth } from "@/lib/auth";
 import { Skeleton } from "./ui/skeleton";
 import { usePerformanceTracking } from "@/hooks/usePerformanceTracking";
@@ -40,10 +43,65 @@ function Home() {
     }
   };
 
-  const handleEditEntry = (id: string) => {
-    // Implement edit functionality
-    console.log("Edit entry:", id);
-  };
+  const [selectedEntry, setSelectedEntry] = useState<TimeEntryType | null>(
+    null,
+  );
+  const [showEditDialog, setShowEditDialog] = useState(false);
+
+  const handleEditEntry = useCallback(
+    async (data: {
+      taskName: string;
+      projectId: string;
+      customerId: string;
+      description: string;
+      duration: number;
+      hourlyRate?: number;
+      currency?: string;
+    }) => {
+      if (!selectedEntry) return;
+
+      try {
+        // Update time entry
+        const { error: entryError } = await supabase
+          .from("time_entries")
+          .update({
+            task_name: data.taskName,
+            project_id: data.projectId || null,
+            description: data.description,
+            duration: data.duration,
+          })
+          .eq("id", selectedEntry.id);
+
+        if (entryError) throw entryError;
+
+        // Update customer rate if user is admin and rate data is provided
+        if (
+          session?.user?.user_metadata?.role === "admin" &&
+          data.customerId &&
+          data.hourlyRate !== undefined &&
+          data.currency
+        ) {
+          const { error: rateError } = await supabase
+            .from("customer_rates")
+            .upsert({
+              customer_id: data.customerId,
+              hourly_rate: data.hourlyRate,
+              currency: data.currency,
+              updated_at: new Date().toISOString(),
+            });
+
+          if (rateError) throw rateError;
+        }
+
+        showSuccess("Time entry updated successfully");
+        setShowEditDialog(false);
+        await fetchTimeEntriesData();
+      } catch (error) {
+        handleError(error, "Home");
+      }
+    },
+    [selectedEntry, fetchTimeEntriesData],
+  );
 
   if (!session?.user) {
     return <Navigate to="/auth" replace />;
@@ -97,7 +155,10 @@ function Home() {
                               createdAt={entry.created_at}
                               projectColor={entry.project?.color || "#94A3B8"}
                               onDelete={() => handleDeleteTimeEntry(entry.id)}
-                              onEdit={() => handleEditEntry(entry.id)}
+                              onEdit={() => {
+                                setSelectedEntry(entry);
+                                setShowEditDialog(true);
+                              }}
                             />
                           ))}
                         </div>
@@ -116,6 +177,17 @@ function Home() {
                 </div>
               </Suspense>
             </ErrorBoundary>
+          )}
+
+          {selectedEntry && (
+            <EditTimeEntryDialog
+              open={showEditDialog}
+              onOpenChange={setShowEditDialog}
+              entry={selectedEntry}
+              projects={projects}
+              customers={customers}
+              onSave={handleEditEntry}
+            />
           )}
         </main>
       </div>

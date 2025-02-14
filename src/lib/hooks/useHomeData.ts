@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { Session } from "@supabase/supabase-js";
 import { handleError } from "@/lib/utils/error-handler";
-import { getProjects, getTimeEntries, getCustomers } from "@/lib/api";
+import { getProjects, getCustomers } from "@/lib/api";
+import { supabase } from "@/lib/supabase";
 import type { Project, Customer, TimeEntry } from "@/types";
 
 export function useHomeData(session: Session | null) {
@@ -13,16 +14,20 @@ export function useHomeData(session: Session | null) {
   const fetchTimeEntriesData = async () => {
     if (!session) return;
     try {
-      const timeEntriesData = await getTimeEntries();
-      if (Array.isArray(timeEntriesData)) {
-        setTimeEntries(timeEntriesData);
-      } else {
-        handleError(
-          new Error("Invalid time entries data format"),
-          "useHomeData",
-        );
-        setTimeEntries([]);
-      }
+      const { data, error } = await supabase
+        .from("time_entries")
+        .select(
+          `
+          *,
+          project:projects!left(id, name, color, customer:customers!left(
+            id, name, customer_rates(hourly_rate, currency)
+          ))
+        `,
+        )
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setTimeEntries(data || []);
     } catch (error) {
       handleError(error, "useHomeData");
       setTimeEntries([]);
@@ -35,8 +40,24 @@ export function useHomeData(session: Session | null) {
 
       try {
         setLoading(true);
-        const [projectsData, customersData, timeEntriesData] =
-          await Promise.all([getProjects(), getCustomers(), getTimeEntries()]);
+        const [projectsData, customersData, { data: timeEntriesData, error }] =
+          await Promise.all([
+            getProjects(),
+            getCustomers(),
+            supabase
+              .from("time_entries")
+              .select(
+                `
+              *,
+              project:projects!left(id, name, color, customer:customers!left(
+                id, name, customer_rates(hourly_rate, currency)
+              ))
+            `,
+              )
+              .order("created_at", { ascending: false }),
+          ]);
+
+        if (error) throw error;
 
         setProjects(projectsData || []);
         setCustomers(customersData || []);

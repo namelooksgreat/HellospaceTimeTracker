@@ -1,10 +1,30 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
+import {
+  startOfDay,
+  endOfDay,
+  startOfWeek,
+  endOfWeek,
+  startOfMonth,
+  endOfMonth,
+  startOfYear,
+  endOfYear,
+  isWithinInterval,
+} from "date-fns";
+import { tr } from "date-fns/locale";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
 import { getProjects, getCustomers } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
 import { formatDuration } from "@/lib/utils/time";
 import { EditTimeEntryDialog } from "../EditTimeEntryDialog";
 import { updateTimeEntry } from "@/lib/api";
 import { handleError } from "@/lib/utils/error-handler";
+import { showSuccess } from "@/lib/utils/toast";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { DailyReport } from "./DailyReport";
@@ -46,10 +66,66 @@ export default function ReportsPage({
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [entries, setEntries] = useState(initialEntries);
+  const [timeFilter, setTimeFilter] = useState<
+    "daily" | "weekly" | "monthly" | "yearly"
+  >("daily");
+
+  const filteredEntries = useMemo(() => {
+    const now = new Date();
+    let startDate: Date;
+    let endDate: Date;
+
+    switch (timeFilter) {
+      case "daily":
+        startDate = startOfDay(now);
+        endDate = endOfDay(now);
+        break;
+      case "weekly":
+        startDate = startOfWeek(now, { locale: tr });
+        endDate = endOfWeek(now, { locale: tr });
+        break;
+      case "monthly":
+        startDate = startOfMonth(now);
+        endDate = endOfMonth(now);
+        break;
+      case "yearly":
+        startDate = startOfYear(now);
+        endDate = endOfYear(now);
+        break;
+      default:
+        return entries;
+    }
+
+    return entries.filter((entry) => {
+      const entryDate = new Date(entry.start_time);
+      return isWithinInterval(entryDate, { start: startDate, end: endDate });
+    });
+  }, [entries, timeFilter]);
+
+  const fetchEntries = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from("time_entries")
+        .select(
+          `
+          *,
+          project:projects!left(id, name, color, customer:customers!left(
+            id, name, customer_rates(hourly_rate, currency)
+          ))
+        `,
+        )
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setEntries(data || []);
+    } catch (error) {
+      handleError(error, "ReportsPage");
+    }
+  }, []);
 
   useEffect(() => {
-    setEntries(initialEntries);
-  }, [initialEntries]);
+    fetchEntries();
+  }, [fetchEntries]);
 
   const handleEditEntry = useCallback(
     async (data: {
@@ -58,25 +134,64 @@ export default function ReportsPage({
       customerId: string;
       description: string;
       duration: number;
+      hourlyRate?: number;
+      currency?: string;
     }) => {
       if (!selectedEntry) return;
 
       try {
-        await updateTimeEntry(selectedEntry.id, {
-          task_name: data.taskName,
-          project_id: data.projectId || null,
-          description: data.description,
-        });
-
-        // Refresh entries
-        const { data: updatedEntries, error } = await supabase
+        // Update time entry
+        const { error: entryError } = await supabase
           .from("time_entries")
-          .select("*")
+          .update({
+            task_name: data.taskName,
+            project_id: data.projectId || null,
+            description: data.description,
+            duration: data.duration,
+          })
+          .eq("id", selectedEntry.id);
+
+        if (entryError) throw entryError;
+
+        // Update customer rate if user is admin and rate data is provided
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (
+          user?.user_metadata?.role === "admin" &&
+          data.customerId &&
+          data.hourlyRate !== undefined &&
+          data.currency
+        ) {
+          const { error: rateError } = await supabase
+            .from("customer_rates")
+            .upsert({
+              customer_id: data.customerId,
+              hourly_rate: data.hourlyRate,
+              currency: data.currency,
+              updated_at: new Date().toISOString(),
+            });
+
+          if (rateError) throw rateError;
+        }
+
+        // Refresh entries with full data
+        const { data: updatedEntries, error: fetchError } = await supabase
+          .from("time_entries")
+          .select(
+            `
+            *,
+            project:projects!left(id, name, color, customer:customers!left(
+              id, name, customer_rates(hourly_rate, currency)
+            ))
+          `,
+          )
           .order("created_at", { ascending: false });
 
-        if (error) throw error;
-        setEntries(updatedEntries);
+        if (fetchError) throw fetchError;
+        setEntries(updatedEntries || []);
         setShowEditDialog(false);
+        showSuccess("Time entry updated successfully");
       } catch (error) {
         handleError(error, "ReportsPage");
       }
@@ -109,8 +224,20 @@ export default function ReportsPage({
               </div>
               <div className="text-2xl font-mono font-bold tracking-tight">
                 {formatDuration(
-                  entries.reduce((acc, entry) => acc + entry.duration, 0),
+                  filteredEntries.reduce(
+                    (acc, entry) => acc + entry.duration,
+                    0,
+                  ),
                 )}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {timeFilter === "daily"
+                  ? "Today"
+                  : timeFilter === "weekly"
+                    ? "This Week"
+                    : timeFilter === "monthly"
+                      ? "This Month"
+                      : "This Year"}
               </div>
             </div>
           </Card>
@@ -124,10 +251,22 @@ export default function ReportsPage({
               <div className="text-2xl font-mono font-bold tracking-tight">
                 $
                 {(
-                  (entries.reduce((acc, entry) => acc + entry.duration, 0) /
+                  (filteredEntries.reduce(
+                    (acc, entry) => acc + entry.duration,
+                    0,
+                  ) /
                     3600) *
                   50
                 ).toFixed(2)}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {timeFilter === "daily"
+                  ? "Today"
+                  : timeFilter === "weekly"
+                    ? "This Week"
+                    : timeFilter === "monthly"
+                      ? "This Month"
+                      : "This Year"}
               </div>
             </div>
           </Card>
@@ -170,8 +309,26 @@ export default function ReportsPage({
             value="daily"
             className="mt-0 focus-visible:outline-none focus-visible:ring-0"
           >
+            <div className="mb-4 flex items-center gap-2">
+              <Select
+                value={timeFilter}
+                onValueChange={(
+                  value: "daily" | "weekly" | "monthly" | "yearly",
+                ) => setTimeFilter(value)}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Zaman aralığı seçin" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="daily">Bugün</SelectItem>
+                  <SelectItem value="weekly">Bu Hafta</SelectItem>
+                  <SelectItem value="monthly">Bu Ay</SelectItem>
+                  <SelectItem value="yearly">Bu Yıl</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <DailyReport
-              entries={entries.map((entry) => ({
+              entries={filteredEntries.map((entry) => ({
                 id: entry.id,
                 taskName: entry.task_name,
                 projectName: entry.project?.name || "",
