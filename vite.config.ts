@@ -14,7 +14,7 @@ export default defineConfig({
   ],
   optimizeDeps: {
     exclude: ["tempo-routes"],
-    include: ["react", "react-dom", "react-router-dom"],
+    include: ["react", "react-dom", "react-router-dom", "framer-motion"],
   },
   base: "/",
   server: {
@@ -24,8 +24,9 @@ export default defineConfig({
     port: 3000,
   },
   build: {
-    sourcemap: true,
+    sourcemap: false,
     minify: "terser",
+    chunkSizeWarningLimit: 2000,
     target: "esnext",
     terserOptions: {
       compress: {
@@ -42,23 +43,14 @@ export default defineConfig({
         paths: {
           "tempo-routes": "/tempo-routes",
         },
-        manualChunks: (id) => {
-          if (id.includes("node_modules")) {
-            if (
-              id.includes("react") ||
-              id.includes("react-dom") ||
-              id.includes("react-router")
-            ) {
-              return "vendor";
-            }
-            if (id.includes("@radix-ui")) {
-              return "ui";
-            }
-            if (id.includes("zustand") || id.includes("date-fns")) {
-              return "utils";
-            }
-            return "deps";
-          }
+        manualChunks: {
+          vendor: ["react", "react-dom", "react-router-dom", "framer-motion"],
+          ui: [
+            "@radix-ui/react-portal",
+            "@radix-ui/react-dismissable-layer",
+            "@radix-ui/react-dialog",
+            "@radix-ui/react-select",
+          ],
         },
         format: "es",
       },

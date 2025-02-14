@@ -2,12 +2,7 @@ import { useState } from "react";
 import { LoginForm } from "./LoginForm";
 import { RegisterForm } from "./RegisterForm";
 import { Button } from "../ui/button";
-import {
-  motion,
-  AnimatePresence,
-  LazyMotion,
-  domAnimation,
-} from "framer-motion";
+import { m, AnimatePresence, LazyMotion, domAnimation } from "framer-motion";
 
 export function AuthPage() {
   const [mode, setMode] = useState<"login" | "register">("login");
@@ -63,7 +58,7 @@ export function AuthPage() {
               </div>
 
               <AnimatePresence mode="wait">
-                <motion.div
+                <m.div
                   key={mode}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -71,7 +66,7 @@ export function AuthPage() {
                   transition={{ duration: 0.2 }}
                 >
                   {mode === "login" ? <LoginForm /> : <RegisterForm />}
-                </motion.div>
+                </m.div>
               </AnimatePresence>
             </div>
           </div>
