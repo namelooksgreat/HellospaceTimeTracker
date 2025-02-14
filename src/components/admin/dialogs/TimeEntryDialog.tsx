@@ -27,6 +27,13 @@ interface TimeEntryDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: () => void;
+  projects: Array<{
+    id: string;
+    name: string;
+    color: string;
+    customer_id: string;
+    customer: { id: string; name: string } | null;
+  }>;
 }
 
 export function TimeEntryDialog({

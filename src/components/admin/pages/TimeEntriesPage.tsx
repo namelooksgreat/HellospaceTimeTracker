@@ -50,6 +50,15 @@ import {
 
 export function TimeEntriesPage() {
   const [entries, setEntries] = useState<TimeEntry[]>([]);
+  const [projects, setProjects] = useState<
+    Array<{
+      id: string;
+      name: string;
+      color: string;
+      customer_id: string;
+      customer: { id: string; name: string } | null;
+    }>
+  >([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedEntry, setSelectedEntry] = useState<TimeEntry | null>(null);
@@ -60,8 +69,9 @@ export function TimeEntriesPage() {
     "all" | "daily" | "weekly" | "monthly" | "yearly"
   >("all");
 
-  const loadEntries = async () => {
+  const loadData = async () => {
     try {
+      setLoading(true);
       const {
         data: { user },
         error: userError,
@@ -69,48 +79,86 @@ export function TimeEntriesPage() {
       if (userError) throw userError;
       if (!user) throw new Error("Kullanıcı bulunamadı");
 
-      const { data, error } = await supabase
-        .from("time_entries")
-        .select(
-          `
-          id,
-          task_name,
-          description,
-          duration,
-          start_time,
-          created_at,
-          user_id,
-          project:projects (id, name, color, customer:customers(id, name))
-        `,
-        )
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
+      const [entriesResponse, projectsResponse] = await Promise.all([
+        supabase
+          .from("time_entries")
+          .select(
+            `
+            id,
+            task_name,
+            description,
+            duration,
+            start_time,
+            created_at,
+            user_id,
+            project_id,
+            project:projects!left(id, name, color, customer:customers(id, name))
+          `,
+          )
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("projects")
+          .select(
+            `
+            id,
+            name,
+            color,
+            customer_id,
+            customer:customers(id, name)
+          `,
+          )
+          .order("name"),
+      ]);
 
-      if (error) throw error;
-      const formattedEntries: TimeEntry[] = (data || []).map((item) => ({
-        id: item.id,
-        task_name: item.task_name,
-        description: item.description,
-        duration: item.duration,
-        start_time: item.start_time,
-        created_at: item.created_at,
-        user_id: item.user_id,
-        project_id: item.project?.[0]?.id,
-        project: item.project?.[0]
-          ? {
-              id: item.project[0].id,
-              name: item.project[0].name,
-              color: item.project[0].color,
-              customer: item.project[0].customer?.[0]
-                ? {
-                    id: item.project[0].customer[0].id,
-                    name: item.project[0].customer[0].name,
-                  }
-                : undefined,
-            }
-          : null,
-      }));
-      setEntries(formattedEntries);
+      if (entriesResponse.error) throw entriesResponse.error;
+      if (projectsResponse.error) throw projectsResponse.error;
+
+      // Transform entries data to match TimeEntry type
+      const transformedEntries = (entriesResponse.data || []).map(
+        (entry: any) => ({
+          id: entry.id,
+          task_name: entry.task_name,
+          description: entry.description,
+          duration: entry.duration,
+          start_time: entry.start_time,
+          created_at: entry.created_at,
+          user_id: entry.user_id,
+          project_id: entry.project_id,
+          project: entry.project
+            ? {
+                id: entry.project.id,
+                name: entry.project.name,
+                color: entry.project.color,
+                customer: entry.project.customer
+                  ? {
+                      id: entry.project.customer.id,
+                      name: entry.project.customer.name,
+                    }
+                  : undefined,
+              }
+            : null,
+        }),
+      );
+
+      // Transform projects data
+      const transformedProjects = (projectsResponse.data || []).map(
+        (project: any) => ({
+          id: project.id,
+          name: project.name,
+          color: project.color,
+          customer_id: project.customer_id,
+          customer: project.customer
+            ? {
+                id: project.customer.id,
+                name: project.customer.name,
+              }
+            : null,
+        }),
+      );
+
+      setEntries(transformedEntries);
+      setProjects(transformedProjects);
     } catch (error) {
       handleError(error, "TimeEntriesPage");
     } finally {
@@ -119,7 +167,7 @@ export function TimeEntriesPage() {
   };
 
   useEffect(() => {
-    loadEntries();
+    loadData();
   }, []);
 
   const handleDeleteEntry = async () => {
@@ -133,7 +181,7 @@ export function TimeEntriesPage() {
 
       if (error) throw error;
       showSuccess("Zaman girişi başarıyla silindi");
-      loadEntries();
+      loadData();
     } catch (error) {
       handleError(error, "TimeEntriesPage");
     } finally {
@@ -146,9 +194,11 @@ export function TimeEntriesPage() {
     let filtered = entries.filter(
       (entry) =>
         entry.task_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        entry.project?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        entry.project?.name
+          ?.toLowerCase()
+          .includes(searchQuery.toLowerCase()) ||
         entry.project?.customer?.name
-          .toLowerCase()
+          ?.toLowerCase()
           .includes(searchQuery.toLowerCase()),
     );
 
@@ -340,7 +390,8 @@ export function TimeEntriesPage() {
         entry={selectedEntry}
         open={showEntryDialog}
         onOpenChange={setShowEntryDialog}
-        onSave={loadEntries}
+        onSave={loadData}
+        projects={projects}
       />
 
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
