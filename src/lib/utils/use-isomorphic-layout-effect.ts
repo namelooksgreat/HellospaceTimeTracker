@@ -1,4 +1,5 @@
-import { useEffect } from "react";
+import { useLayoutEffect, useEffect } from "react";
 
-// We're now using useEffect consistently across both server and client
-export const useIsomorphicLayoutEffect = useEffect;
+// Prevent SSR errors by using useEffect on server and useLayoutEffect on client
+export const useIsomorphicLayoutEffect =
+  typeof window !== "undefined" ? useLayoutEffect : useEffect;
