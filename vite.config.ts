@@ -7,29 +7,14 @@ export default defineConfig({
   plugins: [
     react({
       plugins: process.env.TEMPO === "true" ? [["tempo-devtools/swc", {}]] : [],
+      jsxImportSource: "react",
       fastRefresh: true,
     }),
     tempo(),
   ],
-  ssr: {
-    noExternal: ["@radix-ui/*"],
-  },
   optimizeDeps: {
-    include: [
-      "tempo-devtools",
-      "@supabase/supabase-js",
-      "@supabase/auth-js",
-      "zustand",
-      "react",
-      "react-dom",
-      "react/jsx-runtime",
-      "@radix-ui/react-tabs",
-      "@radix-ui/react-alert-dialog",
-      "@radix-ui/react-dialog",
-      "@radix-ui/react-select",
-      "framer-motion",
-    ],
     exclude: ["tempo-routes"],
+    include: ["react", "react-dom", "react-router-dom"],
   },
   base: "/",
   server: {
@@ -39,24 +24,17 @@ export default defineConfig({
     port: 3000,
   },
   build: {
-    outDir: "dist",
-    assetsDir: "assets",
-    sourcemap: false,
+    sourcemap: true,
     minify: "terser",
     target: "esnext",
     terserOptions: {
       compress: {
-        drop_console: true,
-        drop_debugger: true,
-      },
-      mangle: {
-        keep_fnames: false,
-        keep_classnames: false,
+        drop_console: false,
+        drop_debugger: false,
       },
     },
-    commonjsOptions: {
-      include: [/node_modules/],
-      transformMixedEsModules: true,
+    modulePreload: {
+      polyfill: true,
     },
     rollupOptions: {
       external: ["tempo-routes"],
@@ -66,15 +44,23 @@ export default defineConfig({
         },
         manualChunks: (id) => {
           if (id.includes("node_modules")) {
-            if (id.includes("@supabase")) return "supabase";
-            if (id.includes("react")) return "react-vendor";
-            if (id.includes("@radix-ui")) return "ui";
-            if (id.includes("framer-motion")) return "animations";
-            if (id.includes("zustand") || id.includes("date-fns"))
+            if (
+              id.includes("react") ||
+              id.includes("react-dom") ||
+              id.includes("react-router")
+            ) {
+              return "vendor";
+            }
+            if (id.includes("@radix-ui")) {
+              return "ui";
+            }
+            if (id.includes("zustand") || id.includes("date-fns")) {
               return "utils";
-            return "vendor";
+            }
+            return "deps";
           }
         },
+        format: "es",
       },
     },
   },
@@ -82,5 +68,9 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+  },
+  define: {
+    "process.env.NODE_ENV": JSON.stringify(process.env.NODE_ENV),
+    global: "globalThis",
   },
 });
