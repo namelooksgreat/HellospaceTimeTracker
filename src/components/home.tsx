@@ -1,10 +1,12 @@
-import React, { useState, useEffect, Suspense, lazy } from "react";
+import React, { useState, Suspense, lazy } from "react";
+import { useHomeData } from "@/lib/hooks/useHomeData";
 import { Navigate } from "react-router-dom";
 import { MainLayout } from "./layouts/MainLayout";
 import { useAuth } from "@/lib/auth";
 import { Skeleton } from "./ui/skeleton";
 import { usePerformanceTracking } from "@/hooks/usePerformanceTracking";
 import { handleError } from "@/lib/utils/error-handler";
+import { ErrorBoundary } from "./ErrorBoundary";
 import {
   getProjects,
   getTimeEntries,
@@ -14,76 +16,20 @@ import {
 import type { Project, Customer, TimeEntry as TimeEntryType } from "@/types";
 import TimeEntryComponent from "./TimeEntry";
 
-// Lazy load components with proper dynamic imports
-const TimeTracker = lazy(() =>
-  import("./TimeTracker").then((module) => ({
-    default: module.default,
-  })),
-);
-
-const ReportsPage = lazy(() =>
-  import("./reports/ReportsPage").then((module) => ({
-    default: module.default,
-  })),
-);
-
-const ProfilePage = lazy(() =>
-  import("./profile/ProfilePage").then((module) => ({
-    default: module.default,
-  })),
-);
+// Lazy load components
+const TimeTracker = lazy(() => import("@/components/TimeTracker"));
+const ReportsPage = lazy(() => import("@/components/reports/ReportsPage"));
+const ProfilePage = lazy(() => import("@/components/profile/ProfilePage"));
 
 function Home() {
   usePerformanceTracking("Home");
   const { session } = useAuth();
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [timeEntries, setTimeEntries] = useState<TimeEntryType[]>([]);
-  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"timer" | "reports" | "profile">(
     "timer",
   );
 
-  const fetchTimeEntriesData = async () => {
-    if (!session) return;
-    try {
-      const timeEntriesData = await getTimeEntries();
-      if (Array.isArray(timeEntriesData)) {
-        setTimeEntries(timeEntriesData);
-      } else {
-        console.error("Invalid time entries data:", timeEntriesData);
-        setTimeEntries([]);
-      }
-    } catch (error) {
-      handleError(error, "Home");
-      setTimeEntries([]);
-    }
-  };
-
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!session?.user) return;
-
-      try {
-        setLoading(true);
-        const [projectsData, customersData, timeEntriesData] =
-          await Promise.all([getProjects(), getCustomers(), getTimeEntries()]);
-
-        setProjects(projectsData || []);
-        setCustomers(customersData || []);
-        setTimeEntries(timeEntriesData || []);
-      } catch (error) {
-        handleError(error, "Home");
-        setProjects([]);
-        setCustomers([]);
-        setTimeEntries([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [session]);
+  const { projects, customers, timeEntries, loading, fetchTimeEntriesData } =
+    useHomeData(session);
 
   const handleDeleteTimeEntry = async (id: string) => {
     try {
@@ -117,57 +63,59 @@ function Home() {
           {loading ? (
             <LoadingFallback />
           ) : (
-            <Suspense fallback={<LoadingFallback />}>
-              <div className="space-y-6">
-                {activeTab === "timer" && (
-                  <div className="space-y-6">
-                    <TimeTracker
+            <ErrorBoundary>
+              <Suspense fallback={<LoadingFallback />}>
+                <div className="space-y-6">
+                  {activeTab === "timer" && (
+                    <div className="space-y-6">
+                      <TimeTracker
+                        projects={projects}
+                        customers={customers}
+                        availableTags={[
+                          { value: "bug", label: "Bug" },
+                          { value: "feature", label: "Feature" },
+                          { value: "documentation", label: "Documentation" },
+                          { value: "design", label: "Design" },
+                          { value: "testing", label: "Testing" },
+                        ]}
+                        onTimeEntrySaved={fetchTimeEntriesData}
+                      />
+
+                      {/* Recent Time Entries */}
+                      {timeEntries.length > 0 && (
+                        <div className="space-y-3">
+                          <div className="text-sm font-medium text-muted-foreground">
+                            Recent Entries
+                          </div>
+                          {timeEntries.slice(0, 2).map((entry) => (
+                            <TimeEntryComponent
+                              key={entry.id}
+                              taskName={entry.task_name}
+                              projectName={entry.project?.name || ""}
+                              duration={entry.duration}
+                              startTime={entry.start_time}
+                              createdAt={entry.created_at}
+                              projectColor={entry.project?.color || "#94A3B8"}
+                              onDelete={() => handleDeleteTimeEntry(entry.id)}
+                              onEdit={() => handleEditEntry(entry.id)}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {activeTab === "reports" && (
+                    <ReportsPage
+                      entries={timeEntries}
                       projects={projects}
                       customers={customers}
-                      availableTags={[
-                        { value: "bug", label: "Bug" },
-                        { value: "feature", label: "Feature" },
-                        { value: "documentation", label: "Documentation" },
-                        { value: "design", label: "Design" },
-                        { value: "testing", label: "Testing" },
-                      ]}
-                      onTimeEntrySaved={fetchTimeEntriesData}
+                      onDeleteEntry={handleDeleteTimeEntry}
                     />
-
-                    {/* Recent Time Entries */}
-                    {timeEntries.length > 0 && (
-                      <div className="space-y-3">
-                        <div className="text-sm font-medium text-muted-foreground">
-                          Recent Entries
-                        </div>
-                        {timeEntries.slice(0, 2).map((entry) => (
-                          <TimeEntryComponent
-                            key={entry.id}
-                            taskName={entry.task_name}
-                            projectName={entry.project?.name || ""}
-                            duration={entry.duration}
-                            startTime={entry.start_time}
-                            createdAt={entry.created_at}
-                            projectColor={entry.project?.color || "#94A3B8"}
-                            onDelete={() => handleDeleteTimeEntry(entry.id)}
-                            onEdit={() => handleEditEntry(entry.id)}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-                {activeTab === "reports" && (
-                  <ReportsPage
-                    entries={timeEntries}
-                    projects={projects}
-                    customers={customers}
-                    onDeleteEntry={handleDeleteTimeEntry}
-                  />
-                )}
-                {activeTab === "profile" && <ProfilePage />}
-              </div>
-            </Suspense>
+                  )}
+                  {activeTab === "profile" && <ProfilePage />}
+                </div>
+              </Suspense>
+            </ErrorBoundary>
           )}
         </main>
       </div>

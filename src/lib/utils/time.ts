@@ -8,6 +8,12 @@ export function formatTimeForDisplay(seconds: number): string {
     .padStart(2, "0")} : ${remainingSeconds.toString().padStart(2, "0")}`;
 }
 
+export function formatDuration(seconds: number): string {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  return `${hours}h ${minutes}m`;
+}
+
 export function formatDate(isoString: string): string {
   try {
     const date = new Date(isoString);

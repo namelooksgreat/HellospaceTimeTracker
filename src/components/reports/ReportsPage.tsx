@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { getProjects, getCustomers } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
+import { formatDuration } from "@/lib/utils/time";
 import { EditTimeEntryDialog } from "../EditTimeEntryDialog";
 import { updateTimeEntry } from "@/lib/api";
 import { handleError } from "@/lib/utils/error-handler";
@@ -91,12 +92,45 @@ export default function ReportsPage({
 
   return (
     <div className="space-y-6">
-      <div className="mb-6">
+      <div className="space-y-6">
         <div className="flex items-center gap-2">
           <div className="p-2 rounded-xl bg-primary/10 text-primary ring-1 ring-primary/20">
             <BarChart2 className="h-5 w-5" />
           </div>
           <h1 className="text-xl font-semibold tracking-tight">Time Reports</h1>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Card className="bg-gradient-to-br from-card/50 to-card/30 dark:from-card/20 dark:to-card/10 border border-border/50 rounded-xl p-4 transition-all duration-300 hover:shadow-lg hover:border-border/80 group">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Clock className="h-4 w-4" />
+                <span>Total Hours</span>
+              </div>
+              <div className="text-2xl font-mono font-bold tracking-tight">
+                {formatDuration(
+                  entries.reduce((acc, entry) => acc + entry.duration, 0),
+                )}
+              </div>
+            </div>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-card/50 to-card/30 dark:from-card/20 dark:to-card/10 border border-border/50 rounded-xl p-4 transition-all duration-300 hover:shadow-lg hover:border-border/80 group">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <DollarSign className="h-4 w-4" />
+                <span>Total Earnings</span>
+              </div>
+              <div className="text-2xl font-mono font-bold tracking-tight">
+                $
+                {(
+                  (entries.reduce((acc, entry) => acc + entry.duration, 0) /
+                    3600) *
+                  50
+                ).toFixed(2)}
+              </div>
+            </div>
+          </Card>
         </div>
       </div>
 

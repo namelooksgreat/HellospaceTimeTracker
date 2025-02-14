@@ -19,6 +19,11 @@ export default defineConfig({
       "react",
       "react-dom",
       "react/jsx-runtime",
+      "@radix-ui/react-tabs",
+      "@radix-ui/react-alert-dialog",
+      "@radix-ui/react-dialog",
+      "@radix-ui/react-select",
+      "framer-motion",
     ],
     exclude: ["tempo-routes"],
   },
@@ -46,7 +51,7 @@ export default defineConfig({
       },
     },
     commonjsOptions: {
-      include: [/framer-motion/, /node_modules/],
+      include: [/node_modules/],
       transformMixedEsModules: true,
     },
     rollupOptions: {
@@ -60,6 +65,7 @@ export default defineConfig({
             if (id.includes("@supabase")) return "supabase";
             if (id.includes("react")) return "react-vendor";
             if (id.includes("@radix-ui")) return "ui";
+            if (id.includes("framer-motion")) return "animations";
             if (id.includes("zustand") || id.includes("date-fns"))
               return "utils";
             return "vendor";
