@@ -80,18 +80,61 @@ export async function getTimeEntries() {
 // İstatistikleri getir
 export async function getDashboardStats() {
   try {
-    const [users, customers, projects, timeEntries] = await Promise.all([
-      supabase.from("users").select("count").single(),
-      supabase.from("customers").select("count").single(),
-      supabase.from("projects").select("count").single(),
-      supabase.from("time_entries").select("count").single(),
-    ]);
+    const [users, customers, projects, timeEntries, recentEntries] =
+      await Promise.all([
+        supabase.from("users").select("count").single(),
+        supabase.from("customers").select("count").single(),
+        supabase.from("projects").select("count").single(),
+        supabase.from("time_entries").select("count").single(),
+        supabase
+          .from("time_entries")
+          .select(
+            `
+          *,
+          project:projects!left(id, name, color, customer:customers!left(id, name, customer_rates(hourly_rate, currency)))
+        `,
+          )
+          .order("created_at", { ascending: false })
+          .limit(5),
+      ]);
+
+    if (timeEntries.error) throw timeEntries.error;
+    if (recentEntries.error) throw recentEntries.error;
+
+    // Calculate total earnings
+    let totalEarnings = 0;
+    const todayEntries = (recentEntries.data || []).filter((entry) => {
+      const entryDate = new Date(entry.created_at);
+      const today = new Date();
+      return (
+        entryDate.getDate() === today.getDate() &&
+        entryDate.getMonth() === today.getMonth() &&
+        entryDate.getFullYear() === today.getFullYear()
+      );
+    });
+
+    let todayHours = 0;
+
+    todayEntries.forEach((entry) => {
+      todayHours += entry.duration / 3600; // Convert seconds to hours
+    });
+
+    (recentEntries.data || []).forEach((entry) => {
+      if (entry.project?.customer?.customer_rates?.[0]) {
+        const rate = entry.project.customer.customer_rates[0].hourly_rate;
+        const hours = entry.duration / 3600; // Convert seconds to hours
+        totalEarnings += rate * hours;
+      }
+    });
 
     return {
       users: users.data?.count || 0,
       customers: customers.data?.count || 0,
       projects: projects.data?.count || 0,
       timeEntries: timeEntries.data?.count || 0,
+      recentEntries: recentEntries.data || [],
+      todayHours,
+      totalEarnings,
     };
   } catch (error) {
     handleError(error, "getDashboardStats");
@@ -100,6 +143,9 @@ export async function getDashboardStats() {
       customers: 0,
       projects: 0,
       timeEntries: 0,
+      recentEntries: [],
+      todayHours: 0,
+      totalEarnings: 0,
     };
   }
 }
