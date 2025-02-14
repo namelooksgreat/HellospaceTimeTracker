@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Table,
   TableBody,
@@ -11,8 +11,33 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search } from "lucide-react";
 
+import { getProjects } from "@/lib/api/admin";
+
+interface Project {
+  id: string;
+  name: string;
+  customers: { id: string; name: string };
+  time_entries: { count: number };
+}
+
 export function ProjectsPage() {
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+
+  useEffect(() => {
+    const loadProjects = async () => {
+      const data = await getProjects();
+      setProjects(data);
+      setLoading(false);
+    };
+
+    loadProjects();
+  }, []);
+
+  const filteredProjects = projects.filter((project) =>
+    project.name.toLowerCase().includes(searchQuery.toLowerCase()),
+  );
 
   return (
     <div className="space-y-8">
@@ -47,17 +72,33 @@ export function ProjectsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            <TableRow>
-              <TableCell>Website Redesign</TableCell>
-              <TableCell>Acme Corp</TableCell>
-              <TableCell>156</TableCell>
-              <TableCell>Active</TableCell>
-              <TableCell>
-                <Button variant="ghost" size="sm">
-                  Edit
-                </Button>
-              </TableCell>
-            </TableRow>
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center">
+                  Yükleniyor...
+                </TableCell>
+              </TableRow>
+            ) : filteredProjects.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center">
+                  Proje bulunamadı
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredProjects.map((project) => (
+                <TableRow key={project.id}>
+                  <TableCell>{project.name}</TableCell>
+                  <TableCell>{project.customers?.name}</TableCell>
+                  <TableCell>{project.time_entries?.count || 0}</TableCell>
+                  <TableCell>Aktif</TableCell>
+                  <TableCell>
+                    <Button variant="ghost" size="sm">
+                      Düzenle
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>

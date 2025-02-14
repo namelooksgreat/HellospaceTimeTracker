@@ -5,7 +5,9 @@ interface AdminLayoutProps {
   children: React.ReactNode;
 }
 
-export function AdminLayout({ children }: AdminLayoutProps) {
+import { Outlet } from "react-router-dom";
+
+export function AdminLayout() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -13,7 +15,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         <Sidebar />
         <main className="flex-1 p-8 overflow-y-auto">
           <div className="container max-w-7xl mx-auto space-y-8">
-            {children}
+            <Outlet />
           </div>
         </main>
       </div>

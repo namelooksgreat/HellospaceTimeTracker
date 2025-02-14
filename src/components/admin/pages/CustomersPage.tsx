@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Table,
   TableBody,
@@ -11,8 +11,32 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search } from "lucide-react";
 
+import { getCustomers } from "@/lib/api/admin";
+
+interface Customer {
+  id: string;
+  name: string;
+  projects: { count: number };
+}
+
 export function CustomersPage() {
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+
+  useEffect(() => {
+    const loadCustomers = async () => {
+      const data = await getCustomers();
+      setCustomers(data);
+      setLoading(false);
+    };
+
+    loadCustomers();
+  }, []);
+
+  const filteredCustomers = customers.filter((customer) =>
+    customer.name.toLowerCase().includes(searchQuery.toLowerCase()),
+  );
 
   return (
     <div className="space-y-8">
@@ -47,17 +71,33 @@ export function CustomersPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            <TableRow>
-              <TableCell>Acme Corp</TableCell>
-              <TableCell>5</TableCell>
-              <TableCell>12</TableCell>
-              <TableCell>Active</TableCell>
-              <TableCell>
-                <Button variant="ghost" size="sm">
-                  Edit
-                </Button>
-              </TableCell>
-            </TableRow>
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center">
+                  Yükleniyor...
+                </TableCell>
+              </TableRow>
+            ) : filteredCustomers.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center">
+                  Müşteri bulunamadı
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredCustomers.map((customer) => (
+                <TableRow key={customer.id}>
+                  <TableCell>{customer.name}</TableCell>
+                  <TableCell>{customer.projects?.count || 0}</TableCell>
+                  <TableCell>-</TableCell>
+                  <TableCell>Aktif</TableCell>
+                  <TableCell>
+                    <Button variant="ghost" size="sm">
+                      Düzenle
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>

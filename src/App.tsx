@@ -84,34 +84,20 @@ export default function App() {
               )}
               {/* Admin routes */}
               <Route
-                path="/admin"
-                element={
-                  <ProtectedRoute>
-                    <AdminLayout>
-                      <DashboardPage />
-                    </AdminLayout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
                 path="/admin/*"
                 element={
                   <ProtectedRoute>
-                    <AdminLayout>
-                      <Routes>
-                        <Route path="users" element={<UsersPage />} />
-                        <Route path="customers" element={<CustomersPage />} />
-                        <Route path="projects" element={<ProjectsPage />} />
-                        <Route
-                          path="time-entries"
-                          element={<TimeEntriesPage />}
-                        />
-                        <Route path="settings" element={<SettingsPage />} />
-                      </Routes>
-                    </AdminLayout>
+                    <AdminLayout />
                   </ProtectedRoute>
                 }
-              />
+              >
+                <Route index element={<DashboardPage />} />
+                <Route path="users" element={<UsersPage />} />
+                <Route path="customers" element={<CustomersPage />} />
+                <Route path="projects" element={<ProjectsPage />} />
+                <Route path="time-entries" element={<TimeEntriesPage />} />
+                <Route path="settings" element={<SettingsPage />} />
+              </Route>
               {/* Catch-all route */}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

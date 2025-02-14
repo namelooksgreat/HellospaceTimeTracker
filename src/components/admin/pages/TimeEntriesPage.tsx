@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Table,
   TableBody,
@@ -11,8 +11,42 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 
+import { getTimeEntries } from "@/lib/api/admin";
+import { formatDuration } from "@/lib/utils/time";
+
+interface TimeEntry {
+  id: string;
+  task_name: string;
+  duration: number;
+  created_at: string;
+  users: { full_name: string; email: string };
+  projects: {
+    name: string;
+    customers: { name: string };
+  };
+}
+
 export function TimeEntriesPage() {
+  const [entries, setEntries] = useState<TimeEntry[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+
+  useEffect(() => {
+    const loadEntries = async () => {
+      const data = await getTimeEntries();
+      setEntries(data);
+      setLoading(false);
+    };
+
+    loadEntries();
+  }, []);
+
+  const filteredEntries = entries.filter(
+    (entry) =>
+      entry.task_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      entry.projects?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      entry.users?.full_name.toLowerCase().includes(searchQuery.toLowerCase()),
+  );
 
   return (
     <div className="space-y-8">
@@ -45,18 +79,38 @@ export function TimeEntriesPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            <TableRow>
-              <TableCell>Homepage Design</TableCell>
-              <TableCell>Website Redesign</TableCell>
-              <TableCell>John Doe</TableCell>
-              <TableCell>2h 30m</TableCell>
-              <TableCell>2024-03-20</TableCell>
-              <TableCell>
-                <Button variant="ghost" size="sm">
-                  View
-                </Button>
-              </TableCell>
-            </TableRow>
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center">
+                  Yükleniyor...
+                </TableCell>
+              </TableRow>
+            ) : filteredEntries.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center">
+                  Kayıt bulunamadı
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredEntries.map((entry) => (
+                <TableRow key={entry.id}>
+                  <TableCell>{entry.task_name}</TableCell>
+                  <TableCell>{entry.projects?.name}</TableCell>
+                  <TableCell>
+                    {entry.users?.full_name || entry.users?.email}
+                  </TableCell>
+                  <TableCell>{formatDuration(entry.duration)}</TableCell>
+                  <TableCell>
+                    {new Date(entry.created_at).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell>
+                    <Button variant="ghost" size="sm">
+                      Görüntüle
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>
