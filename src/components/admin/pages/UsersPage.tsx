@@ -10,9 +10,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Search, Plus } from "lucide-react";
+import { Search, Plus, Link } from "lucide-react";
 import { getUsers, deleteUser, createUser, User } from "@/lib/api/users";
 import { UserDialog } from "../dialogs/UserDialog";
+import { UserAssociationsDialog } from "../dialogs/UserAssociationsDialog";
 import { handleError } from "@/lib/utils/error-handler";
 import { showSuccess } from "@/lib/utils/toast";
 import {
@@ -48,6 +49,7 @@ export function UsersPage() {
   const [showUserDialog, setShowUserDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showAssociationsDialog, setShowAssociationsDialog] = useState(false);
   const [newUserData, setNewUserData] = useState({
     email: "",
     password: "",
@@ -163,11 +165,22 @@ export function UsersPage() {
                       <Button
                         variant="ghost"
                         size="sm"
+                        onClick={() => {
+                          setSelectedUser(user);
+                          setShowAssociationsDialog(true);
+                        }}
                         className="h-8 w-8 p-0"
+                      >
+                        <Link className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => {
                           setSelectedUser(user);
                           setShowUserDialog(true);
                         }}
+                        className="h-8 w-8 p-0"
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -273,6 +286,17 @@ export function UsersPage() {
                           size="sm"
                           onClick={() => {
                             setSelectedUser(user);
+                            setShowAssociationsDialog(true);
+                          }}
+                        >
+                          <Link className="h-4 w-4 mr-2" />
+                          İlişkiler
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedUser(user);
                             setShowUserDialog(true);
                           }}
                         >
@@ -305,6 +329,15 @@ export function UsersPage() {
         onOpenChange={setShowUserDialog}
         onSave={loadUsers}
       />
+
+      {selectedUser && (
+        <UserAssociationsDialog
+          userId={selectedUser.id}
+          open={showAssociationsDialog}
+          onOpenChange={setShowAssociationsDialog}
+          onSave={loadUsers}
+        />
+      )}
 
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
