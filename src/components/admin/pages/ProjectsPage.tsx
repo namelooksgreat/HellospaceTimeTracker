@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useRealtimeSync } from "@/lib/hooks/useRealtimeSync";
 import {
   Table,
   TableBody,
@@ -87,6 +88,10 @@ export function ProjectsPage() {
     loadProjects();
   }, []);
 
+  useRealtimeSync("projects", () => {
+    loadProjects();
+  });
+
   const handleDeleteProject = async () => {
     if (!selectedProject) return;
 
@@ -132,7 +137,7 @@ export function ProjectsPage() {
         </div>
       </div>
 
-      <div className="border rounded-lg">
+      <div className="border border-border/50 rounded-xl bg-card/50 backdrop-blur-xl shadow-sm">
         <Table>
           <TableHeader>
             <TableRow>

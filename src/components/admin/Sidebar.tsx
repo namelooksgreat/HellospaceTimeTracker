@@ -20,7 +20,7 @@ const menuItems = [
 
 export function Sidebar() {
   return (
-    <aside className="w-64 border-r bg-card/50 min-h-[calc(100vh-4rem)]">
+    <aside className="w-64 border-r border-border/50 bg-card/50 min-h-[calc(100vh-4rem)] backdrop-blur-xl">
       <nav className="p-4 space-y-2">
         {menuItems.map((item) => (
           <NavLink
@@ -28,10 +28,10 @@ export function Sidebar() {
             to={item.href}
             className={({ isActive }) =>
               cn(
-                "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
-                "hover:bg-accent/50",
+                "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200",
+                "hover:bg-accent/50 hover:text-accent-foreground hover:shadow-sm",
                 isActive
-                  ? "bg-accent/50 text-accent-foreground font-medium"
+                  ? "bg-primary/10 text-primary font-medium shadow-sm ring-1 ring-primary/20"
                   : "text-muted-foreground",
               )
             }

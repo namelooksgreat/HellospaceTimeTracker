@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useRealtimeSync } from "@/lib/hooks/useRealtimeSync";
 import {
   Table,
   TableBody,
@@ -170,6 +171,10 @@ export function TimeEntriesPage() {
     loadData();
   }, []);
 
+  useRealtimeSync("time_entries", () => {
+    loadData();
+  });
+
   const handleDeleteEntry = async () => {
     if (!selectedEntry) return;
 
@@ -298,7 +303,7 @@ export function TimeEntriesPage() {
         </div>
       </div>
 
-      <div className="border rounded-lg">
+      <div className="border border-border/50 rounded-xl bg-card/50 backdrop-blur-xl shadow-sm">
         <Table>
           <TableHeader>
             <TableRow>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Clock } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -140,19 +141,22 @@ export function TimeEntryDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>
-            {entry ? "Zaman Girişini Düzenle" : "Yeni Zaman Girişi"}
-          </DialogTitle>
-          <DialogDescription>
+      <DialogContent className="max-w-lg w-full p-0 gap-0 overflow-hidden rounded-2xl border-border/50 shadow-xl dark:shadow-2xl dark:shadow-primary/10">
+        <DialogHeader className="sticky top-0 z-10 p-4 sm:p-6 bg-gradient-to-b from-background via-background to-background/80 backdrop-blur-xl border-b border-border/50">
+          <div className="flex items-center gap-2 text-primary">
+            <Clock className="h-5 w-5" />
+            <DialogTitle className="text-lg font-semibold tracking-tight">
+              {entry ? "Zaman Girişini Düzenle" : "Yeni Zaman Girişi"}
+            </DialogTitle>
+          </div>
+          <DialogDescription className="mt-1.5">
             {entry
               ? "Zaman girişi bilgilerini düzenleyebilirsiniz."
               : "Yeni zaman girişi eklemek için bilgileri doldurun."}
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-6">
           <div className="space-y-2">
             <Label>Görev Adı</Label>
             <Input
