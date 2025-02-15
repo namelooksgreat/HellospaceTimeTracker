@@ -11,6 +11,7 @@ import {
   CardDescription,
 } from "../ui/card";
 import { register } from "@/lib/auth";
+import { toast } from "sonner";
 
 export function RegisterForm() {
   const navigate = useNavigate();
@@ -52,7 +53,13 @@ export function RegisterForm() {
       }
 
       setError("");
-      alert("Registration successful! You can now log in.");
+      toast.success(
+        "Kayıt başarılı! Lütfen e-posta adresinize gönderilen doğrulama bağlantısını tıklayın.",
+        {
+          description: "Spam/gereksiz klasörünüzü kontrol etmeyi unutmayın.",
+          duration: 6000,
+        },
+      );
       navigate("/auth");
     } catch (error) {
       console.error("Registration error:", error);

@@ -2,6 +2,7 @@ import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { Suspense, lazy } from "react";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { Toaster } from "@/components/ui/toaster";
 import { LoadingPage } from "./components/ui/loading-spinner";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { LanguageProvider } from "./lib/i18n/LanguageContext";
@@ -105,6 +106,7 @@ export default function App() {
               </Routes>
             </div>
           </div>
+          <Toaster />
         </Suspense>
       </LanguageProvider>
     </ErrorBoundary>
