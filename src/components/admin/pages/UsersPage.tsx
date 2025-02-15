@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 import {
   Table,
   TableBody,
@@ -55,6 +56,8 @@ export function UsersPage() {
     password: "",
     full_name: "",
     user_type: "user",
+    default_rate: 0,
+    currency: "USD",
   });
 
   const loadUsers = async () => {
@@ -76,7 +79,22 @@ export function UsersPage() {
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await createUser(newUserData);
+      const userData = await createUser(newUserData);
+
+      // Create user settings
+      if (userData) {
+        const { error: settingsError } = await supabase
+          .from("user_settings")
+          .insert({
+            user_id: userData.id,
+            default_rate: newUserData.default_rate,
+            currency: newUserData.currency,
+            updated_at: new Date().toISOString(),
+          });
+
+        if (settingsError) throw settingsError;
+      }
+
       showSuccess("Kullanıcı başarıyla oluşturuldu");
       setShowCreateDialog(false);
       setNewUserData({
@@ -84,6 +102,8 @@ export function UsersPage() {
         password: "",
         full_name: "",
         user_type: "user",
+        default_rate: 0,
+        currency: "USD",
       });
       loadUsers();
     } catch (error) {
@@ -432,6 +452,44 @@ export function UsersPage() {
                   <SelectItem value="developer">Geliştirici</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Saatlik Ücret</Label>
+                <Input
+                  type="number"
+                  value={newUserData.default_rate}
+                  onChange={(e) =>
+                    setNewUserData((prev) => ({
+                      ...prev,
+                      default_rate: parseFloat(e.target.value) || 0,
+                    }))
+                  }
+                  min="0"
+                  step="0.01"
+                  placeholder="Saatlik ücret"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Para Birimi</Label>
+                <Select
+                  value={newUserData.currency}
+                  onValueChange={(value) =>
+                    setNewUserData((prev) => ({ ...prev, currency: value }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Para birimi seçin" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="USD">USD</SelectItem>
+                    <SelectItem value="EUR">EUR</SelectItem>
+                    <SelectItem value="TRY">TRY</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div className="flex justify-end gap-2">
