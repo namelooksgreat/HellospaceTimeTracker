@@ -70,6 +70,8 @@ export async function createUser(userData: {
   password: string;
   full_name: string;
   user_type?: string;
+  default_rate?: number;
+  currency?: string;
 }) {
   try {
     // Create auth user
@@ -84,21 +86,48 @@ export async function createUser(userData: {
       },
     });
 
-    if (authError) throw authError;
+    if (authError) {
+      if (authError.message.includes("security purposes")) {
+        throw new Error(
+          "Please wait a moment before trying to create another user",
+        );
+      }
+      throw authError;
+    }
     if (!authData.user) throw new Error("User creation failed");
 
-    // Create user record in users table
-    const { error } = await supabase.from("users").insert([
-      {
+    // Wait a moment for the auth user to be fully created
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    try {
+      // Create user record in users table
+      const { error: userError } = await supabase.from("users").upsert({
         id: authData.user.id,
         email: userData.email,
         full_name: userData.full_name,
         user_type: userData.user_type || "user",
         created_at: new Date().toISOString(),
-      },
-    ]);
+      });
 
-    if (error) throw error;
+      if (userError) throw userError;
+
+      // Create or update user settings
+      if (typeof userData.default_rate === "number" && userData.currency) {
+        const { error: settingsError } = await supabase
+          .from("user_settings")
+          .upsert({
+            user_id: authData.user.id,
+            default_rate: userData.default_rate,
+            currency: userData.currency,
+            updated_at: new Date().toISOString(),
+          });
+
+        if (settingsError) throw settingsError;
+      }
+    } catch (error) {
+      console.error("Error in user creation/settings:", error);
+      throw error;
+    }
 
     // Return the created user data
     return {

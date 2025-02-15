@@ -16,7 +16,7 @@ import { getUsers, deleteUser, createUser, User } from "@/lib/api/users";
 import { UserDialog } from "../dialogs/UserDialog";
 import { UserAssociationsDialog } from "../dialogs/UserAssociationsDialog";
 import { handleError } from "@/lib/utils/error-handler";
-import { showSuccess } from "@/lib/utils/toast";
+import { showSuccess, showError } from "@/lib/utils/toast";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -78,22 +78,13 @@ export function UsersPage() {
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
     try {
-      const userData = await createUser(newUserData);
-
-      // Create user settings
-      if (userData) {
-        const { error: settingsError } = await supabase
-          .from("user_settings")
-          .insert({
-            user_id: userData.id,
-            default_rate: newUserData.default_rate,
-            currency: newUserData.currency,
-            updated_at: new Date().toISOString(),
-          });
-
-        if (settingsError) throw settingsError;
-      }
+      await createUser({
+        ...newUserData,
+        default_rate: newUserData.default_rate,
+        currency: newUserData.currency,
+      });
 
       showSuccess("Kullanıcı başarıyla oluşturuldu");
       setShowCreateDialog(false);
@@ -105,9 +96,21 @@ export function UsersPage() {
         default_rate: 0,
         currency: "USD",
       });
-      loadUsers();
+      await loadUsers();
     } catch (error) {
-      handleError(error, "UsersPage");
+      if (error instanceof Error) {
+        if (error.message.includes("security purposes")) {
+          showError(
+            "Lütfen yeni bir kullanıcı oluşturmadan önce biraz bekleyin",
+          );
+        } else if (error.message.includes("duplicate")) {
+          showError("Bu e-posta adresi zaten kullanımda");
+        } else {
+          handleError(error, "UsersPage");
+        }
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
