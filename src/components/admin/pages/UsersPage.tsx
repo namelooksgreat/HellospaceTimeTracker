@@ -11,7 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Search, Plus, Link } from "lucide-react";
+import { Search, Plus, Link, BarChart2 } from "lucide-react";
 import { getUsers, deleteUser, createUser, User } from "@/lib/api/users";
 import { UserDialog } from "../dialogs/UserDialog";
 import { UserAssociationsDialog } from "../dialogs/UserAssociationsDialog";
@@ -185,17 +185,29 @@ export function UsersPage() {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setSelectedUser(user);
-                          setShowAssociationsDialog(true);
-                        }}
-                        className="h-8 w-8 p-0"
-                      >
-                        <Link className="h-4 w-4" />
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setShowAssociationsDialog(true);
+                          }}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Link className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() =>
+                            (window.location.href = `/admin/users/${user.id}/report`)
+                          }
+                          className="h-8 w-8 p-0"
+                        >
+                          <BarChart2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -304,17 +316,29 @@ export function UsersPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedUser(user);
-                            setShowAssociationsDialog(true);
-                          }}
-                        >
-                          <Link className="h-4 w-4 mr-2" />
-                          İlişkiler
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedUser(user);
+                              setShowAssociationsDialog(true);
+                            }}
+                          >
+                            <Link className="h-4 w-4 mr-2" />
+                            İlişkiler
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              (window.location.href = `/admin/users/${user.id}/report`)
+                            }
+                          >
+                            <BarChart2 className="h-4 w-4 mr-2" />
+                            Raporlar
+                          </Button>
+                        </div>
                         <Button
                           variant="ghost"
                           size="sm"
