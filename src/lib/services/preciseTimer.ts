@@ -4,6 +4,7 @@ export class PreciseTimer {
   private animationFrameId: number | null = null;
   private onTick: ((time: number) => void) | null = null;
   private lastVisibilityTime: number | null = null;
+  private isRunning: boolean = false;
 
   constructor() {
     if (typeof document !== "undefined") {
@@ -36,10 +37,13 @@ export class PreciseTimer {
   };
 
   start(onTick: (time: number) => void, initialTime: number = 0) {
+    if (this.isRunning) return; // Eğer zaten çalışıyorsa yeni timer başlatma
+
     this.cleanup();
     this.startTime = performance.now();
     this.elapsedTime = initialTime;
     this.onTick = onTick;
+    this.isRunning = true;
     this.tick();
   }
 
@@ -75,6 +79,7 @@ export class PreciseTimer {
       this.animationFrameId = null;
     }
     this.startTime = null;
+    this.isRunning = false;
   }
 
   getCurrentTime(): number {
