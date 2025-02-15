@@ -3,6 +3,8 @@ import TimeEntry from "./TimeEntry";
 import { ScrollArea } from "./ui/scroll-area";
 import { Clock } from "lucide-react";
 import { TimeEntry as TimeEntryType } from "@/types";
+import { toast } from "sonner";
+import { handleError } from "@/lib/utils/error-handler";
 
 interface TimeEntryListProps {
   entries: TimeEntryType[];
@@ -25,6 +27,21 @@ const TimeEntryList = memo(
         </div>
       );
     }
+
+    const handleDelete = async (entry: TimeEntryType) => {
+      if (!entry.id || !onDeleteEntry) return;
+      try {
+        await onDeleteEntry(entry.id);
+        toast.success("Time entry deleted", {
+          description: `Deleted ${entry.task_name}`,
+        });
+      } catch (error) {
+        handleError(error, "TimeEntryList");
+        toast.error("Failed to delete time entry", {
+          description: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
+    };
 
     return (
       <ScrollArea className="h-[400px] overflow-y-auto overscroll-none">
@@ -60,7 +77,7 @@ const TimeEntryList = memo(
                   createdAt={entry.created_at || new Date().toISOString()}
                   projectColor={entry.project?.color}
                   onEdit={() => onEditEntry?.(entry.id)}
-                  onDelete={() => onDeleteEntry?.(entry.id)}
+                  onDelete={() => handleDelete(entry)}
                 />
               );
             })

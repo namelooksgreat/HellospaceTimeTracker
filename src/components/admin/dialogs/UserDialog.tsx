@@ -19,6 +19,7 @@ import {
 import { updateUser, getUserTypes, User, UserType } from "@/lib/api/users";
 import { handleError } from "@/lib/utils/error-handler";
 import { showSuccess } from "@/lib/utils/toast";
+import { supabase } from "@/lib/supabase";
 
 interface UserDialogProps {
   user: User | null;
@@ -36,6 +37,8 @@ export function UserDialog({
   const [formData, setFormData] = useState({
     full_name: "",
     user_type: "",
+    default_rate: 0,
+    currency: "USD",
   });
   const [loading, setLoading] = useState(false);
 
@@ -48,10 +51,40 @@ export function UserDialog({
 
   useEffect(() => {
     if (user && open) {
-      setFormData({
-        full_name: user.full_name || "",
-        user_type: user.user_type || "user",
-      });
+      const loadUserData = async () => {
+        try {
+          setFormData({
+            full_name: user.full_name || "",
+            user_type: user.user_type || "user",
+            default_rate: 0,
+            currency: "USD",
+          });
+
+          // Load user settings
+          const { data: settingsData, error: settingsError } = await supabase
+            .from("user_settings")
+            .select("*")
+            .eq("user_id", user.id)
+            .maybeSingle();
+
+          if (settingsError) {
+            console.error("Error loading user settings:", settingsError);
+            return;
+          }
+
+          if (settingsData) {
+            setFormData((prev) => ({
+              ...prev,
+              default_rate: settingsData.default_rate,
+              currency: settingsData.currency,
+            }));
+          }
+        } catch (error) {
+          console.error("Error loading user data:", error);
+        }
+      };
+
+      loadUserData();
     }
   }, [user, open]);
 
@@ -61,7 +94,38 @@ export function UserDialog({
 
     setLoading(true);
     try {
-      await updateUser(user.id, formData);
+      // Update user data
+      await updateUser(user.id, {
+        full_name: formData.full_name,
+        user_type: formData.user_type,
+      });
+
+      // First check if settings exist
+      const { data: existingSettings } = await supabase
+        .from("user_settings")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      // Update or insert based on existence
+      const { error: settingsError } = existingSettings
+        ? await supabase
+            .from("user_settings")
+            .update({
+              default_rate: formData.default_rate,
+              currency: formData.currency,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("user_id", user.id)
+        : await supabase.from("user_settings").insert({
+            user_id: user.id,
+            default_rate: formData.default_rate,
+            currency: formData.currency,
+            updated_at: new Date().toISOString(),
+          });
+
+      if (settingsError) throw settingsError;
+
       showSuccess("Kullanıcı başarıyla güncellendi");
       onSave();
       onOpenChange(false);
@@ -113,6 +177,44 @@ export function UserDialog({
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Saatlik Ücret</Label>
+              <Input
+                type="number"
+                value={formData.default_rate}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    default_rate: parseFloat(e.target.value) || 0,
+                  }))
+                }
+                min="0"
+                step="0.01"
+                placeholder="Saatlik ücret"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Para Birimi</Label>
+              <Select
+                value={formData.currency}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({ ...prev, currency: value }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Para birimi seçin" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="USD">USD</SelectItem>
+                  <SelectItem value="EUR">EUR</SelectItem>
+                  <SelectItem value="TRY">TRY</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="flex justify-end gap-2">

@@ -8,12 +8,14 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { SaveTimeEntryDialog } from "./SaveTimeEntryDialog";
 import { Card, CardContent } from "./ui/card";
-import { showSuccess } from "@/lib/utils/toast";
+import { toast } from "sonner";
 import { handleError } from "@/lib/utils/error-handler";
 import { ValidationError } from "@/config/errors";
 import { ERROR_MESSAGES } from "@/config/errors";
 import { styles } from "./ui/styles";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { useTranslation } from "@/lib/i18n";
 import {
   Select,
   SelectContent,
@@ -44,6 +46,8 @@ function TimeTracker({
   onTimeEntrySaved,
 }: TimeTrackerProps) {
   const [showSaveDialog, setShowSaveDialog] = React.useState(false);
+  const { language } = useLanguage();
+  const { t } = useTranslation(language);
 
   const {
     state,
@@ -82,7 +86,14 @@ function TimeTracker({
   const handleReset = useCallback(() => {
     timerReset();
     resetTimerData();
-  }, [timerReset, resetTimerData]);
+    toast.info(t("timer.reset"));
+  }, [timerReset, resetTimerData, t]);
+
+  const formatDuration = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    return `${hours}h ${minutes}m`;
+  };
 
   const handleSaveTimeEntry = useCallback(
     async (data: {
@@ -94,8 +105,6 @@ function TimeTracker({
       duration: number;
     }) => {
       try {
-        console.debug("TimeTracker - Saving time entry with data:", data);
-
         if (!data.taskName.trim()) {
           throw new ValidationError(ERROR_MESSAGES.TIME_TRACKING.INVALID_TASK, {
             componentName: "TimeTracker",
@@ -111,20 +120,19 @@ function TimeTracker({
           description: data.description || undefined,
         };
 
-        console.debug("TimeTracker - Creating entry:", entry);
-
         await createTimeEntry(entry);
-        showSuccess("Time entry saved successfully");
+        toast.success(t("timeEntry.save"), {
+          description: `${data.taskName} - ${formatDuration(data.duration)}`,
+        });
         onTimeEntrySaved?.();
         timerReset();
         setShowSaveDialog(false);
       } catch (error) {
-        console.error("TimeTracker - Error saving entry:", error);
         handleError(error, "TimeTracker");
         setShowSaveDialog(false);
       }
     },
-    [onTimeEntrySaved, timerReset],
+    [onTimeEntrySaved, timerReset, t],
   );
 
   return (
@@ -152,10 +160,10 @@ function TimeTracker({
                 </div>
                 <div className="text-sm font-medium text-muted-foreground">
                   {state === "running"
-                    ? "Timer Running"
+                    ? t("timer.running")
                     : state === "paused"
-                      ? "Timer Paused"
-                      : "Timer Stopped"}
+                      ? t("timer.paused")
+                      : t("timer.stopped")}
                 </div>
               </div>
               {time > 0 && (
@@ -164,7 +172,7 @@ function TimeTracker({
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8 rounded-lg bg-background/80 hover:bg-accent/80 text-muted-foreground hover:text-foreground transition-all duration-200 ring-1 ring-border/50 hover:ring-border shadow-sm"
-                  title="Reset timer"
+                  title={t("timer.reset")}
                 >
                   <RotateCcw className="h-4 w-4" />
                 </Button>
@@ -184,14 +192,14 @@ function TimeTracker({
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1">
             <Label className="text-sm font-medium" htmlFor="customer-select">
-              Customer
+              {t("timeEntry.customer")}
             </Label>
             <Select value={selectedCustomer} onValueChange={setCustomerId}>
               <SelectTrigger
                 id="customer-select"
                 className={cn(styles.input.base, styles.input.hover)}
               >
-                <SelectValue placeholder="Select customer" />
+                <SelectValue placeholder={t("timeEntry.selectCustomer")} />
               </SelectTrigger>
               <SelectContent className={styles.components.selectContent}>
                 {customers.map((customer) => (
@@ -212,7 +220,7 @@ function TimeTracker({
 
           <div className="space-y-1">
             <Label className="text-sm font-medium" htmlFor="project-select">
-              Project
+              {t("timeEntry.project")}
             </Label>
             <Select
               value={selectedProject}
@@ -226,8 +234,8 @@ function TimeTracker({
                 <SelectValue
                   placeholder={
                     selectedCustomer
-                      ? "Select project"
-                      : "Select customer first"
+                      ? t("timeEntry.selectProject")
+                      : t("timeEntry.selectCustomerFirst")
                   }
                 />
               </SelectTrigger>
@@ -257,12 +265,12 @@ function TimeTracker({
         {/* Task Name Input */}
         <div className="space-y-1">
           <Label className="text-sm font-medium" htmlFor="task-name">
-            Task Name
+            {t("timeEntry.taskName")}
           </Label>
           <Input
             id="task-name"
             type="text"
-            placeholder="What are you working on?"
+            placeholder={t("timeEntry.taskNamePlaceholder")}
             value={taskName}
             onChange={(e) => setTaskName(e.target.value)}
             onKeyDown={(e) => {
@@ -287,13 +295,13 @@ function TimeTracker({
             {(state === "stopped" || !state) && (
               <div className="flex items-center gap-2">
                 <Play className="h-4 w-4 animate-pulse" />
-                <span>Start Timer</span>
+                <span>{t("timer.start")}</span>
               </div>
             )}
             {state === "running" && (
               <>
                 <Pause className="h-4 w-4" />
-                <span>Pause Timer</span>
+                <span>{t("timer.pause")}</span>
               </>
             )}
             {state === "paused" && (
@@ -301,7 +309,7 @@ function TimeTracker({
                 <Play className="h-4 w-4 animate-pulse" />
                 <span className="relative inline-block overflow-hidden">
                   <span className="inline-block animate-slide-out-up">
-                    Resume Timer
+                    {t("timer.resume")}
                   </span>
                 </span>
               </>
@@ -313,7 +321,7 @@ function TimeTracker({
             variant="destructive"
             className={cn(styles.components.stopButton)}
             size="icon"
-            title="Stop and save timer"
+            title={t("timer.stop")}
             disabled={state === "stopped"}
           >
             <Square className="h-4 w-4" />

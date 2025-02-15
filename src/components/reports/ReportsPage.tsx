@@ -1,4 +1,6 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { useTranslation } from "@/lib/i18n";
 import {
   startOfDay,
   endOfDay,
@@ -31,6 +33,7 @@ import { DailyReport } from "./DailyReport";
 import { WeeklyReport } from "./WeeklyReport";
 import { ProjectsReport } from "./ProjectsReport";
 import { BarChart2, Calendar, PieChart, Clock, DollarSign } from "lucide-react";
+import { toast } from "sonner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -61,6 +64,8 @@ export default function ReportsPage({
   projects = [],
   customers = [],
 }: ReportsPageProps) {
+  const { language } = useLanguage();
+  const { t } = useTranslation(language);
   const [activeTab, setActiveTab] = useState("daily");
   const [selectedEntry, setSelectedEntry] = useState<TimeEntry | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -70,9 +75,80 @@ export default function ReportsPage({
     "daily" | "weekly" | "monthly" | "yearly"
   >("daily");
 
+  const TotalEarnings = ({ entries }: { entries: TimeEntry[] }) => {
+    const [earnings, setEarnings] = useState(0);
+
+    useEffect(() => {
+      const calculateEarnings = async () => {
+        try {
+          const {
+            data: { user },
+          } = await supabase.auth.getUser();
+          if (!user) throw new Error("User not found");
+
+          const { data: rateData, error: rateError } = await supabase
+            .from("developer_rates")
+            .select("hourly_rate")
+            .eq("user_id", user.id)
+            .single();
+
+          if (rateError) throw rateError;
+
+          const hourlyRate = rateData?.hourly_rate || 0;
+          const totalHours = entries.reduce(
+            (acc, entry) => acc + entry.duration / 3600,
+            0,
+          );
+
+          setEarnings(totalHours * hourlyRate);
+        } catch (error) {
+          console.error("Error calculating earnings:", error);
+          setEarnings(0);
+        }
+      };
+
+      calculateEarnings();
+    }, [entries]);
+
+    return (
+      <div className="text-2xl font-mono font-bold tracking-tight">
+        ${earnings.toFixed(2)}
+      </div>
+    );
+  };
+
   const filteredEntries = useMemo(() => {
     const now = new Date();
     let startDate: Date;
+
+    const calculateEarnings = async (entries: TimeEntry[]) => {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) throw new Error("User not found");
+
+        const { data: rateData, error: rateError } = await supabase
+          .from("developer_rates")
+          .select("hourly_rate")
+          .eq("user_id", user.id)
+          .single();
+
+        if (rateError) throw rateError;
+
+        const hourlyRate = rateData?.hourly_rate || 0;
+        const totalHours = entries.reduce(
+          (acc, entry) => acc + entry.duration / 3600,
+          0,
+        );
+
+        return totalHours * hourlyRate;
+      } catch (error) {
+        console.error("Error calculating earnings:", error);
+        return 0;
+      }
+    };
+
     let endDate: Date;
 
     switch (timeFilter) {
@@ -199,11 +275,26 @@ export default function ReportsPage({
     [selectedEntry],
   );
 
-  const handleDeleteConfirm = useCallback(() => {
-    if (!selectedEntry || !onDeleteEntry) return;
-    onDeleteEntry(selectedEntry.id);
-    setShowDeleteDialog(false);
-  }, [selectedEntry, onDeleteEntry]);
+  const handleDeleteConfirm = useCallback(async () => {
+    if (!selectedEntry) return;
+    try {
+      const { error } = await supabase
+        .from("time_entries")
+        .delete()
+        .eq("id", selectedEntry.id);
+
+      if (error) throw error;
+
+      // Update local state by removing the deleted entry
+      setEntries(entries.filter((entry) => entry.id !== selectedEntry.id));
+      setShowDeleteDialog(false);
+      toast.success("Zaman girişi silindi", {
+        description: `${selectedEntry.task_name} - ${formatDuration(selectedEntry.duration)}`,
+      });
+    } catch (error) {
+      handleError(error, "ReportsPage");
+    }
+  }, [selectedEntry, entries]);
 
   return (
     <div className="space-y-6">
@@ -212,7 +303,9 @@ export default function ReportsPage({
           <div className="p-2 rounded-xl bg-primary/10 text-primary ring-1 ring-primary/20">
             <BarChart2 className="h-5 w-5" />
           </div>
-          <h1 className="text-xl font-semibold tracking-tight">Time Reports</h1>
+          <h1 className="text-xl font-semibold tracking-tight">
+            {t("reports.title")}
+          </h1>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
@@ -220,7 +313,7 @@ export default function ReportsPage({
             <div className="space-y-1">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Clock className="h-4 w-4" />
-                <span>Total Hours</span>
+                <span>{t("reports.totalHours")}</span>
               </div>
               <div className="text-2xl font-mono font-bold tracking-tight">
                 {formatDuration(
@@ -246,19 +339,10 @@ export default function ReportsPage({
             <div className="space-y-1">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <DollarSign className="h-4 w-4" />
-                <span>Total Earnings</span>
+                <span>{t("reports.totalEarnings")}</span>
               </div>
-              <div className="text-2xl font-mono font-bold tracking-tight">
-                $
-                {(
-                  (filteredEntries.reduce(
-                    (acc, entry) => acc + entry.duration,
-                    0,
-                  ) /
-                    3600) *
-                  50
-                ).toFixed(2)}
-              </div>
+              <TotalEarnings entries={filteredEntries} />
+
               <div className="text-xs text-muted-foreground">
                 {timeFilter === "daily"
                   ? "Today"
@@ -281,7 +365,7 @@ export default function ReportsPage({
           >
             <div className="flex items-center justify-center gap-1.5">
               <Clock className="h-4 w-4" />
-              <span>Daily</span>
+              <span>{t("reports.daily")}</span>
             </div>
           </TabsTrigger>
           <TabsTrigger
@@ -290,7 +374,7 @@ export default function ReportsPage({
           >
             <div className="flex items-center justify-center gap-1.5">
               <Calendar className="h-4 w-4" />
-              <span>Weekly</span>
+              <span>{t("reports.weekly")}</span>
             </div>
           </TabsTrigger>
           <TabsTrigger

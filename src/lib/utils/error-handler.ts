@@ -1,4 +1,4 @@
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 import { trackError } from "./error-tracking";
 
 type ErrorSeverity = "low" | "medium" | "high" | "critical";
@@ -62,14 +62,15 @@ export function handleError(error: unknown, componentName?: string): void {
   });
 
   // Show toast notification
-  toast({
-    title: appError.name,
-    description: appError.message,
-    variant:
-      appError.severity === "high" || appError.severity === "critical"
-        ? "destructive"
-        : "default",
-  });
+  if (appError.severity === "high" || appError.severity === "critical") {
+    toast.error(appError.message, {
+      description: `Error in ${componentName || "Unknown component"}`,
+    });
+  } else {
+    toast.warning(appError.message, {
+      description: `Warning in ${componentName || "Unknown component"}`,
+    });
+  }
 }
 
 export function withErrorHandling<T extends (...args: any[]) => any>(
