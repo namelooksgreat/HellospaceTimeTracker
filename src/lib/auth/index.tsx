@@ -22,7 +22,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setUser({
             id: session.user.id,
             email: session.user.email!,
-            role: session.user.user_metadata?.role || "user",
+            role: session.user.user_metadata?.user_type || "user",
             avatar_url: session.user.user_metadata?.avatar_url,
             full_name: session.user.user_metadata?.full_name,
           });
@@ -49,7 +49,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser({
           id: session.user.id,
           email: session.user.email!,
-          role: session.user.user_metadata?.role || "user",
+          role: session.user.user_metadata?.user_type || "user",
           avatar_url: session.user.user_metadata?.avatar_url,
           full_name: session.user.user_metadata?.full_name,
         });

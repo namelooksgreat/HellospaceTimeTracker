@@ -1,17 +1,31 @@
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
-import { LoadingPage } from "./ui/loading-spinner";
 
-export function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { session, loading } = useAuth();
+interface ProtectedRouteProps {
+  children: React.ReactNode;
+  requireAdmin?: boolean;
+}
 
-  if (loading) {
-    return <LoadingPage />;
+export function ProtectedRoute({
+  children,
+  requireAdmin = false,
+}: ProtectedRouteProps) {
+  const { user, session } = useAuth();
+
+  console.log("Admin Check:", {
+    userType: session?.user?.user_metadata?.user_type,
+    requireAdmin,
+    hasAccess: session?.user?.user_metadata?.user_type === "admin",
+  });
+
+  if (!session?.user) {
+    return <Navigate to="/auth" replace />;
   }
 
-  if (!session) {
-    return <Navigate to="/auth" />;
+  const userType = session?.user?.user_metadata?.user_type;
+  if (requireAdmin && userType !== "admin") {
+    return <Navigate to="/" replace />;
   }
 
-  return <>{children}</>;
+  return children;
 }
