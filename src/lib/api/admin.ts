@@ -82,19 +82,23 @@ export async function getDashboardStats() {
   const calculateEarnings = async (entries: any[]) => {
     if (!entries.length) return 0;
 
-    // Get unique user IDs from entries
-    const userIds = [...new Set(entries.map((entry) => entry.user_id))];
+    // Get unique customer IDs from entries
+    const customerIds = [
+      ...new Set(
+        entries.map((entry) => entry.project?.customer?.id).filter(Boolean),
+      ),
+    ];
 
-    // Fetch all developer rates at once
-    const { data: developerRates } = await supabase
-      .from("developer_rates")
-      .select("user_id, hourly_rate")
-      .in("user_id", userIds);
+    // Fetch all customer rates at once
+    const { data: customerRates } = await supabase
+      .from("customer_rates")
+      .select("customer_id, hourly_rate")
+      .in("customer_id", customerIds);
 
-    // Create a map of user_id to hourly_rate for quick lookup
-    const rateMap = (developerRates || []).reduce(
+    // Create a map of customer_id to hourly_rate for quick lookup
+    const rateMap = (customerRates || []).reduce(
       (acc, rate) => {
-        acc[rate.user_id] = rate.hourly_rate;
+        acc[rate.customer_id] = rate.hourly_rate;
         return acc;
       },
       {} as Record<string, number>,
@@ -103,16 +107,10 @@ export async function getDashboardStats() {
     // Calculate total earnings
     return entries.reduce((total, entry) => {
       const hours = entry.duration / 3600;
-      const customerRate =
-        entry.project?.customer?.customer_rates?.[0]?.hourly_rate;
+      const customerId = entry.project?.customer?.id;
 
-      if (customerRate) {
-        return total + customerRate * hours;
-      }
-
-      const developerRate = rateMap[entry.user_id];
-      if (developerRate) {
-        return total + developerRate * hours;
+      if (customerId && rateMap[customerId]) {
+        return total + rateMap[customerId] * hours;
       }
 
       return total;

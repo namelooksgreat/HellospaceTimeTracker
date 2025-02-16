@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Trash2 } from "lucide-react";
+import { Plus, Search, Trash2, BarChart2 } from "lucide-react";
 import { CustomerDialog } from "../dialogs/CustomerDialog";
 import { handleError } from "@/lib/utils/error-handler";
 import { showSuccess } from "@/lib/utils/toast";
@@ -26,8 +26,10 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Customer } from "@/types";
+import { useNavigate } from "react-router-dom";
 
 export function CustomersPage() {
+  const navigate = useNavigate();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -213,6 +215,16 @@ export function CustomersPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() =>
+                          navigate(`/admin/customers/${customer.id}/report`)
+                        }
+                      >
+                        <BarChart2 className="h-4 w-4 mr-2" />
+                        Raporlar
+                      </Button>
                       <Button
                         variant="ghost"
                         size="sm"

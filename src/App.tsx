@@ -16,6 +16,7 @@ import { ProjectsPage } from "./components/admin/pages/ProjectsPage";
 import { TimeEntriesPage } from "./components/admin/pages/TimeEntriesPage";
 import { SettingsPage } from "./components/admin/pages/SettingsPage";
 import { UserReportPage } from "./components/admin/pages/UserReportPage";
+import { CustomerReportPage } from "./components/admin/pages/CustomerReportPage";
 
 // Optimize code splitting with prefetch
 const Home = lazy(() => import("./components/home"));
@@ -102,6 +103,10 @@ export default function App() {
                     element={<UserReportPage />}
                   />
                   <Route path="customers" element={<CustomersPage />} />
+                  <Route
+                    path="customers/:customerId/report"
+                    element={<CustomerReportPage />}
+                  />
                   <Route path="projects" element={<ProjectsPage />} />
                   <Route path="time-entries" element={<TimeEntriesPage />} />
                   <Route path="settings" element={<SettingsPage />} />

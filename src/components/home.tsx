@@ -18,6 +18,7 @@ import {
 } from "@/lib/api";
 import type { Project, Customer, TimeEntry as TimeEntryType } from "@/types";
 import TimeEntryComponent from "./TimeEntry";
+import TimeEntryList from "./TimeEntryList";
 
 // Lazy load components
 const TimeTracker = lazy(() => import("@/components/TimeTracker"));
@@ -140,29 +141,22 @@ function Home() {
                       />
 
                       {/* Recent Time Entries */}
-                      {timeEntries.length > 0 && (
-                        <div className="space-y-3">
-                          <div className="text-sm font-medium text-muted-foreground">
-                            Recent Entries
-                          </div>
-                          {timeEntries.slice(0, 2).map((entry) => (
-                            <TimeEntryComponent
-                              key={entry.id}
-                              taskName={entry.task_name}
-                              projectName={entry.project?.name || ""}
-                              duration={entry.duration}
-                              startTime={entry.start_time}
-                              createdAt={entry.created_at}
-                              projectColor={entry.project?.color || "#94A3B8"}
-                              onDelete={() => handleDeleteTimeEntry(entry.id)}
-                              onEdit={() => {
-                                setSelectedEntry(entry);
-                                setShowEditDialog(true);
-                              }}
-                            />
-                          ))}
+                      <div className="space-y-3">
+                        <div className="text-sm font-medium text-muted-foreground">
+                          Recent Entries
                         </div>
-                      )}
+                        <TimeEntryList
+                          entries={timeEntries}
+                          onEditEntry={(id) => {
+                            const entry = timeEntries.find((e) => e.id === id);
+                            if (entry) {
+                              setSelectedEntry(entry);
+                              setShowEditDialog(true);
+                            }
+                          }}
+                          onDeleteEntry={handleDeleteTimeEntry}
+                        />
+                      </div>
                     </div>
                   )}
                   {activeTab === "reports" && (
