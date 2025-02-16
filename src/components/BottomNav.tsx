@@ -76,7 +76,10 @@ function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
                 {isTimer ? (
                   timerState === "running" ? (
                     <Pause
-                      className="h-8 w-8 transition-all duration-500"
+                      className={cn(
+                        "h-8 w-8 transition-all duration-500",
+                        "animate-timer-pulse",
+                      )}
                       strokeWidth={isActive ? 2.5 : 2}
                     />
                   ) : timerState === "paused" ? (
