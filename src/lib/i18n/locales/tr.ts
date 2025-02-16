@@ -1,4 +1,18 @@
 export const tr = {
+  admin: {
+    dashboard: {
+      title: "Yönetim Paneli",
+      stats: {
+        totalUsers: "Toplam Kullanıcı",
+        totalCustomers: "Toplam Müşteri",
+        todayWork: "Bugünkü Çalışma",
+        monthlyEarnings: "Aylık Kazanç",
+        records: "kayıt",
+      },
+      recentEntries: "Son Aktiviteler",
+      noEntries: "Henüz kayıt bulunmuyor",
+    },
+  },
   common: {
     loading: "Yükleniyor...",
     error: "Hata",

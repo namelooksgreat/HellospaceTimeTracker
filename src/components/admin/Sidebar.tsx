@@ -9,6 +9,10 @@ import {
   Settings,
 } from "lucide-react";
 
+interface SidebarProps {
+  onNavigation?: () => void;
+}
+
 const menuItems = [
   { icon: BarChart, label: "Dashboard", href: "/admin" },
   { icon: Users, label: "Users", href: "/admin/users" },
@@ -18,17 +22,19 @@ const menuItems = [
   { icon: Settings, label: "Settings", href: "/admin/settings" },
 ];
 
-export function Sidebar() {
+export function Sidebar({ onNavigation }: SidebarProps) {
   return (
-    <aside className="w-64 border-r border-border/50 bg-card/50 min-h-[calc(100vh-4rem)] backdrop-blur-xl">
+    <aside className="w-64 border-r border-border/50 bg-card/50 min-h-[calc(100dvh-3.5rem)] lg:min-h-[calc(100dvh-4rem)] backdrop-blur-xl">
       <nav className="p-4 space-y-2">
         {menuItems.map((item) => (
           <NavLink
             key={item.href}
             to={item.href}
+            onClick={onNavigation}
             className={({ isActive }) =>
               cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200",
+                "flex items-center gap-3 px-3 py-3 rounded-xl text-sm transition-all duration-200",
+                "active:scale-[0.98] touch-manipulation select-none",
                 "hover:bg-accent/50 hover:text-accent-foreground hover:shadow-sm",
                 isActive
                   ? "bg-primary/10 text-primary font-medium shadow-sm ring-1 ring-primary/20"
@@ -36,8 +42,8 @@ export function Sidebar() {
               )
             }
           >
-            <item.icon className="h-4 w-4" />
-            {item.label}
+            <item.icon className="h-4 w-4 flex-shrink-0" />
+            <span className="truncate">{item.label}</span>
           </NavLink>
         ))}
       </nav>

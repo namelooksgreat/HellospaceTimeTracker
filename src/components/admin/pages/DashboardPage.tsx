@@ -53,14 +53,19 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <h1 className="text-3xl font-bold tracking-tight">
-        {t("admin.dashboard.title")}
-      </h1>
+      <div className="flex items-center gap-2">
+        <div className="p-2 rounded-xl bg-primary/10 text-primary ring-1 ring-primary/20">
+          <BarChart className="h-5 w-5" />
+        </div>
+        <h1 className="text-xl font-semibold tracking-tight">
+          {t("admin.dashboard.title")}
+        </h1>
+      </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
               {t("admin.dashboard.stats.totalUsers")}
             </CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
@@ -74,7 +79,7 @@ export function DashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
               {t("admin.dashboard.stats.totalCustomers")}
             </CardTitle>
             <Building2 className="h-4 w-4 text-muted-foreground" />
@@ -88,7 +93,7 @@ export function DashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
               {t("admin.dashboard.stats.todayWork")}
             </CardTitle>
             <Timer className="h-4 w-4 text-muted-foreground" />
@@ -104,7 +109,7 @@ export function DashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
               {t("admin.dashboard.stats.monthlyEarnings")}
             </CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />

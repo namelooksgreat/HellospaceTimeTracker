@@ -1,4 +1,18 @@
 export const en = {
+  admin: {
+    dashboard: {
+      title: "Dashboard",
+      stats: {
+        totalUsers: "Total Users",
+        totalCustomers: "Total Customers",
+        todayWork: "Today's Work",
+        monthlyEarnings: "Monthly Earnings",
+        records: "records",
+      },
+      recentEntries: "Recent Activities",
+      noEntries: "No entries yet",
+    },
+  },
   common: {
     loading: "Loading...",
     error: "Error",

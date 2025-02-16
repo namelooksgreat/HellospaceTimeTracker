@@ -1,6 +1,6 @@
 import jsPDF from "jspdf";
 import "jspdf-autotable";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 
 // Add type declaration for jspdf-autotable
 declare module "jspdf" {
@@ -96,8 +96,8 @@ export const exportToPDF = (data: ExportData) => {
   doc.save(`${data.userName}-time-report.pdf`);
 };
 
-export const exportToExcel = (data: ExportData) => {
-  const workbook = XLSX.utils.book_new();
+export const exportToExcel = async (data: ExportData): Promise<void> => {
+  const workbook = new ExcelJS.Workbook();
 
   // Summary Sheet
   const periodText =
@@ -108,44 +108,50 @@ export const exportToExcel = (data: ExportData) => {
       yearly: "Bu Yıl",
     }[data.timeRange] || data.timeRange;
 
-  const summaryData = [
-    [`${data.userName} - Zaman Raporu`],
-    [],
-    ["Kullanıcı", data.userName],
-    ["Dönem", periodText],
-    ["Toplam Süre", formatDuration(data.totalDuration)],
-    ["Toplam Kazanç", `${data.totalEarnings.toFixed(2)} ${data.currency}`],
-    ["Saatlik Ücret", `${data.hourlyRate} ${data.currency}`],
-  ];
+  const summarySheet = workbook.addWorksheet("Summary");
 
-  const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
-  XLSX.utils.book_append_sheet(workbook, summarySheet, "Summary");
+  // Add summary data
+  summarySheet.addRow([`${data.userName} - Zaman Raporu`]);
+  summarySheet.addRow([]);
+  summarySheet.addRow(["Kullanıcı", data.userName]);
+  summarySheet.addRow(["Dönem", periodText]);
+  summarySheet.addRow(["Toplam Süre", formatDuration(data.totalDuration)]);
+  summarySheet.addRow([
+    "Toplam Kazanç",
+    `${data.totalEarnings.toFixed(2)} ${data.currency}`,
+  ]);
+  summarySheet.addRow(["Saatlik Ücret", `${data.hourlyRate} ${data.currency}`]);
 
-  // Style the summary sheet
-  summarySheet["!cols"] = [{ wch: 15 }, { wch: 30 }];
-  summarySheet["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 1 } }];
+  // Style summary sheet
+  summarySheet.getColumn(1).width = 15;
+  summarySheet.getColumn(2).width = 30;
+  summarySheet.mergeCells("A1:B1");
 
   // Entries Sheet
-  const entriesData = data.entries.map((entry) => ({
-    Tarih: new Date(entry.start_time).toLocaleDateString("tr-TR"),
-    Saat: new Date(entry.start_time).toLocaleTimeString("tr-TR"),
-    Görev: entry.task_name,
-    Proje: entry.project?.name || "-",
-    Süre: formatDuration(entry.duration),
-  }));
+  const entriesSheet = workbook.addWorksheet("Zaman Girişleri");
 
-  const entriesSheet = XLSX.utils.json_to_sheet(entriesData);
-  entriesSheet["!cols"] = [
-    { wch: 15 }, // Tarih
-    { wch: 12 }, // Saat
-    { wch: 40 }, // Görev
-    { wch: 30 }, // Proje
-    { wch: 15 }, // Süre
+  // Add headers
+  entriesSheet.columns = [
+    { header: "Tarih", key: "date", width: 15 },
+    { header: "Saat", key: "time", width: 12 },
+    { header: "Görev", key: "task", width: 40 },
+    { header: "Proje", key: "project", width: 30 },
+    { header: "Süre", key: "duration", width: 15 },
   ];
 
-  XLSX.utils.book_append_sheet(workbook, entriesSheet, "Zaman Girişleri");
+  // Add data rows
+  data.entries.forEach((entry) => {
+    entriesSheet.addRow({
+      date: new Date(entry.start_time).toLocaleDateString("tr-TR"),
+      time: new Date(entry.start_time).toLocaleTimeString("tr-TR"),
+      task: entry.task_name,
+      project: entry.project?.name || "-",
+      duration: formatDuration(entry.duration),
+    });
+  });
 
-  XLSX.writeFile(workbook, `${data.userName}-time-report.xlsx`);
+  // Save workbook
+  await workbook.xlsx.writeFile(`${data.userName}-time-report.xlsx`);
 };
 
 const formatDuration = (seconds: number): string => {
