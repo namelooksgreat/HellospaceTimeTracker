@@ -253,33 +253,25 @@ export function SaveTimeEntryDialog({
                   <div className="flex-1 grid grid-cols-2 gap-2">
                     <Input
                       type="date"
-                      value={
-                        new Date(formData.startTime).toISOString().split("T")[0]
-                      }
+                      value={new Date().toISOString().split("T")[0]}
                       onChange={(e) => {
-                        const [_, time] = new Date(formData.startTime)
-                          .toISOString()
-                          .split("T");
+                        const now = new Date();
+                        const time = now.toTimeString().substring(0, 5);
                         setFormData((prev) => ({
                           ...prev,
-                          startTime: `${e.target.value}T${time}`,
+                          startTime: `${e.target.value}T${time}:00.000Z`,
                         }));
                       }}
                       className="h-8 text-sm"
                     />
                     <Input
                       type="time"
-                      value={new Date(formData.startTime)
-                        .toISOString()
-                        .split("T")[1]
-                        .substring(0, 5)}
+                      value={new Date().toTimeString().substring(0, 5)}
                       onChange={(e) => {
-                        const [date] = new Date(formData.startTime)
-                          .toISOString()
-                          .split("T");
+                        const today = new Date().toISOString().split("T")[0];
                         setFormData((prev) => ({
                           ...prev,
-                          startTime: `${date}T${e.target.value}:00.000Z`,
+                          startTime: `${today}T${e.target.value}:00.000Z`,
                         }));
                       }}
                       className="h-8 text-sm"
