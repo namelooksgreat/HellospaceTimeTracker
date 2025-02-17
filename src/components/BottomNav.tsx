@@ -74,25 +74,24 @@ function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
                 }}
               >
                 {isTimer ? (
-                  timerState === "running" ? (
-                    <Pause
+                  <>
+                    <img
+                      src="/hellospace-tracker-black.png"
+                      alt="Hellospace Tracker"
                       className={cn(
-                        "h-8 w-8 transition-all duration-500",
-                        "animate-timer-pulse",
+                        "h-12 w-12 transition-all duration-500 block dark:hidden",
+                        timerState === "running" && "animate-timer-glow",
                       )}
-                      strokeWidth={isActive ? 2.5 : 2}
                     />
-                  ) : timerState === "paused" ? (
-                    <Play
-                      className="h-8 w-8 transition-all duration-500"
-                      strokeWidth={isActive ? 2.5 : 2}
+                    <img
+                      src="/hellospace-tracker-white.png"
+                      alt="Hellospace Tracker"
+                      className={cn(
+                        "h-12 w-12 transition-all duration-500 hidden dark:block",
+                        timerState === "running" && "animate-timer-glow",
+                      )}
                     />
-                  ) : (
-                    <Timer
-                      className="h-8 w-8 transition-all duration-500"
-                      strokeWidth={isActive ? 2.5 : 2}
-                    />
-                  )
+                  </>
                 ) : tab.id === "profile" ? (
                   <Avatar
                     className={cn(

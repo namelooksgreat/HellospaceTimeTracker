@@ -12,21 +12,17 @@ export function AuthPage() {
       <div className="min-h-[100dvh] flex flex-col items-center justify-center px-4 py-8 sm:py-12 bg-gradient-to-b from-background via-background/95 to-background/90">
         <div className="w-full max-w-md space-y-4 sm:space-y-6">
           <div className="text-center space-y-2">
-            <div className="inline-block p-2.5 rounded-xl bg-primary/10 mb-2">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-primary text-primary-foreground grid place-items-center">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="w-5 h-5"
-                >
-                  <path d="M12 2v10M12 16v6M12 12l8.5-8.5M12 12l-8.5-8.5" />
-                </svg>
-              </div>
+            <div className="inline-block mb-2">
+              <img
+                src="/hellospace-tracker-black.png"
+                alt="Hellospace Tracker"
+                className="h-12 sm:h-16 w-auto block dark:hidden"
+              />
+              <img
+                src="/hellospace-tracker-white.png"
+                alt="Hellospace Tracker"
+                className="h-12 sm:h-16 w-auto hidden dark:block"
+              />
             </div>
             <h1 className="text-2xl font-bold tracking-tight">
               Hellospace Tracker

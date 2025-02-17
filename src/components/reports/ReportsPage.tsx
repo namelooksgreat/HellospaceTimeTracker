@@ -63,7 +63,7 @@ export default function ReportsPage({
   >("all");
 
   const TotalEarnings = ({ entries }: { entries: TimeEntry[] }) => {
-    const [earnings, setEarnings] = useState(0);
+    const [earnings, setEarnings] = useState({ amount: 0, currency: "USD" });
 
     useEffect(() => {
       const calculateEarnings = async () => {
@@ -73,24 +73,28 @@ export default function ReportsPage({
           } = await supabase.auth.getUser();
           if (!user) throw new Error("User not found");
 
-          const { data: rateData, error: rateError } = await supabase
-            .from("developer_rates")
-            .select("hourly_rate")
+          const { data: settingsData, error: settingsError } = await supabase
+            .from("user_settings")
+            .select("default_rate, currency")
             .eq("user_id", user.id)
             .single();
 
-          if (rateError) throw rateError;
+          if (settingsError) throw settingsError;
 
-          const hourlyRate = rateData?.hourly_rate || 0;
+          const hourlyRate = settingsData?.default_rate || 0;
+          const currency = settingsData?.currency || "USD";
           const totalHours = entries.reduce(
             (acc, entry) => acc + entry.duration / 3600,
             0,
           );
 
-          setEarnings(totalHours * hourlyRate);
+          setEarnings({
+            amount: totalHours * hourlyRate,
+            currency: currency,
+          });
         } catch (error) {
           console.error("Error calculating earnings:", error);
-          setEarnings(0);
+          setEarnings({ amount: 0, currency: "USD" });
         }
       };
 
@@ -99,7 +103,10 @@ export default function ReportsPage({
 
     return (
       <div className="text-2xl font-mono font-bold tracking-tight">
-        ${earnings.toFixed(2)}
+        {new Intl.NumberFormat("tr-TR", {
+          style: "currency",
+          currency: earnings.currency,
+        }).format(earnings.amount)}
       </div>
     );
   };

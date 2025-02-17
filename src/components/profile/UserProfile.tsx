@@ -40,12 +40,12 @@ export function UserProfile({ user }: UserProfileProps) {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        // Fetch user metadata and rate in parallel
-        const [userResponse, rateResponse] = await Promise.all([
+        // Fetch user metadata and settings in parallel
+        const [userResponse, settingsResponse] = await Promise.all([
           supabase.auth.getUser(),
           supabase
-            .from("developer_rates")
-            .select("*")
+            .from("user_settings")
+            .select("default_rate, currency")
             .eq("user_id", user.id)
             .single(),
         ]);
@@ -60,19 +60,20 @@ export function UserProfile({ user }: UserProfileProps) {
           }));
         }
 
-        // Update hourly rate if available
-        if (!rateResponse.error && rateResponse.data) {
-          console.log("Found rate data:", rateResponse.data);
+        // Update hourly rate and currency if available
+        if (!settingsResponse.error && settingsResponse.data) {
+          console.log("Found settings data:", settingsResponse.data);
           setFormData((prev) => ({
             ...prev,
-            hourly_rate: rateResponse.data.hourly_rate,
+            hourly_rate: settingsResponse.data.default_rate,
+            currency: settingsResponse.data.currency || "USD",
           }));
         } else if (
-          rateResponse.error &&
-          rateResponse.error.code !== "PGRST116"
+          settingsResponse.error &&
+          settingsResponse.error.code !== "PGRST116"
         ) {
-          console.error("Error fetching rate:", rateResponse.error);
-          throw rateResponse.error;
+          console.error("Error fetching settings:", settingsResponse.error);
+          throw settingsResponse.error;
         }
       } catch (error) {
         console.error("Error in fetchUserData:", error);
@@ -124,18 +125,33 @@ export function UserProfile({ user }: UserProfileProps) {
 
       if (error) throw error;
 
-      // Update hourly rate if admin
-      if (user.role === "admin") {
-        const { error: rateError } = await supabase
-          .from("developer_rates")
-          .upsert({
-            user_id: user.id,
-            hourly_rate: formData.hourly_rate,
-            currency: formData.currency,
-            updated_at: new Date().toISOString(),
-          });
+      // Update user settings
+      const { error: settingsError } = await supabase
+        .from("user_settings")
+        .upsert({
+          user_id: user.id,
+          default_rate: formData.hourly_rate,
+          currency: formData.currency,
+          updated_at: new Date().toISOString(),
+        });
 
-        if (rateError) throw rateError;
+      if (settingsError) throw settingsError;
+
+      // Refetch user settings to update the displayed values
+      const { data: settingsData, error: fetchError } = await supabase
+        .from("user_settings")
+        .select("default_rate, currency")
+        .eq("user_id", user.id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      if (settingsData) {
+        setFormData((prev) => ({
+          ...prev,
+          hourly_rate: settingsData.default_rate,
+          currency: settingsData.currency,
+        }));
       }
 
       showSuccess("Profil başarıyla güncellendi");
