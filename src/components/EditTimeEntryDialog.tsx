@@ -60,6 +60,7 @@ interface EditTimeEntryDialogProps {
     duration: number;
     hourlyRate?: number;
     currency?: string;
+    startTime?: string;
   }) => void;
 }
 
@@ -90,6 +91,7 @@ export function EditTimeEntryDialog({
     description: entry.description || "",
     hourlyRate: 0,
     currency: "USD",
+    startTime: entry.start_time,
   });
 
   const loadCustomerRate = useCallback(async (customerId: string) => {
@@ -123,6 +125,7 @@ export function EditTimeEntryDialog({
         description: entry.description || "",
         hourlyRate: 0,
         currency: "USD",
+        startTime: entry.start_time,
       });
       setDuration(entry.duration);
 
@@ -164,6 +167,7 @@ export function EditTimeEntryDialog({
           description: formData.description,
           project_id: formData.projectId || null,
           duration: validDuration,
+          start_time: formData.startTime,
         })
         .eq("id", entry.id);
 
@@ -190,6 +194,7 @@ export function EditTimeEntryDialog({
         customerId: formData.customerId,
         description: formData.description,
         duration: validDuration,
+        startTime: formData.startTime,
         ...(user?.role === "admin"
           ? {
               hourlyRate: formData.hourlyRate,
@@ -298,12 +303,40 @@ export function EditTimeEntryDialog({
                   <div className="text-sm text-muted-foreground">
                     Started at
                   </div>
-                  <div className="font-mono text-sm font-medium text-foreground">
-                    {new Date(entry.start_time).toLocaleTimeString("en-US", {
-                      hour: "numeric",
-                      minute: "2-digit",
-                      hour12: true,
-                    })}
+                  <div className="flex-1 grid grid-cols-2 gap-2">
+                    <Input
+                      type="date"
+                      value={
+                        new Date(formData.startTime).toISOString().split("T")[0]
+                      }
+                      onChange={(e) => {
+                        const [_, time] = new Date(formData.startTime)
+                          .toISOString()
+                          .split("T");
+                        setFormData((prev) => ({
+                          ...prev,
+                          startTime: `${e.target.value}T${time}`,
+                        }));
+                      }}
+                      className="h-8 text-sm"
+                    />
+                    <Input
+                      type="time"
+                      value={new Date(formData.startTime)
+                        .toISOString()
+                        .split("T")[1]
+                        .substring(0, 5)}
+                      onChange={(e) => {
+                        const [date] = new Date(formData.startTime)
+                          .toISOString()
+                          .split("T");
+                        setFormData((prev) => ({
+                          ...prev,
+                          startTime: `${date}T${e.target.value}:00.000Z`,
+                        }));
+                      }}
+                      className="h-8 text-sm"
+                    />
                   </div>
                 </div>
               </div>
