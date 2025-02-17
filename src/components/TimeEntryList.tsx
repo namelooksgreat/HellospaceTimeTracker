@@ -145,7 +145,6 @@ function TimeEntryList({
                   projectName={entry.project?.name}
                   duration={duration}
                   startTime={entry.start_time || ""}
-                  createdAt={entry.created_at || new Date().toISOString()}
                   projectColor={entry.project?.color}
                   onEdit={() => onEditEntry?.(entry.id)}
                   onDelete={() => handleDelete(entry)}

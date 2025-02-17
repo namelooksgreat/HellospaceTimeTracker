@@ -2,7 +2,7 @@ import React, { useCallback } from "react";
 import { useTimerStore } from "@/store/timerStore";
 import { useTimeEntryStore } from "@/store/timeEntryStore";
 import { useTimerDataStore } from "@/store/timerDataStore";
-import { createTimeEntry } from "@/lib/api";
+import { createTimeEntry } from "@/lib/api/timeEntries";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -23,7 +23,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import { Clock, Play, Pause, Square, Building2, RotateCcw } from "lucide-react";
+import {
+  Clock,
+  Play,
+  Pause,
+  Square,
+  Building2,
+  RotateCcw,
+  Plus,
+} from "lucide-react";
 
 interface TimeTrackerProps {
   projects?: Array<{
@@ -103,6 +111,7 @@ function TimeTracker({
       description: string;
       tags: string[];
       duration: number;
+      startTime: string;
     }) => {
       try {
         if (!data.taskName.trim()) {
@@ -116,7 +125,7 @@ function TimeTracker({
           task_name: data.taskName,
           project_id: data.projectId || null,
           duration: data.duration,
-          start_time: new Date().toISOString(),
+          start_time: new Date(data.startTime).toISOString(),
           description: data.description || undefined,
         };
 
@@ -325,6 +334,15 @@ function TimeTracker({
             disabled={state === "stopped"}
           >
             <Square className="h-4 w-4" />
+          </Button>
+
+          <Button
+            onClick={() => setShowSaveDialog(true)}
+            variant="outline"
+            className="flex-1 sm:flex-none"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Manuel Giriş
           </Button>
         </div>
       </CardContent>

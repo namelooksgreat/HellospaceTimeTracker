@@ -91,7 +91,6 @@ const Timeline = ({
                         projectName={entry.projectName}
                         duration={parseInt(entry.duration)}
                         startTime={entry.startTime}
-                        createdAt={entry.createdAt}
                         projectColor={entry.projectColor}
                         onEdit={() => onEditEntry(entry.id)}
                         onDelete={() => onDeleteEntry(entry.id)}

@@ -34,7 +34,6 @@ export function DailyReport({
               projectName={entry.projectName}
               duration={entry.duration}
               startTime={entry.startTime}
-              createdAt={entry.createdAt}
               projectColor={entry.projectColor}
               onDelete={() => onDeleteEntry?.(entry.id)}
               onEdit={() => onEditEntry?.(entry.id)}

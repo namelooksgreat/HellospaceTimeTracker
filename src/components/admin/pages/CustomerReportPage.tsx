@@ -244,7 +244,6 @@ export function CustomerReportPage() {
                     projectName={entry.project?.name || ""}
                     duration={entry.duration}
                     startTime={entry.start_time}
-                    createdAt={entry.created_at}
                     projectColor={entry.project?.color || "#94A3B8"}
                   />
                 ))

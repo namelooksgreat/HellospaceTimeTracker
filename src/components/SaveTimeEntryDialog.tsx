@@ -43,6 +43,7 @@ interface SaveTimeEntryDialogProps {
     description: string;
     tags: string[];
     duration: number;
+    startTime: string;
   }) => void;
 }
 
@@ -73,24 +74,44 @@ export function SaveTimeEntryDialog({
     customerId: string;
     description: string;
     tags: string[];
-  }>(() => ({
+    startTime: string;
+  }>({
     taskName: initialTaskName || "",
     projectId: initialProjectId || "",
     customerId: initialCustomerId || "",
     description: "",
     tags: [],
-  }));
+    startTime: (() => {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, "0");
+      const day = String(now.getDate()).padStart(2, "0");
+      const hours = String(now.getHours()).padStart(2, "0");
+      const minutes = String(now.getMinutes()).padStart(2, "0");
+      return `${year}-${month}-${day}T${hours}:${minutes}`;
+    })(),
+  });
 
   const { duration, setDuration } = useTimeEntryStore();
 
   useEffect(() => {
     if (open) {
+      // Reset form data when dialog opens
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, "0");
+      const day = String(now.getDate()).padStart(2, "0");
+      const hours = String(now.getHours()).padStart(2, "0");
+      const minutes = String(now.getMinutes()).padStart(2, "0");
+      const formattedDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
+
       setFormData({
         taskName: initialTaskName || "",
         projectId: initialProjectId || "",
         customerId: initialCustomerId || "",
         description: "",
         tags: [],
+        startTime: formattedDateTime,
       });
       setDuration(initialDuration);
     }
@@ -100,6 +121,7 @@ export function SaveTimeEntryDialog({
     initialProjectId,
     initialCustomerId,
     initialDuration,
+    setDuration,
   ]);
 
   const formatDuration = (seconds: number) => {
@@ -117,11 +139,13 @@ export function SaveTimeEntryDialog({
     console.debug("Saving time entry:", {
       ...formData,
       duration: validDuration,
+      startTime: formData.startTime,
     });
 
     onSave({
       ...formData,
       duration: validDuration,
+      startTime: formData.startTime,
     });
   };
 
@@ -131,10 +155,6 @@ export function SaveTimeEntryDialog({
         className="max-w-lg w-full p-0 gap-0 overflow-hidden rounded-2xl border-border/50 shadow-xl dark:shadow-2xl dark:shadow-primary/10"
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
-        <DialogDescription className="sr-only">
-          Save your time entry details including task name, project, and
-          description
-        </DialogDescription>
         <DialogHeader className="sticky top-0 z-10 p-4 sm:p-6 bg-gradient-to-b from-background via-background to-background/80 backdrop-blur-xl border-b border-border/50">
           <div className="flex items-center gap-2 text-primary">
             <Clock className="h-5 w-5" />
@@ -219,12 +239,31 @@ export function SaveTimeEntryDialog({
                   <div className="text-sm text-muted-foreground">
                     Started at
                   </div>
-                  <div className="font-mono text-sm font-medium text-foreground">
-                    {new Date().toLocaleTimeString("en-US", {
-                      hour: "numeric",
-                      minute: "2-digit",
-                      hour12: true,
-                    })}
+                  <div className="flex-1 grid grid-cols-2 gap-2">
+                    <Input
+                      type="date"
+                      value={formData.startTime.split("T")[0]}
+                      onChange={(e) => {
+                        const [_, time] = formData.startTime.split("T");
+                        setFormData((prev) => ({
+                          ...prev,
+                          startTime: `${e.target.value}T${time || "00:00"}`,
+                        }));
+                      }}
+                      className="h-8 text-sm"
+                    />
+                    <Input
+                      type="time"
+                      value={formData.startTime.split("T")[1] || ""}
+                      onChange={(e) => {
+                        const [date] = formData.startTime.split("T");
+                        setFormData((prev) => ({
+                          ...prev,
+                          startTime: `${date}T${e.target.value}`,
+                        }));
+                      }}
+                      className="h-8 text-sm"
+                    />
                   </div>
                 </div>
               </div>
@@ -247,26 +286,16 @@ export function SaveTimeEntryDialog({
                     }))
                   }
                 >
-                  <SelectTrigger className="h-12 bg-background/50 hover:bg-accent/50 transition-all duration-150 rounded-xl border-border/50">
+                  <SelectTrigger>
                     <SelectValue placeholder="Select customer" />
                   </SelectTrigger>
-                  <SelectContent
-                    position="popper"
-                    className="max-h-[280px] w-[var(--radix-select-trigger-width)] overflow-hidden rounded-xl border-border/50 bg-popover/95 backdrop-blur-sm shadow-lg dark:bg-popover/90"
-                    side="bottom"
-                    align="start"
-                    sideOffset={4}
-                  >
-                    <ScrollArea className="max-h-[280px]">
+                  <SelectContent>
+                    <ScrollArea className="max-h-[200px]">
                       {customers.map((customer) => (
-                        <SelectItem
-                          key={customer.id}
-                          value={customer.id}
-                          className="py-2.5 cursor-pointer focus:bg-accent/50"
-                        >
+                        <SelectItem key={customer.id} value={customer.id}>
                           <div className="flex items-center gap-2">
-                            <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
-                            <span className="truncate">{customer.name}</span>
+                            <Building2 className="h-4 w-4 text-muted-foreground" />
+                            <span>{customer.name}</span>
                           </div>
                         </SelectItem>
                       ))}
@@ -284,7 +313,7 @@ export function SaveTimeEntryDialog({
                   }
                   disabled={!formData.customerId}
                 >
-                  <SelectTrigger className="h-12 bg-background/50 hover:bg-accent/50 transition-all duration-150 rounded-xl border-border/50">
+                  <SelectTrigger>
                     <SelectValue
                       placeholder={
                         formData.customerId
@@ -293,31 +322,21 @@ export function SaveTimeEntryDialog({
                       }
                     />
                   </SelectTrigger>
-                  <SelectContent
-                    position="popper"
-                    className="max-h-[280px] w-[var(--radix-select-trigger-width)] overflow-hidden rounded-xl border-border/50 bg-popover/95 backdrop-blur-sm shadow-lg dark:bg-popover/90"
-                    side="bottom"
-                    align="start"
-                    sideOffset={4}
-                  >
-                    <ScrollArea className="max-h-[280px]">
+                  <SelectContent>
+                    <ScrollArea className="max-h-[200px]">
                       {projects
                         .filter(
                           (project) =>
                             project.customer_id === formData.customerId,
                         )
                         .map((project) => (
-                          <SelectItem
-                            key={project.id}
-                            value={project.id}
-                            className="py-2.5 cursor-pointer focus:bg-accent/50"
-                          >
+                          <SelectItem key={project.id} value={project.id}>
                             <div className="flex items-center gap-2">
                               <div
-                                className="w-3 h-3 rounded-full ring-1 ring-border/50 shrink-0"
+                                className="w-3 h-3 rounded-full ring-1 ring-border/50"
                                 style={{ backgroundColor: project.color }}
                               />
-                              <span className="truncate">{project.name}</span>
+                              <span>{project.name}</span>
                             </div>
                           </SelectItem>
                         ))}
@@ -328,9 +347,8 @@ export function SaveTimeEntryDialog({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="task-name">Task Name</Label>
+              <Label>Task Name</Label>
               <Input
-                id="task-name"
                 value={formData.taskName}
                 onChange={(e) =>
                   setFormData((prev) => ({
@@ -339,14 +357,12 @@ export function SaveTimeEntryDialog({
                   }))
                 }
                 placeholder="What did you work on?"
-                className="h-12 bg-background/50 hover:bg-accent/50 transition-all duration-150 rounded-xl border-border/50 focus-visible:ring-primary/50"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
+              <Label>Description</Label>
               <Textarea
-                id="description"
                 value={formData.description}
                 onChange={(e) =>
                   setFormData((prev) => ({
@@ -355,7 +371,7 @@ export function SaveTimeEntryDialog({
                   }))
                 }
                 placeholder="Add any additional notes..."
-                className="min-h-[100px] bg-background/50 hover:bg-accent/50 transition-all duration-150 rounded-xl border-border/50 focus-visible:ring-primary/50"
+                className="min-h-[100px]"
               />
             </div>
           </div>
@@ -372,10 +388,8 @@ export function SaveTimeEntryDialog({
               Cancel
             </Button>
             <Button
-              type="button"
               onClick={handleSave}
               className="h-12 flex-1 rounded-xl bg-primary hover:bg-primary/90 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0"
-              disabled={!formData.taskName}
             >
               Save Entry
             </Button>

@@ -17,6 +17,7 @@ import { TimeEntriesPage } from "./components/admin/pages/TimeEntriesPage";
 import { SettingsPage } from "./components/admin/pages/SettingsPage";
 import { UserReportPage } from "./components/admin/pages/UserReportPage";
 import { CustomerReportPage } from "./components/admin/pages/CustomerReportPage";
+import { CustomerPaymentsPage } from "./components/admin/pages/CustomerPaymentsPage";
 
 // Optimize code splitting with prefetch
 const Home = lazy(() => import("./components/home"));
@@ -109,6 +110,7 @@ export default function App() {
                   />
                   <Route path="projects" element={<ProjectsPage />} />
                   <Route path="time-entries" element={<TimeEntriesPage />} />
+                  <Route path="payments" element={<CustomerPaymentsPage />} />
                   <Route path="settings" element={<SettingsPage />} />
                 </Route>
                 {/* Catch-all route */}

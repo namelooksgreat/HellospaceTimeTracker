@@ -15,7 +15,6 @@ interface TimeEntryProps {
   projectName?: string;
   duration: number;
   startTime: string;
-  createdAt: string;
   projectColor?: string;
   onEdit?: () => void;
   onDelete?: () => void;
@@ -33,7 +32,6 @@ function TimeEntryComponent({
   projectName,
   duration,
   startTime,
-  createdAt,
   projectColor,
   onEdit,
   onDelete,
@@ -43,7 +41,7 @@ function TimeEntryComponent({
     return null;
   }
 
-  const formattedDate = formatDate(createdAt);
+  const formattedDate = formatDate(startTime);
   const formattedTime = formatStartTime(startTime);
 
   return (
@@ -68,7 +66,7 @@ function TimeEntryComponent({
               <span className="hidden sm:inline text-border/50">•</span>
               {formattedDate && (
                 <time
-                  dateTime={createdAt}
+                  dateTime={startTime}
                   className="text-xs text-muted-foreground/80"
                 >
                   {formattedDate}

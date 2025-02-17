@@ -1,18 +1,19 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useTranslation } from "@/lib/i18n";
-import {
-  startOfDay,
-  endOfDay,
-  startOfWeek,
-  endOfWeek,
-  startOfMonth,
-  endOfMonth,
-  startOfYear,
-  endOfYear,
-  isWithinInterval,
-} from "date-fns";
-import { tr } from "date-fns/locale";
+import { supabase } from "@/lib/supabase";
+import { handleError } from "@/lib/utils/error-handler";
+import { showSuccess } from "@/lib/utils/toast";
+import { toast } from "sonner";
+import { formatDuration } from "@/lib/utils/time";
+import { EditTimeEntryDialog } from "../EditTimeEntryDialog";
+import { updateTimeEntry } from "@/lib/api";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
+import { DailyReport } from "./DailyReport";
+import { WeeklyReport } from "./WeeklyReport";
+import { ProjectsReport } from "./ProjectsReport";
+import { BarChart2, Calendar, PieChart, Clock, DollarSign } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -20,20 +21,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
-import { getProjects, getCustomers } from "@/lib/api";
-import { supabase } from "@/lib/supabase";
-import { formatDuration } from "@/lib/utils/time";
-import { EditTimeEntryDialog } from "../EditTimeEntryDialog";
-import { updateTimeEntry } from "@/lib/api";
-import { handleError } from "@/lib/utils/error-handler";
-import { showSuccess } from "@/lib/utils/toast";
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
-import { DailyReport } from "./DailyReport";
-import { WeeklyReport } from "./WeeklyReport";
-import { ProjectsReport } from "./ProjectsReport";
-import { BarChart2, Calendar, PieChart, Clock, DollarSign } from "lucide-react";
-import { toast } from "sonner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -72,8 +59,8 @@ export default function ReportsPage({
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [entries, setEntries] = useState(initialEntries);
   const [timeFilter, setTimeFilter] = useState<
-    "daily" | "weekly" | "monthly" | "yearly"
-  >("daily");
+    "all" | "daily" | "weekly" | "monthly" | "yearly"
+  >("all");
 
   const TotalEarnings = ({ entries }: { entries: TimeEntry[] }) => {
     const [earnings, setEarnings] = useState(0);
@@ -118,64 +105,46 @@ export default function ReportsPage({
   };
 
   const filteredEntries = useMemo(() => {
-    const now = new Date();
-    let startDate: Date;
+    let filtered = entries;
 
-    const calculateEarnings = async (entries: TimeEntry[]) => {
-      try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (!user) throw new Error("User not found");
+    // Apply time filter
+    if (timeFilter !== "all") {
+      const now = new Date();
+      let startDate: Date;
+      let endDate: Date;
 
-        const { data: rateData, error: rateError } = await supabase
-          .from("developer_rates")
-          .select("hourly_rate")
-          .eq("user_id", user.id)
-          .single();
-
-        if (rateError) throw rateError;
-
-        const hourlyRate = rateData?.hourly_rate || 0;
-        const totalHours = entries.reduce(
-          (acc, entry) => acc + entry.duration / 3600,
-          0,
-        );
-
-        return totalHours * hourlyRate;
-      } catch (error) {
-        console.error("Error calculating earnings:", error);
-        return 0;
+      switch (timeFilter) {
+        case "daily":
+          startDate = new Date(now.setHours(0, 0, 0, 0));
+          endDate = new Date(now.setHours(23, 59, 59, 999));
+          break;
+        case "weekly":
+          startDate = new Date(now.setDate(now.getDate() - now.getDay()));
+          endDate = new Date(now.setDate(now.getDate() + 6));
+          break;
+        case "monthly":
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+          endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+          break;
+        case "yearly":
+          startDate = new Date(now.getFullYear(), 0, 1);
+          endDate = new Date(now.getFullYear(), 11, 31);
+          break;
+        default:
+          return filtered;
       }
-    };
 
-    let endDate: Date;
-
-    switch (timeFilter) {
-      case "daily":
-        startDate = startOfDay(now);
-        endDate = endOfDay(now);
-        break;
-      case "weekly":
-        startDate = startOfWeek(now, { locale: tr });
-        endDate = endOfWeek(now, { locale: tr });
-        break;
-      case "monthly":
-        startDate = startOfMonth(now);
-        endDate = endOfMonth(now);
-        break;
-      case "yearly":
-        startDate = startOfYear(now);
-        endDate = endOfYear(now);
-        break;
-      default:
-        return entries;
+      filtered = filtered.filter((entry) => {
+        const entryDate = new Date(entry.start_time);
+        return entryDate >= startDate && entryDate <= endDate;
+      });
     }
 
-    return entries.filter((entry) => {
-      const entryDate = new Date(entry.start_time);
-      return isWithinInterval(entryDate, { start: startDate, end: endDate });
-    });
+    // Sort by start_time in descending order
+    return filtered.sort(
+      (a, b) =>
+        new Date(b.start_time).getTime() - new Date(a.start_time).getTime(),
+    );
   }, [entries, timeFilter]);
 
   const fetchEntries = useCallback(async () => {
@@ -190,7 +159,7 @@ export default function ReportsPage({
           ))
         `,
         )
-        .order("created_at", { ascending: false });
+        .order("start_time", { ascending: false });
 
       if (error) throw error;
       setEntries(data || []);
@@ -262,7 +231,7 @@ export default function ReportsPage({
             ))
           `,
           )
-          .order("created_at", { ascending: false });
+          .order("start_time", { ascending: false });
 
         if (fetchError) throw fetchError;
         setEntries(updatedEntries || []);
@@ -397,13 +366,14 @@ export default function ReportsPage({
               <Select
                 value={timeFilter}
                 onValueChange={(
-                  value: "daily" | "weekly" | "monthly" | "yearly",
+                  value: "all" | "daily" | "weekly" | "monthly" | "yearly",
                 ) => setTimeFilter(value)}
               >
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Zaman aralığı seçin" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="all">Tümü</SelectItem>
                   <SelectItem value="daily">Bugün</SelectItem>
                   <SelectItem value="weekly">Bu Hafta</SelectItem>
                   <SelectItem value="monthly">Bu Ay</SelectItem>

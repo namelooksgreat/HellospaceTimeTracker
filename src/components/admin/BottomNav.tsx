@@ -7,6 +7,7 @@ import {
   FolderKanban,
   Clock,
   Settings,
+  DollarSign,
 } from "lucide-react";
 
 const menuItems = [
@@ -15,6 +16,7 @@ const menuItems = [
   { icon: Building2, label: "Customers", href: "/admin/customers" },
   { icon: FolderKanban, label: "Projects", href: "/admin/projects" },
   { icon: Clock, label: "Time Entries", href: "/admin/time-entries" },
+  { icon: DollarSign, label: "Payments", href: "/admin/payments" },
   { icon: Settings, label: "Settings", href: "/admin/settings" },
 ];
 
