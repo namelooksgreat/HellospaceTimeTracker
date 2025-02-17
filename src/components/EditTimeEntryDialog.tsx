@@ -1,14 +1,10 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect } from "react";
+import { Clock } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { handleError } from "@/lib/utils/error-handler";
 import { toast } from "sonner";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { useTimeEntryStore } from "@/store/timeEntryStore";
+import { useDialogStore } from "@/store/dialogStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,37 +17,32 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  MobileDialog,
+  MobileDialogContent,
+  MobileDialogHeader,
+  MobileDialogFooter,
+  MobileDialogTitle,
+} from "@/components/ui/mobile-dialog";
 import { TimeEntry } from "@/types";
-import { useTimeEntryStore } from "@/store/timeEntryStore";
-import { useAuth } from "@/lib/auth";
-import { Clock } from "lucide-react";
 
 interface EditTimeEntryDialogProps {
-  entry: TimeEntry;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  entry: TimeEntry | null;
   projects: Array<{
     id: string;
     name: string;
     color: string;
     customer_id: string;
-    customer?: {
-      id: string;
-      name: string;
-      customer_rates?: Array<{
-        hourly_rate: number;
-        currency: string;
-      }>;
-    };
+    customer?: { id: string; name: string } | null;
   }>;
-  customers: Array<{
-    id: string;
-    name: string;
-    customer_rates?: Array<{
-      hourly_rate: number;
-      currency: string;
-    }>;
-  }>;
+  customers: Array<{ id: string; name: string }>;
   onSave: (data: {
     taskName: string;
     projectId: string;
@@ -65,82 +56,59 @@ interface EditTimeEntryDialogProps {
 }
 
 export function EditTimeEntryDialog({
-  entry,
-  open,
-  onOpenChange,
   projects,
   customers,
   onSave,
 }: EditTimeEntryDialogProps) {
-  const initialRender = useRef(true);
+  const { editTimeEntryDialog, setEditTimeEntryDialog } = useDialogStore();
+  const [entry, setEntry] = useState<TimeEntry | null>(null);
   const { duration, setDuration } = useTimeEntryStore();
-  const { user } = useAuth();
-
-  useEffect(() => {
-    if (open && initialRender.current) {
-      const activeElement = document.activeElement as HTMLElement;
-      activeElement?.blur?.();
-      initialRender.current = false;
-    }
-  }, [open]);
 
   const [formData, setFormData] = useState({
-    taskName: entry.task_name,
-    projectId: entry.project?.id || "",
-    customerId: entry.project?.customer?.id || "",
-    description: entry.description || "",
-    hourlyRate: 0,
-    currency: "USD",
-    startTime: entry.start_time,
+    taskName: "",
+    projectId: "",
+    customerId: "",
+    description: "",
+    startTime: new Date().toISOString(),
   });
 
-  const loadCustomerRate = useCallback(async (customerId: string) => {
-    try {
-      const { data: rateData, error: rateError } = await supabase
-        .from("customer_rates")
-        .select("hourly_rate, currency")
-        .eq("customer_id", customerId)
-        .maybeSingle();
-
-      if (rateError) throw rateError;
-
-      if (rateData) {
-        setFormData((prev) => ({
-          ...prev,
-          hourlyRate: rateData.hourly_rate,
-          currency: rateData.currency,
-        }));
-      }
-    } catch (error) {
-      handleError(error, "EditTimeEntryDialog");
-    }
-  }, []);
-
   useEffect(() => {
-    if (open) {
-      setFormData({
-        taskName: entry.task_name,
-        projectId: entry.project?.id || "",
-        customerId: entry.project?.customer?.id || "",
-        description: entry.description || "",
-        hourlyRate: 0,
-        currency: "USD",
-        startTime: entry.start_time,
-      });
-      setDuration(entry.duration);
+    const loadEntry = async () => {
+      if (editTimeEntryDialog.entryId) {
+        const { data, error } = await supabase
+          .from("time_entries")
+          .select(
+            `
+            *,
+            project:projects!left(id, name, color, customer:customers!left(
+              id, name, customer_rates(hourly_rate, currency)
+            ))
+          `,
+          )
+          .eq("id", editTimeEntryDialog.entryId)
+          .single();
 
-      if (entry.project?.customer?.id) {
-        loadCustomerRate(entry.project.customer.id);
+        if (error) {
+          handleError(error, "EditTimeEntryDialog");
+          return;
+        }
+
+        setEntry(data);
+        setFormData({
+          taskName: data.task_name || "",
+          projectId: data.project?.id || "",
+          customerId: data.project?.customer?.id || "",
+          description: data.description || "",
+          startTime: data.start_time,
+        });
+        setDuration(data.duration);
       }
-    }
-  }, [open, entry, setDuration, loadCustomerRate]);
+    };
 
-  // Load customer rate when customer changes
-  useEffect(() => {
-    if (formData.customerId) {
-      loadCustomerRate(formData.customerId);
+    if (editTimeEntryDialog.isOpen) {
+      loadEntry();
     }
-  }, [formData.customerId, loadCustomerRate]);
+  }, [editTimeEntryDialog.isOpen, editTimeEntryDialog.entryId, setDuration]);
 
   const formatDuration = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
@@ -149,83 +117,45 @@ export function EditTimeEntryDialog({
     return `${hours}h ${minutes}m ${secs}s`;
   };
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSave = async () => {
     try {
       const validDuration = Math.max(0, duration);
-
-      console.debug("EditTimeEntryDialog - Saving with data:", {
+      onSave({
         ...formData,
         duration: validDuration,
       });
-
-      // Update time entry
-      const { error: entryError } = await supabase
-        .from("time_entries")
-        .update({
-          task_name: formData.taskName,
-          description: formData.description,
-          project_id: formData.projectId || null,
-          duration: validDuration,
-          start_time: formData.startTime,
-        })
-        .eq("id", entry.id);
-
-      if (entryError) throw entryError;
-
-      // Update or insert customer rate only if user is admin
-      if (user?.role === "admin" && formData.customerId) {
-        const { error: rateError } = await supabase
-          .from("customer_rates")
-          .upsert({
-            customer_id: formData.customerId,
-            hourly_rate: formData.hourlyRate,
-            currency: formData.currency,
-            updated_at: new Date().toISOString(),
-          });
-
-        if (rateError) throw rateError;
-      }
-
-      // Create data object based on user role
-      const updatedData = {
-        taskName: formData.taskName,
-        projectId: formData.projectId,
-        customerId: formData.customerId,
-        description: formData.description,
-        duration: validDuration,
-        startTime: formData.startTime,
-        ...(user?.role === "admin"
-          ? {
-              hourlyRate: formData.hourlyRate,
-              currency: formData.currency,
-            }
-          : {}),
-      };
-
-      toast.success("Time entry updated successfully", {
-        description: `Updated ${formData.taskName} - ${formatDuration(validDuration)}`,
-      });
-      onSave(updatedData);
+      toast.success("Time entry updated successfully");
+      setEditTimeEntryDialog(false, null);
     } catch (error) {
       handleError(error, "EditTimeEntryDialog");
     }
   };
 
+  const isMobile = useMediaQuery("(max-width: 640px)");
+
+  const DialogComponent = isMobile ? MobileDialog : Dialog;
+  const DialogContentComponent = isMobile ? MobileDialogContent : DialogContent;
+  const DialogHeaderComponent = isMobile ? MobileDialogHeader : DialogHeader;
+  const DialogTitleComponent = isMobile ? MobileDialogTitle : DialogTitle;
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg w-full p-0 gap-0 overflow-hidden rounded-2xl border-border/50 shadow-xl dark:shadow-2xl dark:shadow-primary/10">
-        <DialogHeader className="sticky top-0 z-10 p-4 sm:p-6 bg-gradient-to-b from-background via-background to-background/80 backdrop-blur-xl border-b border-border/50">
+    <DialogComponent
+      open={editTimeEntryDialog.isOpen}
+      onOpenChange={(open) =>
+        setEditTimeEntryDialog(open, editTimeEntryDialog.entryId)
+      }
+    >
+      <DialogContentComponent
+        className="max-w-lg w-full p-0 gap-0 overflow-hidden rounded-2xl border-border/50 shadow-xl dark:shadow-2xl dark:shadow-primary/10"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
+        <DialogHeaderComponent className="sticky top-0 z-10 p-4 sm:p-6 bg-gradient-to-b from-background via-background to-background/80 backdrop-blur-xl border-b border-border/50">
           <div className="flex items-center gap-2 text-primary">
             <Clock className="h-5 w-5" />
-            <DialogTitle className="text-lg font-semibold tracking-tight">
+            <DialogTitleComponent className="text-lg font-semibold tracking-tight">
               Edit Time Entry
-            </DialogTitle>
+            </DialogTitleComponent>
           </div>
-          <DialogDescription>
-            Edit your time entry details including task name, project, and
-            description
-          </DialogDescription>
 
           <div className="mt-6">
             <div className="bg-gradient-to-br from-card/50 to-card/30 dark:from-card/20 dark:to-card/10 border border-border/50 rounded-xl p-6 transition-all duration-300 hover:shadow-lg hover:border-border/80 group">
@@ -342,148 +272,102 @@ export function EditTimeEntryDialog({
               </div>
             </div>
           </div>
-        </DialogHeader>
+        </DialogHeaderComponent>
 
         <ScrollArea className="max-h-[calc(100vh-20rem)] sm:max-h-[calc(100vh-22rem)] overflow-y-auto overscroll-none bg-gradient-to-b from-transparent via-background/50 to-background/50 backdrop-blur-sm">
           <div className="p-4 sm:p-6 space-y-6">
-            <form onSubmit={handleSave} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Task Name</Label>
+              <Input
+                value={formData.taskName}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, taskName: e.target.value }))
+                }
+                placeholder="What did you work on?"
+                required
+              />
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label>Task Name</Label>
-                <Input
-                  value={formData.taskName}
-                  onChange={(e) =>
+                <Label>Customer</Label>
+                <Select
+                  value={formData.customerId}
+                  onValueChange={(value) =>
                     setFormData((prev) => ({
                       ...prev,
-                      taskName: e.target.value,
+                      customerId: value,
+                      projectId: "",
                     }))
                   }
-                  placeholder="What did you work on?"
-                />
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select customer" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {customers.map((customer) => (
+                      <SelectItem key={customer.id} value={customer.id}>
+                        {customer.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label>Customer</Label>
-                  <Select
-                    value={formData.customerId}
-                    onValueChange={(value) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        customerId: value,
-                        projectId: "",
-                      }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select customer" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <ScrollArea className="max-h-[200px]">
-                        {customers.map((customer) => (
-                          <SelectItem key={customer.id} value={customer.id}>
-                            {customer.name}
-                          </SelectItem>
-                        ))}
-                      </ScrollArea>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Project</Label>
-                  <Select
-                    value={formData.projectId}
-                    onValueChange={(value) =>
-                      setFormData((prev) => ({ ...prev, projectId: value }))
-                    }
-                    disabled={!formData.customerId}
-                  >
-                    <SelectTrigger>
-                      <SelectValue
-                        placeholder={
-                          formData.customerId
-                            ? "Select project"
-                            : "Select customer first"
-                        }
-                      />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <ScrollArea className="max-h-[200px]">
-                        {projects
-                          .filter(
-                            (project) =>
-                              project.customer_id === formData.customerId,
-                          )
-                          .map((project) => (
-                            <SelectItem key={project.id} value={project.id}>
-                              <div className="flex items-center gap-2">
-                                <div
-                                  className="w-3 h-3 rounded-full"
-                                  style={{ backgroundColor: project.color }}
-                                />
-                                <span>{project.name}</span>
-                              </div>
-                            </SelectItem>
-                          ))}
-                      </ScrollArea>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {user?.role === "admin" && (
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>Hourly Rate</Label>
-                    <Input
-                      type="number"
-                      value={formData.hourlyRate}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          hourlyRate: parseFloat(e.target.value) || 0,
-                        }))
+              <div className="space-y-2">
+                <Label>Project</Label>
+                <Select
+                  value={formData.projectId}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({ ...prev, projectId: value }))
+                  }
+                  disabled={!formData.customerId}
+                >
+                  <SelectTrigger>
+                    <SelectValue
+                      placeholder={
+                        formData.customerId
+                          ? "Select project"
+                          : "Select customer first"
                       }
-                      className="h-12 bg-background/50 hover:bg-accent/50 transition-all duration-150 rounded-xl border-border/50"
                     />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Currency</Label>
-                    <Select
-                      value={formData.currency}
-                      onValueChange={(value) =>
-                        setFormData((prev) => ({ ...prev, currency: value }))
-                      }
-                    >
-                      <SelectTrigger className="h-12 bg-background/50 hover:bg-accent/50 transition-all duration-150 rounded-xl border-border/50">
-                        <SelectValue placeholder="Select currency" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="USD">USD</SelectItem>
-                        <SelectItem value="EUR">EUR</SelectItem>
-                        <SelectItem value="TRY">TRY</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <Label>Description</Label>
-                <Textarea
-                  value={formData.description}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      description: e.target.value,
-                    }))
-                  }
-                  placeholder="Add any additional notes..."
-                  className="min-h-[100px]"
-                />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {projects
+                      .filter(
+                        (project) =>
+                          project.customer_id === formData.customerId,
+                      )
+                      .map((project) => (
+                        <SelectItem key={project.id} value={project.id}>
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-3 h-3 rounded-full ring-1 ring-border/50"
+                              style={{ backgroundColor: project.color }}
+                            />
+                            <span>{project.name}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
               </div>
-            </form>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Textarea
+                value={formData.description}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    description: e.target.value,
+                  }))
+                }
+                placeholder="Add any additional notes..."
+                className="min-h-[100px]"
+              />
+            </div>
           </div>
         </ScrollArea>
 
@@ -492,7 +376,7 @@ export function EditTimeEntryDialog({
             <Button
               type="button"
               variant="outline"
-              onClick={() => onOpenChange(false)}
+              onClick={() => setEditTimeEntryDialog(false, null)}
               className="h-12 flex-1 rounded-xl border-border/50 hover:bg-accent/50 transition-all duration-300"
             >
               Cancel
@@ -505,7 +389,7 @@ export function EditTimeEntryDialog({
             </Button>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      </DialogContentComponent>
+    </DialogComponent>
   );
 }

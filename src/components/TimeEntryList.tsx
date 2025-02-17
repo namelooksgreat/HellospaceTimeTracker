@@ -5,6 +5,8 @@ import { Clock } from "lucide-react";
 import { TimeEntry as TimeEntryType } from "@/types";
 import { toast } from "sonner";
 import { handleError } from "@/lib/utils/error-handler";
+import { useDialogStore } from "@/store/dialogStore";
+import { TimeEntrySkeleton } from "./skeletons/TimeEntrySkeleton";
 import {
   Select,
   SelectContent,
@@ -29,6 +31,7 @@ interface TimeEntryListProps {
   entries: TimeEntryType[];
   onEditEntry?: (id: string) => void;
   onDeleteEntry?: (id: string) => void;
+  loading?: boolean;
 }
 
 type TimeRange = "all" | "daily" | "weekly" | "monthly" | "yearly";
@@ -37,8 +40,10 @@ function TimeEntryList({
   entries = [],
   onEditEntry,
   onDeleteEntry,
+  loading = false,
 }: TimeEntryListProps) {
   const [timeRange, setTimeRange] = React.useState<TimeRange>("all");
+  const { setEditTimeEntryDialog } = useDialogStore();
 
   const filteredEntries = useMemo(() => {
     if (timeRange === "all") return entries;
@@ -74,13 +79,23 @@ function TimeEntryList({
     });
   }, [entries, timeRange]);
 
+  if (loading) {
+    return (
+      <div className="space-y-2.5">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <TimeEntrySkeleton key={i} />
+        ))}
+      </div>
+    );
+  }
+
   if (!Array.isArray(entries) || entries.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-[300px] text-muted-foreground">
         <Clock className="h-12 w-12 mb-4 text-muted-foreground/50" />
-        <p className="text-center mb-1">No time entries yet</p>
+        <p className="text-center mb-1">Henüz zaman girişi yok</p>
         <p className="text-sm text-muted-foreground/80">
-          Start tracking your time to see entries here
+          Zamanınızı takip etmeye başlayın
         </p>
       </div>
     );
@@ -103,12 +118,12 @@ function TimeEntryList({
 
   return (
     <div className="space-y-4">
-      <div>
+      <div className="sticky top-0 z-10 -mt-1 pt-1 pb-2 bg-gradient-to-b from-background via-background to-background/80 backdrop-blur-xl">
         <Select
           value={timeRange}
           onValueChange={(value: TimeRange) => setTimeRange(value)}
         >
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full sm:w-[180px] h-10">
             <SelectValue placeholder="Zaman aralığı seçin" />
           </SelectTrigger>
           <SelectContent>
@@ -120,8 +135,8 @@ function TimeEntryList({
           </SelectContent>
         </Select>
       </div>
-      <ScrollArea className="h-[400px] overflow-y-auto overscroll-none">
-        <div className="space-y-2">
+      <ScrollArea className="h-[calc(100vh-16rem)] sm:h-[400px] overflow-y-auto overscroll-none touch-pan-y px-1.5 sm:px-0 -mx-1.5 sm:mx-0">
+        <div className="space-y-2.5 sm:space-y-3 pb-[calc(4rem+env(safe-area-inset-bottom))] sm:pb-6">
           {filteredEntries
             .map((entry) => {
               if (!entry?.id || !entry?.task_name) {
@@ -146,7 +161,10 @@ function TimeEntryList({
                   duration={duration}
                   startTime={entry.start_time || ""}
                   projectColor={entry.project?.color}
-                  onEdit={() => onEditEntry?.(entry.id)}
+                  onEdit={() => {
+                    setEditTimeEntryDialog(true, entry.id);
+                    onEditEntry?.(entry.id);
+                  }}
                   onDelete={() => handleDelete(entry)}
                 />
               );

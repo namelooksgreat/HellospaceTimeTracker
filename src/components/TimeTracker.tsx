@@ -2,6 +2,7 @@ import React, { useCallback } from "react";
 import { useTimerStore } from "@/store/timerStore";
 import { useTimeEntryStore } from "@/store/timeEntryStore";
 import { useTimerDataStore } from "@/store/timerDataStore";
+import { useDialogStore } from "@/store/dialogStore";
 import { createTimeEntry } from "@/lib/api/timeEntries";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -53,10 +54,9 @@ function TimeTracker({
   availableTags = [],
   onTimeEntrySaved,
 }: TimeTrackerProps) {
-  const [showSaveDialog, setShowSaveDialog] = React.useState(false);
-  const [isManualEntry, setIsManualEntry] = React.useState(false);
   const { language } = useLanguage();
   const { t } = useTranslation(language);
+  const { saveTimeEntryDialog, setSaveTimeEntryDialog } = useDialogStore();
 
   const {
     state,
@@ -89,9 +89,22 @@ function TimeTracker({
 
   const handleStop = useCallback(() => {
     timerStop();
-    setIsManualEntry(false);
-    setShowSaveDialog(true);
-  }, [timerStop]);
+    setSaveTimeEntryDialog(
+      true,
+      {
+        taskName,
+        projectId: selectedProject,
+        customerId: selectedCustomer,
+      },
+      false,
+    );
+  }, [
+    timerStop,
+    taskName,
+    selectedProject,
+    selectedCustomer,
+    setSaveTimeEntryDialog,
+  ]);
 
   const handleReset = useCallback(() => {
     timerReset();
@@ -137,10 +150,10 @@ function TimeTracker({
         });
         onTimeEntrySaved?.();
         timerReset();
-        setShowSaveDialog(false);
+        setSaveTimeEntryDialog(false);
 
         // Only reset form data if it's not a manual entry
-        if (!isManualEntry) {
+        if (!saveTimeEntryDialog.isManualEntry) {
           setTaskName("");
           setProjectId("");
           setCustomerId("");
@@ -148,23 +161,32 @@ function TimeTracker({
         }
       } catch (error) {
         handleError(error, "TimeTracker");
-        setShowSaveDialog(false);
+        setSaveTimeEntryDialog(false);
       }
     },
     [
       onTimeEntrySaved,
       timerReset,
       t,
-      isManualEntry,
+      saveTimeEntryDialog.isManualEntry,
       setTaskName,
       setProjectId,
       setCustomerId,
       resetTimerData,
+      setSaveTimeEntryDialog,
     ],
   );
 
   return (
-    <Card className={cn(styles.card.base, "-mx-4 sm:mx-0")}>
+    <Card
+      className={cn(
+        styles.card.base,
+        "-mx-4 sm:mx-0",
+        "animate-in fade-in-50 duration-500",
+        state === "running" &&
+          "ring-2 ring-primary/20 shadow-lg shadow-primary/10",
+      )}
+    >
       <CardContent className="p-3 space-y-3">
         {/* Timer Display */}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-card/50 to-card/30 dark:from-card/20 dark:to-card/10 border border-border/50 p-6 transition-all duration-300 hover:shadow-lg hover:border-border/80 group">
@@ -359,8 +381,15 @@ function TimeTracker({
               setTaskName("");
               setProjectId("");
               setCustomerId("");
-              setIsManualEntry(true);
-              setShowSaveDialog(true);
+              setSaveTimeEntryDialog(
+                true,
+                {
+                  taskName: "",
+                  projectId: "",
+                  customerId: "",
+                },
+                true,
+              );
             }}
             variant="outline"
             className="w-full sm:w-auto"
@@ -372,20 +401,21 @@ function TimeTracker({
       </CardContent>
 
       <SaveTimeEntryDialog
-        open={showSaveDialog}
+        open={saveTimeEntryDialog.isOpen}
         onOpenChange={(open) => {
-          setShowSaveDialog(open);
-          if (!open) {
-            setIsManualEntry(false); // Dialog kapandığında manuel giriş modunu sıfırla
-          }
+          setSaveTimeEntryDialog(
+            open,
+            undefined,
+            saveTimeEntryDialog.isManualEntry,
+          );
         }}
-        taskName={taskName}
-        projectId={selectedProject}
-        customerId={selectedCustomer}
+        taskName={saveTimeEntryDialog.taskName}
+        projectId={saveTimeEntryDialog.projectId}
+        customerId={saveTimeEntryDialog.customerId}
         projects={projects}
         customers={customers}
         availableTags={availableTags}
-        duration={isManualEntry ? 0 : time}
+        duration={saveTimeEntryDialog.isManualEntry ? 0 : time}
         onSave={handleSaveTimeEntry}
       />
     </Card>

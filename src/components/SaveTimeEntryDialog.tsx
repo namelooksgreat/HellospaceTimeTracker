@@ -1,28 +1,33 @@
 import React, { useState, useEffect } from "react";
 import { useTimeEntryStore } from "@/store/timeEntryStore";
 import { Building2, Clock } from "lucide-react";
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
-import { Label } from "./ui/label";
-import { Calendar } from "./ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { format } from "date-fns";
-import { Textarea } from "./ui/textarea";
-import { ScrollArea } from "./ui/scroll-area";
+import { Textarea } from "@/components/ui/textarea";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "./ui/select";
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "./ui/dialog";
+} from "@/components/ui/dialog";
+import { useDialogStore } from "@/store/dialogStore";
 
 interface SaveTimeEntryDialogProps {
   open: boolean;
@@ -62,6 +67,7 @@ export function SaveTimeEntryDialog({
   onSave,
 }: SaveTimeEntryDialogProps) {
   const initialRender = React.useRef(true);
+  const { saveTimeEntryDialog } = useDialogStore();
 
   useEffect(() => {
     if (open && initialRender.current) {
@@ -243,70 +249,38 @@ export function SaveTimeEntryDialog({
                     Started at
                   </div>
                   <div className="flex-1 grid grid-cols-2 gap-2">
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className="h-10 w-full justify-start text-left font-normal"
-                        >
-                          <div className="flex items-center gap-2">
-                            <svg
-                              width="15"
-                              height="15"
-                              viewBox="0 0 15 15"
-                              fill="none"
-                              xmlns="http://www.w3.org/2000/svg"
-                              className="h-4 w-4 text-muted-foreground"
-                            >
-                              <path
-                                d="M4.5 1C4.77614 1 5 1.22386 5 1.5V2H10V1.5C10 1.22386 10.2239 1 10.5 1C10.7761 1 11 1.22386 11 1.5V2H12.5C13.3284 2 14 2.67157 14 3.5V12.5C14 13.3284 13.3284 14 12.5 14H2.5C1.67157 14 1 13.3284 1 12.5V3.5C1 2.67157 1.67157 2 2.5 2H4V1.5C4 1.22386 4.22386 1 4.5 1ZM10 3V3.5C10 3.77614 10.2239 4 10.5 4C10.7761 4 11 3.77614 11 3.5V3H12.5C12.7761 3 13 3.22386 13 3.5V5H2V3.5C2 3.22386 2.22386 3 2.5 3H4V3.5C4 3.77614 4.22386 4 4.5 4C4.77614 4 5 3.77614 5 3.5V3H10ZM2 6V12.5C2 12.7761 2.22386 13 2.5 13H12.5C12.7761 13 13 12.7761 13 12.5V6H2Z"
-                                fill="currentColor"
-                                fillRule="evenodd"
-                                clipRule="evenodd"
-                              ></path>
-                            </svg>
-                            {formData.startTime ? (
-                              format(new Date(formData.startTime), "d MMM yyyy")
-                            ) : (
-                              <span className="text-muted-foreground">
-                                Pick a date
-                              </span>
-                            )}
-                          </div>
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={new Date(formData.startTime)}
-                          onSelect={(date) => {
-                            if (date) {
-                              const [_, time] = formData.startTime.split("T");
-                              const newDateTime = `${format(date, "yyyy-MM-dd")}T${time}`;
-                              setFormData((prev) => ({
-                                ...prev,
-                                startTime: newDateTime,
-                              }));
-                            }
-                          }}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
                     <Input
-                      type="time"
+                      type="date"
                       value={
-                        formData.startTime.split("T")[1]?.substring(0, 5) || ""
+                        new Date(formData.startTime).toISOString().split("T")[0]
                       }
                       onChange={(e) => {
-                        const [date] = formData.startTime.split("T");
-                        const newDateTime = `${date}T${e.target.value}:00`;
+                        const [_, time] = new Date(formData.startTime)
+                          .toISOString()
+                          .split("T");
                         setFormData((prev) => ({
                           ...prev,
-                          startTime: newDateTime,
+                          startTime: `${e.target.value}T${time}`,
                         }));
                       }}
-                      className="h-10"
+                      className="h-8 text-sm"
+                    />
+                    <Input
+                      type="time"
+                      value={new Date(formData.startTime)
+                        .toISOString()
+                        .split("T")[1]
+                        .substring(0, 5)}
+                      onChange={(e) => {
+                        const [date] = new Date(formData.startTime)
+                          .toISOString()
+                          .split("T");
+                        setFormData((prev) => ({
+                          ...prev,
+                          startTime: `${date}T${e.target.value}:00.000Z`,
+                        }));
+                      }}
+                      className="h-8 text-sm"
                     />
                   </div>
                 </div>
@@ -317,7 +291,19 @@ export function SaveTimeEntryDialog({
 
         <ScrollArea className="max-h-[calc(100vh-20rem)] sm:max-h-[calc(100vh-22rem)] overflow-y-auto overscroll-none bg-gradient-to-b from-transparent via-background/50 to-background/50 backdrop-blur-sm">
           <div className="p-4 sm:p-6 space-y-6">
-            <div className="grid gap-6 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Task Name</Label>
+              <Input
+                value={formData.taskName}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, taskName: e.target.value }))
+                }
+                placeholder="What did you work on?"
+                required
+              />
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>Customer</Label>
                 <Select
@@ -334,16 +320,14 @@ export function SaveTimeEntryDialog({
                     <SelectValue placeholder="Select customer" />
                   </SelectTrigger>
                   <SelectContent>
-                    <ScrollArea className="max-h-[200px]">
-                      {customers.map((customer) => (
-                        <SelectItem key={customer.id} value={customer.id}>
-                          <div className="flex items-center gap-2">
-                            <Building2 className="h-4 w-4 text-muted-foreground" />
-                            <span>{customer.name}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </ScrollArea>
+                    {customers.map((customer) => (
+                      <SelectItem key={customer.id} value={customer.id}>
+                        <div className="flex items-center gap-2">
+                          <Building2 className="h-4 w-4 text-muted-foreground" />
+                          <span>{customer.name}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -367,41 +351,25 @@ export function SaveTimeEntryDialog({
                     />
                   </SelectTrigger>
                   <SelectContent>
-                    <ScrollArea className="max-h-[200px]">
-                      {projects
-                        .filter(
-                          (project) =>
-                            project.customer_id === formData.customerId,
-                        )
-                        .map((project) => (
-                          <SelectItem key={project.id} value={project.id}>
-                            <div className="flex items-center gap-2">
-                              <div
-                                className="w-3 h-3 rounded-full ring-1 ring-border/50"
-                                style={{ backgroundColor: project.color }}
-                              />
-                              <span>{project.name}</span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                    </ScrollArea>
+                    {projects
+                      .filter(
+                        (project) =>
+                          project.customer_id === formData.customerId,
+                      )
+                      .map((project) => (
+                        <SelectItem key={project.id} value={project.id}>
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-3 h-3 rounded-full ring-1 ring-border/50"
+                              style={{ backgroundColor: project.color }}
+                            />
+                            <span>{project.name}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Task Name</Label>
-              <Input
-                value={formData.taskName}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    taskName: e.target.value,
-                  }))
-                }
-                placeholder="What did you work on?"
-              />
             </div>
 
             <div className="space-y-2">
@@ -435,7 +403,7 @@ export function SaveTimeEntryDialog({
               onClick={handleSave}
               className="h-12 flex-1 rounded-xl bg-primary hover:bg-primary/90 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0"
             >
-              Save Entry
+              Save
             </Button>
           </div>
         </div>

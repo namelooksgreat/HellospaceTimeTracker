@@ -7,6 +7,8 @@ import { Navigate } from "react-router-dom";
 import { MainLayout } from "@/components/layouts/MainLayout";
 import { useAuth } from "@/lib/auth";
 import { Skeleton } from "./ui/skeleton";
+import { TimeTrackerSkeleton } from "./skeletons/TimeTrackerSkeleton";
+import { TimeEntrySkeleton } from "./skeletons/TimeEntrySkeleton";
 import { usePerformanceTracking } from "@/hooks/usePerformanceTracking";
 import { handleError } from "@/lib/utils/error-handler";
 import { ErrorBoundary } from "./ErrorBoundary";
@@ -109,9 +111,14 @@ function Home() {
   }
 
   const LoadingFallback = () => (
-    <div className="space-y-4 p-4">
-      <Skeleton className="h-[300px] w-full rounded-xl bg-card/50" />
-      <Skeleton className="h-[400px] w-full rounded-xl bg-card/50" />
+    <div className="container max-w-5xl mx-auto px-4 py-6 space-y-6 pb-20 animate-in fade-in-50 duration-500">
+      <TimeTrackerSkeleton />
+      <div className="space-y-3">
+        <Skeleton className="h-5 w-32" />
+        {Array.from({ length: 5 }).map((_, i) => (
+          <TimeEntrySkeleton key={i} />
+        ))}
+      </div>
     </div>
   );
 
@@ -175,8 +182,6 @@ function Home() {
 
           {selectedEntry && (
             <EditTimeEntryDialog
-              open={showEditDialog}
-              onOpenChange={setShowEditDialog}
               entry={selectedEntry}
               projects={projects}
               customers={customers}
