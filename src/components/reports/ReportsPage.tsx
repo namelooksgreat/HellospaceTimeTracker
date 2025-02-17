@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "../ui/card";
 import { AdvancedFilters } from "./AdvancedFilters";
 import { DailyReport } from "./DailyReport";
@@ -7,6 +7,8 @@ import { TrendChart } from "./TrendChart";
 import { TimeEntry } from "@/types";
 import { DateRange } from "react-day-picker";
 import { Button } from "../ui/button";
+import { useAuth } from "@/lib/auth";
+import { supabase } from "@/lib/supabase";
 import {
   ChevronDown,
   ChevronUp,
@@ -37,11 +39,62 @@ export default function ReportsPage({
   customers,
   onDeleteEntry,
 }: ReportsPageProps) {
+  const { session } = useAuth();
   const [showFilters, setShowFilters] = useState(false);
   const isMobile = useMediaQuery("(max-width: 768px)");
   const [timeRange, setTimeRange] = useState<
     "daily" | "weekly" | "monthly" | "yearly"
   >("daily");
+
+  const [userSettings, setUserSettings] = useState<{
+    default_rate: number;
+    currency: string;
+  } | null>(null);
+
+  useEffect(() => {
+    const fetchUserSettings = async () => {
+      try {
+        const { data: settingsData, error: settingsError } = await supabase
+          .from("user_settings")
+          .select("default_rate, currency")
+          .eq("user_id", session?.user?.id)
+          .maybeSingle();
+
+        if (settingsError && settingsError.code !== "PGRST116") {
+          console.error("Error fetching user settings:", settingsError);
+          return;
+        }
+
+        if (settingsData) {
+          setUserSettings({
+            default_rate: settingsData.default_rate,
+            currency: settingsData.currency,
+          });
+        } else {
+          // If no settings exist, create default ones
+          const { error: insertError } = await supabase
+            .from("user_settings")
+            .insert({
+              user_id: session?.user?.id,
+              default_rate: 0,
+              currency: "TRY",
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            });
+
+          if (insertError) {
+            console.error("Error creating default settings:", insertError);
+          }
+        }
+      } catch (error) {
+        console.error("Error in fetchUserSettings:", error);
+      }
+    };
+
+    if (session?.user?.id) {
+      fetchUserSettings();
+    }
+  }, [session?.user?.id]);
 
   const [filters, setFilters] = useState<{
     search: string;
@@ -84,8 +137,7 @@ export default function ReportsPage({
   );
 
   const totalEarnings = filteredEntries.reduce((sum, entry) => {
-    const hourlyRate =
-      entry.project?.customer?.customer_rates?.[0]?.hourly_rate || 0;
+    const hourlyRate = userSettings?.default_rate || 0;
     return sum + (entry.duration / 3600) * hourlyRate;
   }, 0);
 
@@ -152,7 +204,7 @@ export default function ReportsPage({
             <div className="text-lg sm:text-2xl font-mono font-bold tracking-tight">
               {new Intl.NumberFormat("tr-TR", {
                 style: "currency",
-                currency: "TRY",
+                currency: userSettings?.currency || "TRY",
               }).format(totalEarnings)}
             </div>
             <div className="text-[10px] sm:text-xs text-muted-foreground truncate">
