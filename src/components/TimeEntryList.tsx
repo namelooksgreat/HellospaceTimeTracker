@@ -104,10 +104,12 @@ function TimeEntryList({
   const handleDelete = async (entry: TimeEntryType) => {
     if (!entry.id || !onDeleteEntry) return;
     try {
-      await onDeleteEntry(entry.id);
-      toast.success("Time entry deleted", {
-        description: `Deleted ${entry.task_name}`,
-      });
+      if (confirm("Are you sure you want to delete this time entry?")) {
+        await onDeleteEntry(entry.id);
+        toast.success("Time entry deleted", {
+          description: `Deleted ${entry.task_name}`,
+        });
+      }
     } catch (error) {
       handleError(error, "TimeEntryList");
       toast.error("Failed to delete time entry", {

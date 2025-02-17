@@ -1,6 +1,7 @@
 import React, { useState, Suspense, lazy, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { showSuccess } from "@/lib/utils/toast";
+import { toast } from "sonner";
 import { EditTimeEntryDialog } from "./EditTimeEntryDialog";
 import { useHomeData } from "@/lib/hooks/useHomeData";
 import { Navigate } from "react-router-dom";
@@ -39,10 +40,20 @@ function Home() {
 
   const handleDeleteTimeEntry = async (id: string) => {
     try {
-      await deleteTimeEntry(id);
+      const { error } = await supabase
+        .from("time_entries")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+
+      // Refresh the data after successful deletion
       await fetchTimeEntriesData();
+
+      toast.success("Time entry deleted successfully");
     } catch (error) {
       handleError(error, "Home");
+      toast.error("Failed to delete time entry");
     }
   };
 
