@@ -73,90 +73,85 @@ export function TimeEntriesPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
-      if (userError) throw userError;
-      if (!user) throw new Error("Kullanıcı bulunamadı");
 
-      const [entriesResponse, projectsResponse] = await Promise.all([
-        supabase
-          .from("time_entries")
-          .select(
-            `
-            id,
-            task_name,
-            description,
-            duration,
-            start_time,
-            created_at,
-            user_id,
-            project_id,
-            project:projects!left(id, name, color, customer:customers(id, name))
-          `,
-          )
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("projects")
-          .select(
-            `
-            id,
-            name,
-            color,
-            customer_id,
-            customer:customers(id, name)
-          `,
-          )
-          .order("name"),
-      ]);
+      // Construct base query for time entries
+      let timeEntriesQuery = supabase
+        .from("time_entries")
+        .select(
+          `
+          id,
+          task_name,
+          description,
+          duration,
+          start_time,
+          created_at,
+          user_id,
+          project_id,
+          project:projects!left(id, name, color, customer:customers(id, name))
+        `,
+        )
+        .order("created_at", { ascending: false });
 
-      if (entriesResponse.error) throw entriesResponse.error;
-      if (projectsResponse.error) throw projectsResponse.error;
+      // Projects query
+      const projectsQuery = supabase
+        .from("projects")
+        .select(
+          `
+          id,
+          name,
+          color,
+          customer_id,
+          customer:customers(id, name)
+        `,
+        )
+        .order("name");
 
-      // Transform entries data to match TimeEntry type
-      const transformedEntries = (entriesResponse.data || []).map(
-        (entry: any) => ({
-          id: entry.id,
-          task_name: entry.task_name,
-          description: entry.description,
-          duration: entry.duration,
-          start_time: entry.start_time,
-          created_at: entry.created_at,
-          user_id: entry.user_id,
-          project_id: entry.project_id,
-          project: entry.project
-            ? {
-                id: entry.project.id,
-                name: entry.project.name,
-                color: entry.project.color,
-                customer: entry.project.customer
-                  ? {
-                      id: entry.project.customer.id,
-                      name: entry.project.customer.name,
-                    }
-                  : undefined,
-              }
-            : null,
-        }),
-      );
+      const [
+        { data: entriesData, error: entriesError },
+        { data: projectsData, error: projectsError },
+      ] = await Promise.all([timeEntriesQuery, projectsQuery]);
+
+      if (entriesError) throw entriesError;
+      if (projectsError) throw projectsError;
+
+      // Transform entries data
+      const transformedEntries = (entriesData || []).map((entry: any) => ({
+        id: entry.id,
+        task_name: entry.task_name,
+        description: entry.description,
+        duration: entry.duration,
+        start_time: entry.start_time,
+        created_at: entry.created_at,
+        user_id: entry.user_id,
+        project_id: entry.project_id,
+        project: entry.project
+          ? {
+              id: entry.project.id,
+              name: entry.project.name,
+              color: entry.project.color,
+              customer: entry.project.customer
+                ? {
+                    id: entry.project.customer.id,
+                    name: entry.project.customer.name,
+                  }
+                : undefined,
+            }
+          : null,
+      }));
 
       // Transform projects data
-      const transformedProjects = (projectsResponse.data || []).map(
-        (project: any) => ({
-          id: project.id,
-          name: project.name,
-          color: project.color,
-          customer_id: project.customer_id,
-          customer: project.customer
-            ? {
-                id: project.customer.id,
-                name: project.customer.name,
-              }
-            : null,
-        }),
-      );
+      const transformedProjects = (projectsData || []).map((project: any) => ({
+        id: project.id,
+        name: project.name,
+        color: project.color,
+        customer_id: project.customer_id,
+        customer: project.customer
+          ? {
+              id: project.customer.id,
+              name: project.customer.name,
+            }
+          : null,
+      }));
 
       setEntries(transformedEntries);
       setProjects(transformedProjects);
@@ -255,6 +250,17 @@ export function TimeEntriesPage() {
 
     return filtered;
   }, [entries, searchQuery, dateRange, period]);
+
+  // Get unique customers from projects
+  const customers = useMemo(() => {
+    const uniqueCustomers = new Map();
+    projects.forEach((project) => {
+      if (project.customer) {
+        uniqueCustomers.set(project.customer.id, project.customer);
+      }
+    });
+    return Array.from(uniqueCustomers.values());
+  }, [projects]);
 
   return (
     <div className="space-y-8">

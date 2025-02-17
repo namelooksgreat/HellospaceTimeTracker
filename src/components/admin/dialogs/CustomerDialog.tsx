@@ -21,21 +21,12 @@ import { showSuccess } from "@/lib/utils/toast";
 import { Customer } from "@/types";
 import { supabase } from "@/lib/supabase";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Trash2 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
 
 interface CustomerDialogProps {
   customer: Customer | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: () => void;
-}
-
-interface CustomerRate {
-  id?: string;
-  hourly_rate: number;
-  currency: string;
 }
 
 export function CustomerDialog({
@@ -78,7 +69,7 @@ export function CustomerDialog({
             .maybeSingle();
 
           if (rateError) {
-            console.error("Error loading customer rate:", rateError);
+            handleError(rateError, "CustomerDialog");
             return;
           }
 
@@ -89,31 +80,30 @@ export function CustomerDialog({
               currency: rateData.currency,
             }));
           }
-        } catch (error) {
-          console.error("Error loading customer data:", error);
-        }
-      };
 
-      loadCustomerData();
-
-      // Load customer's projects
-      const loadProjects = async () => {
-        try {
-          const { data, error } = await supabase
+          // Load projects
+          const { data: projectsData, error: projectsError } = await supabase
             .from("projects")
             .select("id, name, color")
             .eq("customer_id", customer.id)
             .order("name");
 
-          if (error) throw error;
-          setProjects(data || []);
+          if (projectsError) throw projectsError;
+          setProjects(projectsData || []);
         } catch (error) {
           handleError(error, "CustomerDialog");
         }
       };
 
-      loadProjects();
+      loadCustomerData();
     } else {
+      // Reset form for new customer
+      setFormData({
+        name: "",
+        logo_url: "",
+        hourly_rate: 0,
+        currency: "USD",
+      });
       setProjects([]);
     }
   }, [customer, open]);
@@ -129,10 +119,10 @@ export function CustomerDialog({
         error: userError,
       } = await supabase.auth.getUser();
       if (userError) throw userError;
-      if (!user) throw new Error("Kullanıcı bulunamadı");
+      if (!user) throw new Error("User not found");
 
       if (customer?.id) {
-        // Update customer
+        // Update existing customer
         const { error: customerError } = await supabase
           .from("customers")
           .update({
@@ -143,71 +133,77 @@ export function CustomerDialog({
 
         if (customerError) throw customerError;
 
-        // Check if rate exists
+        // Check if rate exists first
         const { data: existingRate, error: checkError } = await supabase
           .from("customer_rates")
-          .select("id")
+          .select("*")
           .eq("customer_id", customer.id)
           .maybeSingle();
 
         if (checkError) throw checkError;
 
-        if (existingRate) {
-          // Update existing rate
-          const { error: rateError } = await supabase
-            .from("customer_rates")
-            .update({
-              hourly_rate: formData.hourly_rate,
-              currency: formData.currency,
-            })
-            .eq("customer_id", customer.id);
-
-          if (rateError) throw rateError;
-        } else {
-          // Insert new rate
-          const { error: rateError } = await supabase
-            .from("customer_rates")
-            .insert({
+        // Update or insert based on existence
+        const { error: rateError } = existingRate
+          ? await supabase
+              .from("customer_rates")
+              .update({
+                hourly_rate: formData.hourly_rate,
+                currency: formData.currency,
+                updated_at: new Date().toISOString(),
+              })
+              .eq("customer_id", customer.id)
+          : await supabase.from("customer_rates").insert({
               customer_id: customer.id,
               hourly_rate: formData.hourly_rate,
               currency: formData.currency,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
             });
 
-          if (rateError) throw rateError;
-        }
+        if (rateError) throw rateError;
 
-        showSuccess("Müşteri başarıyla güncellendi");
+        showSuccess("Customer updated successfully");
       } else {
+        // Create new customer
         const { data: newCustomer, error: customerError } = await supabase
           .from("customers")
-          .insert([
-            {
-              name: formData.name,
-              logo_url: formData.logo_url || null,
-              user_id: user.id,
-            },
-          ])
+          .insert({
+            name: formData.name,
+            logo_url: formData.logo_url || null,
+            user_id: user.id,
+          })
           .select()
           .single();
 
         if (customerError) throw customerError;
 
-        // Insert customer rate for new customer
-        if (newCustomer) {
-          const { error: rateError } = await supabase
-            .from("customer_rates")
-            .insert([
-              {
-                customer_id: newCustomer.id,
-                hourly_rate: formData.hourly_rate,
-                currency: formData.currency,
-              },
-            ]);
+        // Create customer rate
+        const { error: rateError } = await supabase
+          .from("customer_rates")
+          .insert({
+            customer_id: newCustomer.id,
+            hourly_rate: formData.hourly_rate,
+            currency: formData.currency,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          });
 
-          if (rateError) throw rateError;
+        if (rateError) throw rateError;
+
+        // Create customer balance using RPC
+        const { error: balanceError } = await supabase.rpc(
+          "initialize_customer_balance",
+          {
+            p_customer_id: newCustomer.id,
+          },
+        );
+
+        if (balanceError) {
+          handleError(balanceError, "CustomerDialog");
+          throw balanceError;
         }
 
-        showSuccess("Müşteri başarıyla eklendi");
+        showSuccess("Customer created successfully");
       }
 
       onSave();
@@ -224,24 +220,24 @@ export function CustomerDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {customer ? "Müşteriyi Düzenle" : "Yeni Müşteri"}
+            {customer ? "Edit Customer" : "New Customer"}
           </DialogTitle>
           <DialogDescription>
             {customer
-              ? "Müşteri bilgilerini düzenleyebilirsiniz."
-              : "Yeni müşteri eklemek için bilgileri doldurun."}
+              ? "Edit customer information."
+              : "Add a new customer to your account."}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label>Müşteri Adı</Label>
+            <Label>Customer Name</Label>
             <Input
               value={formData.name}
               onChange={(e) =>
                 setFormData((prev) => ({ ...prev, name: e.target.value }))
               }
-              placeholder="Müşteri adı"
+              placeholder="Enter customer name"
               required
             />
           </div>
@@ -249,17 +245,17 @@ export function CustomerDialog({
           <div className="space-y-2">
             <Label>Logo URL</Label>
             <Input
-              value={formData.logo_url || ""}
+              value={formData.logo_url}
               onChange={(e) =>
                 setFormData((prev) => ({ ...prev, logo_url: e.target.value }))
               }
-              placeholder="Logo URL (opsiyonel)"
+              placeholder="Enter logo URL (optional)"
               type="url"
             />
           </div>
 
           <div className="space-y-2">
-            <Label>Saatlik Ücret</Label>
+            <Label>Hourly Rate</Label>
             <div className="grid grid-cols-2 gap-2">
               <Input
                 type="number"
@@ -270,7 +266,7 @@ export function CustomerDialog({
                     hourly_rate: parseFloat(e.target.value) || 0,
                   }))
                 }
-                placeholder="Saatlik ücret"
+                placeholder="Enter hourly rate"
                 min="0"
                 step="0.01"
               />
@@ -281,7 +277,7 @@ export function CustomerDialog({
                 }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Para birimi" />
+                  <SelectValue placeholder="Select currency" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="USD">USD</SelectItem>
@@ -292,33 +288,25 @@ export function CustomerDialog({
             </div>
           </div>
 
-          {customer && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Projeler</Label>
-                <ScrollArea className="h-[200px] w-full rounded-md border p-4">
-                  {projects.length > 0 ? (
-                    <div className="space-y-2">
-                      {projects.map((project) => (
-                        <div
-                          key={project.id}
-                          className="flex items-center gap-2 p-2 rounded-lg hover:bg-accent/50"
-                        >
-                          <div
-                            className="w-3 h-3 rounded-full ring-1 ring-border/50"
-                            style={{ backgroundColor: project.color }}
-                          />
-                          <span className="truncate">{project.name}</span>
-                        </div>
-                      ))}
+          {customer && projects.length > 0 && (
+            <div className="space-y-2">
+              <Label>Projects</Label>
+              <ScrollArea className="h-[200px] w-full rounded-md border p-4">
+                <div className="space-y-2">
+                  {projects.map((project) => (
+                    <div
+                      key={project.id}
+                      className="flex items-center gap-2 p-2 rounded-lg hover:bg-accent/50"
+                    >
+                      <div
+                        className="w-3 h-3 rounded-full ring-1 ring-border/50"
+                        style={{ backgroundColor: project.color }}
+                      />
+                      <span className="truncate">{project.name}</span>
                     </div>
-                  ) : (
-                    <div className="h-full flex items-center justify-center text-muted-foreground">
-                      Henüz proje eklenmemiş
-                    </div>
-                  )}
-                </ScrollArea>
-              </div>
+                  ))}
+                </div>
+              </ScrollArea>
             </div>
           )}
 
@@ -328,10 +316,10 @@ export function CustomerDialog({
               variant="outline"
               onClick={() => onOpenChange(false)}
             >
-              İptal
+              Cancel
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? "Kaydediliyor..." : "Kaydet"}
+              {loading ? "Saving..." : "Save"}
             </Button>
           </div>
         </form>

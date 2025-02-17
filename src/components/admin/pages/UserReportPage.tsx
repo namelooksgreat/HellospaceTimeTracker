@@ -44,6 +44,7 @@ export function UserReportPage() {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
+        // Get user data
         const { data: userData, error: userError } = await supabase
           .from("users")
           .select("full_name")
@@ -53,13 +54,15 @@ export function UserReportPage() {
         if (userError) throw userError;
         setUserData(userData);
 
-        const { data: rateData, error: rateError } = await supabase
-          .from("developer_rates")
-          .select("hourly_rate, currency")
+        // Get user settings (for rate)
+        const { data: settingsData, error: settingsError } = await supabase
+          .from("user_settings")
+          .select("default_rate, currency")
           .eq("user_id", userId)
           .single();
 
-        if (rateError && rateError.code !== "PGRST116") throw rateError;
+        if (settingsError && settingsError.code !== "PGRST116")
+          throw settingsError;
 
         // Get time entries based on time range
         const now = new Date();
@@ -103,13 +106,32 @@ export function UserReportPage() {
         const totalDuration =
           entries?.reduce((acc, entry) => acc + entry.duration, 0) || 0;
         const totalHours = totalDuration / 3600; // Convert seconds to hours
-        const totalEarnings = totalHours * (rateData?.hourly_rate || 0);
+
+        // Use user's default rate if available, otherwise try to get from customer rates
+        let totalEarnings = 0;
+        const defaultRate = settingsData?.default_rate || 0;
+        const defaultCurrency = settingsData?.currency || "USD";
+
+        if (defaultRate > 0) {
+          totalEarnings = totalHours * defaultRate;
+        } else {
+          // Calculate based on customer rates if available
+          totalEarnings =
+            entries?.reduce((acc, entry) => {
+              const customerRate = entry.project?.customer?.customer_rates?.[0];
+              if (customerRate?.hourly_rate) {
+                const entryHours = entry.duration / 3600;
+                return acc + entryHours * customerRate.hourly_rate;
+              }
+              return acc;
+            }, 0) || 0;
+        }
 
         setReport({
           totalDuration,
           totalEarnings,
-          currency: rateData?.currency || "USD",
-          hourlyRate: rateData?.hourly_rate || 0,
+          currency: defaultCurrency,
+          hourlyRate: defaultRate,
         });
       } catch (error) {
         handleError(error, "UserReportPage");
