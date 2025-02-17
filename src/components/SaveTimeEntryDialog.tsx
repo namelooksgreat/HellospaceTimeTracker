@@ -4,6 +4,9 @@ import { Building2, Clock } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
+import { Calendar } from "./ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { format } from "date-fns";
 import { Textarea } from "./ui/textarea";
 import { ScrollArea } from "./ui/scroll-area";
 import {
@@ -240,29 +243,70 @@ export function SaveTimeEntryDialog({
                     Started at
                   </div>
                   <div className="flex-1 grid grid-cols-2 gap-2">
-                    <Input
-                      type="date"
-                      value={formData.startTime.split("T")[0]}
-                      onChange={(e) => {
-                        const [_, time] = formData.startTime.split("T");
-                        setFormData((prev) => ({
-                          ...prev,
-                          startTime: `${e.target.value}T${time || "00:00"}`,
-                        }));
-                      }}
-                      className="h-8 text-sm"
-                    />
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="h-10 w-full justify-start text-left font-normal"
+                        >
+                          <div className="flex items-center gap-2">
+                            <svg
+                              width="15"
+                              height="15"
+                              viewBox="0 0 15 15"
+                              fill="none"
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-4 w-4 text-muted-foreground"
+                            >
+                              <path
+                                d="M4.5 1C4.77614 1 5 1.22386 5 1.5V2H10V1.5C10 1.22386 10.2239 1 10.5 1C10.7761 1 11 1.22386 11 1.5V2H12.5C13.3284 2 14 2.67157 14 3.5V12.5C14 13.3284 13.3284 14 12.5 14H2.5C1.67157 14 1 13.3284 1 12.5V3.5C1 2.67157 1.67157 2 2.5 2H4V1.5C4 1.22386 4.22386 1 4.5 1ZM10 3V3.5C10 3.77614 10.2239 4 10.5 4C10.7761 4 11 3.77614 11 3.5V3H12.5C12.7761 3 13 3.22386 13 3.5V5H2V3.5C2 3.22386 2.22386 3 2.5 3H4V3.5C4 3.77614 4.22386 4 4.5 4C4.77614 4 5 3.77614 5 3.5V3H10ZM2 6V12.5C2 12.7761 2.22386 13 2.5 13H12.5C12.7761 13 13 12.7761 13 12.5V6H2Z"
+                                fill="currentColor"
+                                fillRule="evenodd"
+                                clipRule="evenodd"
+                              ></path>
+                            </svg>
+                            {formData.startTime ? (
+                              format(new Date(formData.startTime), "d MMM yyyy")
+                            ) : (
+                              <span className="text-muted-foreground">
+                                Pick a date
+                              </span>
+                            )}
+                          </div>
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={new Date(formData.startTime)}
+                          onSelect={(date) => {
+                            if (date) {
+                              const [_, time] = formData.startTime.split("T");
+                              const newDateTime = `${format(date, "yyyy-MM-dd")}T${time}`;
+                              setFormData((prev) => ({
+                                ...prev,
+                                startTime: newDateTime,
+                              }));
+                            }
+                          }}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
                     <Input
                       type="time"
-                      value={formData.startTime.split("T")[1] || ""}
+                      value={
+                        formData.startTime.split("T")[1]?.substring(0, 5) || ""
+                      }
                       onChange={(e) => {
                         const [date] = formData.startTime.split("T");
+                        const newDateTime = `${date}T${e.target.value}:00`;
                         setFormData((prev) => ({
                           ...prev,
-                          startTime: `${date}T${e.target.value}`,
+                          startTime: newDateTime,
                         }));
                       }}
-                      className="h-8 text-sm"
+                      className="h-10"
                     />
                   </div>
                 </div>

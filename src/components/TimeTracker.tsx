@@ -54,6 +54,7 @@ function TimeTracker({
   onTimeEntrySaved,
 }: TimeTrackerProps) {
   const [showSaveDialog, setShowSaveDialog] = React.useState(false);
+  const [isManualEntry, setIsManualEntry] = React.useState(false);
   const { language } = useLanguage();
   const { t } = useTranslation(language);
 
@@ -88,6 +89,7 @@ function TimeTracker({
 
   const handleStop = useCallback(() => {
     timerStop();
+    setIsManualEntry(false);
     setShowSaveDialog(true);
   }, [timerStop]);
 
@@ -292,54 +294,59 @@ function TimeTracker({
         </div>
 
         {/* Timer Controls */}
-        <div className="flex gap-2 pt-1">
-          <Button
-            onClick={handleTimerAction}
-            variant={state === "paused" ? "outline" : "default"}
-            className={cn(styles.components.timerButton, {
-              [styles.components.timerButtonRunning]: state === "running",
-              [styles.components.timerButtonPaused]: state === "paused",
-            })}
-          >
-            {(state === "stopped" || !state) && (
-              <div className="flex items-center gap-2">
-                <Play className="h-4 w-4 animate-pulse" />
-                <span>{t("timer.start")}</span>
-              </div>
+        <div className="flex flex-col sm:flex-row gap-2 pt-1">
+          <div className="flex gap-2 flex-1">
+            <Button
+              onClick={handleTimerAction}
+              variant={state === "paused" ? "outline" : "default"}
+              className={cn("flex-1", styles.components.timerButton, {
+                [styles.components.timerButtonRunning]: state === "running",
+                [styles.components.timerButtonPaused]: state === "paused",
+              })}
+            >
+              {(state === "stopped" || !state) && (
+                <div className="flex items-center justify-center gap-2">
+                  <Play className="h-4 w-4 animate-pulse" />
+                  <span>{t("timer.start")}</span>
+                </div>
+              )}
+              {state === "running" && (
+                <div className="flex items-center justify-center gap-2">
+                  <Pause className="h-4 w-4" />
+                  <span>{t("timer.pause")}</span>
+                </div>
+              )}
+              {state === "paused" && (
+                <div className="flex items-center justify-center gap-2">
+                  <Play className="h-4 w-4 animate-pulse" />
+                  <span>{t("timer.resume")}</span>
+                </div>
+              )}
+            </Button>
+
+            {state !== "stopped" && (
+              <Button
+                onClick={handleStop}
+                variant="destructive"
+                className={cn(styles.components.stopButton)}
+                size="icon"
+                title={t("timer.stop")}
+              >
+                <Square className="h-4 w-4" />
+              </Button>
             )}
-            {state === "running" && (
-              <>
-                <Pause className="h-4 w-4" />
-                <span>{t("timer.pause")}</span>
-              </>
-            )}
-            {state === "paused" && (
-              <>
-                <Play className="h-4 w-4 animate-pulse" />
-                <span className="relative inline-block overflow-hidden">
-                  <span className="inline-block animate-slide-out-up">
-                    {t("timer.resume")}
-                  </span>
-                </span>
-              </>
-            )}
-          </Button>
+          </div>
 
           <Button
-            onClick={handleStop}
-            variant="destructive"
-            className={cn(styles.components.stopButton)}
-            size="icon"
-            title={t("timer.stop")}
-            disabled={state === "stopped"}
-          >
-            <Square className="h-4 w-4" />
-          </Button>
-
-          <Button
-            onClick={() => setShowSaveDialog(true)}
+            onClick={() => {
+              setTaskName("");
+              setProjectId("");
+              setCustomerId("");
+              setIsManualEntry(true);
+              setShowSaveDialog(true);
+            }}
             variant="outline"
-            className="flex-1 sm:flex-none"
+            className="w-full sm:w-auto"
           >
             <Plus className="h-4 w-4 mr-2" />
             Manuel Giriş
@@ -351,7 +358,9 @@ function TimeTracker({
         open={showSaveDialog}
         onOpenChange={(open) => {
           setShowSaveDialog(open);
-          // Do not automatically resume when dialog is closed
+          if (!open) {
+            setIsManualEntry(false); // Dialog kapandığında manuel giriş modunu sıfırla
+          }
         }}
         taskName={taskName}
         projectId={selectedProject}
@@ -359,7 +368,7 @@ function TimeTracker({
         projects={projects}
         customers={customers}
         availableTags={availableTags}
-        duration={time}
+        duration={isManualEntry ? 0 : time}
         onSave={handleSaveTimeEntry}
       />
     </Card>
