@@ -104,38 +104,6 @@ export function UserPreferences() {
             </div>
             <Switch className="data-[state=checked]:bg-primary" />
           </div>
-
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>
-                {language === "tr" ? "Zaman Formatı" : "Time Format"}
-              </Label>
-              <p className="text-sm text-muted-foreground">
-                {language === "tr"
-                  ? "Tercih ettiğiniz zaman formatını seçin"
-                  : "Choose your preferred time format"}
-              </p>
-            </div>
-            <Select defaultValue="12h">
-              <SelectTrigger className="w-[180px] bg-background/50 hover:bg-accent/50 transition-all duration-150 rounded-xl border-border/50">
-                <SelectValue placeholder="Select format" />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl border-border/50 bg-popover/95 backdrop-blur-sm shadow-lg">
-                <SelectItem
-                  value="12h"
-                  className="py-2.5 cursor-pointer focus:bg-accent/50"
-                >
-                  {language === "tr" ? "12 saat" : "12-hour"}
-                </SelectItem>
-                <SelectItem
-                  value="24h"
-                  className="py-2.5 cursor-pointer focus:bg-accent/50"
-                >
-                  {language === "tr" ? "24 saat" : "24-hour"}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
         </div>
       </CardContent>
     </Card>

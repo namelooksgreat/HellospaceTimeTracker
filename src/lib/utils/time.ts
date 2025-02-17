@@ -1,45 +1,25 @@
-export function formatTimeForDisplay(seconds: number): string {
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const remainingSeconds = seconds % 60;
+import { format, formatDistanceToNow } from "date-fns";
+import { tr } from "date-fns/locale";
 
-  return `${hours.toString().padStart(2, "0")} : ${minutes
-    .toString()
-    .padStart(2, "0")} : ${remainingSeconds.toString().padStart(2, "0")}`;
-}
-
-export function formatDuration(seconds: number): string {
+export const formatDuration = (seconds: number): string => {
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
   return `${hours}h ${minutes}m`;
-}
+};
 
-export function formatDate(isoString: string): string {
-  try {
-    const date = new Date(isoString);
-    if (isNaN(date.getTime())) return "";
-    return new Intl.DateTimeFormat("en-US", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    }).format(date);
-  } catch (e) {
-    console.warn("Invalid date:", isoString);
-    return "";
-  }
-}
+export const formatDate = (date: string): string => {
+  return format(new Date(date), "d MMM yyyy", { locale: tr });
+};
 
-export function formatStartTime(isoString: string): string {
-  try {
-    const date = new Date(isoString);
-    if (isNaN(date.getTime())) return "";
-    return new Intl.DateTimeFormat("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    }).format(date);
-  } catch (e) {
-    console.warn("Invalid date:", isoString);
-    return "";
-  }
-}
+export const formatStartTime = (startTime: string): string => {
+  const date = new Date(startTime);
+  return date.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+};
+
+export const formatTimeAgo = (date: string): string => {
+  return formatDistanceToNow(new Date(date), { addSuffix: true });
+};

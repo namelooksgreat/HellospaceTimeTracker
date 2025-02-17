@@ -138,12 +138,29 @@ function TimeTracker({
         onTimeEntrySaved?.();
         timerReset();
         setShowSaveDialog(false);
+
+        // Only reset form data if it's not a manual entry
+        if (!isManualEntry) {
+          setTaskName("");
+          setProjectId("");
+          setCustomerId("");
+          resetTimerData();
+        }
       } catch (error) {
         handleError(error, "TimeTracker");
         setShowSaveDialog(false);
       }
     },
-    [onTimeEntrySaved, timerReset, t],
+    [
+      onTimeEntrySaved,
+      timerReset,
+      t,
+      isManualEntry,
+      setTaskName,
+      setProjectId,
+      setCustomerId,
+      resetTimerData,
+    ],
   );
 
   return (
