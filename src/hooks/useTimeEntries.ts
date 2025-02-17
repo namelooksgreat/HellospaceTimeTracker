@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { TimeEntry } from "@/types";
-import { createTimeEntry, deleteTimeEntry, getTimeEntries } from "@/lib/api";
+import { deleteTimeEntry, getTimeEntries } from "@/lib/api";
+import { createTimeEntry } from "@/lib/api/timeEntries";
 import { handleError } from "@/lib/utils/error";
 
 export function useTimeEntries() {

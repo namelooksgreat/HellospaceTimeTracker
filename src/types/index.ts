@@ -1,10 +1,20 @@
+export interface User {
+  id: string;
+  email: string;
+  full_name: string | null;
+  user_type: string;
+  created_at: string | null;
+  is_active: boolean | null;
+  avatar_url: string | null;
+  last_active: string | null;
+}
+
 export interface Customer {
   id: string;
   name: string;
-  logo_url?: string | null;
-  created_at: string;
+  logo_url?: string;
   user_id: string;
-  projects?: Project[];
+  created_at: string;
   customer_rates?: Array<{
     hourly_rate: number;
     currency: string;
@@ -15,21 +25,27 @@ export interface Project {
   id: string;
   name: string;
   color: string;
-  created_at: string;
-  user_id: string;
   customer_id: string;
-  customer?: Customer;
+  user_id: string;
+  customer?: {
+    id: string;
+    name: string;
+    customer_rates?: Array<{
+      hourly_rate: number;
+      currency: string;
+    }>;
+  };
+  created_at: string;
 }
 
 export interface TimeEntry {
   id: string;
   task_name: string;
-  description?: string | null;
+  project_id?: string;
   duration: number;
   start_time: string;
-  created_at: string;
+  description?: string;
   user_id: string;
-  project_id?: string | null;
   project?: {
     id: string;
     name: string;
@@ -37,14 +53,26 @@ export interface TimeEntry {
     customer?: {
       id: string;
       name: string;
+      customer_rates?: Array<{
+        hourly_rate: number;
+        currency: string;
+      }>;
     };
-  } | null;
-}
-
-export interface User {
-  id: string;
-  email: string;
-  full_name?: string | null;
-  role?: string | null;
+  };
   created_at: string;
 }
+
+export interface TimeEntryDisplay {
+  id: string;
+  taskName: string;
+  projectName: string;
+  duration: number;
+  startTime: string;
+  createdAt: string;
+  projectColor: string;
+}
+
+export type DateRange = {
+  from: Date;
+  to?: Date;
+};

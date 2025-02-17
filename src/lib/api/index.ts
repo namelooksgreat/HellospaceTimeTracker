@@ -1,33 +1,20 @@
-import { supabase } from "../supabase";
-import { handleApiRequest } from "../utils/api";
-import { APIError } from "../utils/error";
-import type { User } from "@/types";
+// Import and re-export from timeEntries
+import { createTimeEntry } from "./timeEntries";
+export { createTimeEntry };
 
-export async function getUsers(): Promise<User[]> {
-  return handleApiRequest(async () => {
-    const { data, error } = await supabase
-      .from("users")
-      .select("*")
-      .order("created_at", { ascending: false });
+// Import and re-export from users
+export * from "./users";
 
-    if (error) throw new APIError("Failed to fetch users", error.code);
-    return data || [];
-  }, "Failed to fetch users");
-}
-
-export async function updateUserRole(
-  userId: string,
-  role: string,
-): Promise<void> {
-  return handleApiRequest(async () => {
-    const { error } = await supabase
-      .from("users")
-      .update({ role })
-      .eq("id", userId);
-
-    if (error) throw new APIError("Failed to update user role", error.code);
-  }, "Failed to update user role");
-}
-
+// Import and re-export from apiClient
 export * from "./apiClient";
-export * from "../api";
+
+// Import and re-export specific functions from admin
+export { getDashboardStats } from "./admin";
+
+// Export functions from main api file
+export {
+  getTimeEntries,
+  deleteTimeEntry,
+  getProjects,
+  getCustomers,
+} from "../api";

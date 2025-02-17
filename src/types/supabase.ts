@@ -9,6 +9,117 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      customer_balances: {
+        Row: {
+          balance: number | null
+          customer_id: string
+          total_amount: number | null
+          total_paid: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          balance?: number | null
+          customer_id: string
+          total_amount?: number | null
+          total_paid?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          balance?: number | null
+          customer_id?: string
+          total_amount?: number | null
+          total_paid?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_balances_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: true
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_payments: {
+        Row: {
+          amount: number
+          created_at: string | null
+          customer_id: string | null
+          description: string | null
+          id: string
+          payment_date: string | null
+          payment_method: string
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          customer_id?: string | null
+          description?: string | null
+          id?: string
+          payment_date?: string | null
+          payment_method: string
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          customer_id?: string | null
+          description?: string | null
+          id?: string
+          payment_date?: string | null
+          payment_method?: string
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_payments_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_rates: {
+        Row: {
+          created_at: string | null
+          currency: string | null
+          customer_id: string | null
+          hourly_rate: number
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          currency?: string | null
+          customer_id?: string | null
+          hourly_rate: number
+          id?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          currency?: string | null
+          customer_id?: string | null
+          hourly_rate?: number
+          id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_rates_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: true
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           created_at: string
@@ -219,27 +330,127 @@ export type Database = {
           },
         ]
       }
+      user_customers: {
+        Row: {
+          created_at: string | null
+          customer_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          customer_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          customer_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_customers_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_projects: {
+        Row: {
+          created_at: string | null
+          id: string
+          project_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          project_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          project_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_projects_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_settings: {
+        Row: {
+          auto_stop_timer: number | null
+          created_at: string | null
+          currency: string | null
+          default_rate: number | null
+          email_notifications: boolean | null
+          id: string
+          time_format: string | null
+          updated_at: string | null
+          user_id: string | null
+          week_starts_on: string | null
+        }
+        Insert: {
+          auto_stop_timer?: number | null
+          created_at?: string | null
+          currency?: string | null
+          default_rate?: number | null
+          email_notifications?: boolean | null
+          id?: string
+          time_format?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          week_starts_on?: string | null
+        }
+        Update: {
+          auto_stop_timer?: number | null
+          created_at?: string | null
+          currency?: string | null
+          default_rate?: number | null
+          email_notifications?: boolean | null
+          id?: string
+          time_format?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          week_starts_on?: string | null
+        }
+        Relationships: []
+      }
       users: {
         Row: {
-          created_at: string
+          created_at: string | null
           email: string
           full_name: string | null
           id: string
-          role: string | null
+          is_active: boolean | null
+          user_type: string
         }
         Insert: {
-          created_at?: string
+          created_at?: string | null
           email: string
           full_name?: string | null
           id: string
-          role?: string | null
+          is_active?: boolean | null
+          user_type?: string
         }
         Update: {
-          created_at?: string
+          created_at?: string | null
           email?: string
           full_name?: string | null
           id?: string
-          role?: string | null
+          is_active?: boolean | null
+          user_type?: string
         }
         Relationships: []
       }
@@ -255,9 +466,50 @@ export type Database = {
         }
         Returns: undefined
       }
+      deactivate_user: {
+        Args: {
+          user_id: string
+        }
+        Returns: undefined
+      }
+      initialize_customer_balance: {
+        Args: {
+          p_customer_id: string
+        }
+        Returns: undefined
+      }
+      update_customer_balance: {
+        Args: {
+          p_customer_id: string
+          p_amount: number
+        }
+        Returns: undefined
+      }
+      update_customer_total_amount: {
+        Args: {
+          p_customer_id: string
+          p_amount: number
+        }
+        Returns: undefined
+      }
+      update_user_associations: {
+        Args: {
+          p_user_id: string
+          p_customer_ids: string[]
+          p_project_ids: string[]
+        }
+        Returns: undefined
+      }
     }
     Enums: {
-      [_ in never]: never
+      user_role:
+        | "frontend_developer"
+        | "backend_developer"
+        | "fullstack_developer"
+        | "designer"
+        | "product_manager"
+        | "project_manager"
+      user_type: "admin" | "customer" | "developer"
     }
     CompositeTypes: {
       [_ in never]: never

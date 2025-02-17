@@ -10,30 +10,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Search, Plus, Link, BarChart2 } from "lucide-react";
-import { getUsers, deleteUser, createUser, User } from "@/lib/api/users";
-import { UserDialog } from "../dialogs/UserDialog";
-import { UserAssociationsDialog } from "../dialogs/UserAssociationsDialog";
-import { handleError } from "@/lib/utils/error-handler";
-import { showSuccess, showError } from "@/lib/utils/toast";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -41,281 +18,422 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Search,
+  Plus,
+  Link,
+  BarChart2,
+  Users,
+  ShieldCheck,
+  UserPlus,
+  LayoutList,
+  LayoutGrid,
+  UserCog,
+  Trash2,
+} from "lucide-react";
+import { getUsers, deleteUser, createUser, User } from "@/lib/api/users";
+import { UserDialog } from "../dialogs/UserDialog";
+import { UserAssociationsDialog } from "../dialogs/UserAssociationsDialog";
+import { handleError } from "@/lib/utils/error-handler";
+import { showSuccess, showError } from "@/lib/utils/toast";
+import { LoadingState } from "@/components/ui/loading-state";
+import { ErrorState } from "@/components/ui/error-state";
+import { DataTablePagination } from "@/components/ui/data-table-pagination";
+import { useAdminUI } from "@/hooks/useAdminUI";
+import { RoleBadge } from "@/components/ui/role-badge";
+import { ActivityIndicator } from "@/components/ui/activity-indicator";
+import { UserCard } from "../UserCard";
 
 export function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [showUserDialog, setShowUserDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showAssociationsDialog, setShowAssociationsDialog] = useState(false);
-  const [newUserData, setNewUserData] = useState({
-    email: "",
-    password: "",
-    full_name: "",
-    user_type: "user",
-    default_rate: 0,
-    currency: "USD",
-  });
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [showBulkRoleDialog, setShowBulkRoleDialog] = useState(false);
+  const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [roleFilter, setRoleFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("date_desc");
+  const [viewMode, setViewMode] = useState<"table" | "grid">("table");
+
+  const { isLoading, error, handleAsync, clearError } = useAdminUI();
 
   const loadUsers = async () => {
-    try {
-      setLoading(true);
-      const data = await getUsers();
-      setUsers(data);
-    } catch (error) {
-      handleError(error, "UsersPage");
-    } finally {
-      setLoading(false);
-    }
+    await handleAsync(
+      async () => {
+        const data = await getUsers();
+        setUsers(data);
+        filterAndSortUsers(data, searchQuery);
+      },
+      {
+        loadingMessage: "Loading users...",
+        errorMessage: "Failed to load users",
+      },
+    );
   };
 
   useEffect(() => {
     loadUsers();
   }, []);
 
-  const handleCreateUser = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      await createUser({
-        ...newUserData,
-        default_rate: newUserData.default_rate,
-        currency: newUserData.currency,
-      });
+  const filterAndSortUsers = (data: User[], query: string) => {
+    // Önce filtreleme yap
+    let filteredData = data.filter(
+      (user) =>
+        (user.email.toLowerCase().includes(query.toLowerCase()) ||
+          user.full_name?.toLowerCase().includes(query.toLowerCase())) &&
+        (roleFilter === "all" || user.user_type === roleFilter),
+    );
 
-      showSuccess("Kullanıcı başarıyla oluşturuldu");
-      setShowCreateDialog(false);
-      setNewUserData({
-        email: "",
-        password: "",
-        full_name: "",
-        user_type: "user",
-        default_rate: 0,
-        currency: "USD",
-      });
-      await loadUsers();
-    } catch (error) {
-      if (error instanceof Error) {
-        if (error.message.includes("security purposes")) {
-          showError(
-            "Lütfen yeni bir kullanıcı oluşturmadan önce biraz bekleyin",
+    // Sonra sıralama yap
+    filteredData.sort((a, b) => {
+      switch (sortBy) {
+        case "name_asc":
+          return (a.full_name || "").localeCompare(b.full_name || "");
+        case "name_desc":
+          return (b.full_name || "").localeCompare(a.full_name || "");
+        case "date_asc":
+          return (
+            (a.created_at ? new Date(a.created_at).getTime() : 0) -
+            (b.created_at ? new Date(b.created_at).getTime() : 0)
           );
-        } else if (error.message.includes("duplicate")) {
-          showError("Bu e-posta adresi zaten kullanımda");
-        } else {
-          handleError(error, "UsersPage");
-        }
+        case "date_desc":
+          return (
+            (b.created_at ? new Date(b.created_at).getTime() : 0) -
+            (a.created_at ? new Date(a.created_at).getTime() : 0)
+          );
+        default:
+          return 0;
       }
-    } finally {
-      setLoading(false);
-    }
+    });
+
+    setFilteredUsers(filteredData);
+  };
+
+  useEffect(() => {
+    filterAndSortUsers(users, searchQuery);
+  }, [searchQuery, users, roleFilter, sortBy]);
+
+  const paginatedUsers = filteredUsers.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
+  );
+
+  const handleCreateUser = () => {
+    setSelectedUser(null);
+    setShowCreateDialog(true);
   };
 
   const handleDeleteUser = async () => {
     if (!selectedUser) return;
 
-    try {
-      setLoading(true);
-      await deleteUser(selectedUser.id);
-      showSuccess("Kullanıcı başarıyla deaktive edildi ve verileri silindi");
-      await loadUsers();
-    } catch (error) {
-      handleError(error, "UsersPage");
-    } finally {
-      setLoading(false);
-      setShowDeleteDialog(false);
-      setSelectedUser(null);
-    }
+    await handleAsync(
+      async () => {
+        await deleteUser(selectedUser.id);
+        await loadUsers();
+        setShowDeleteDialog(false);
+        setSelectedUser(null);
+      },
+      {
+        loadingMessage: "Deleting user...",
+        successMessage: "User deleted successfully",
+        errorMessage: "Failed to delete user",
+      },
+    );
   };
 
-  const filteredUsers = users.filter(
-    (user) =>
-      user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+  if (error) {
+    return (
+      <ErrorState
+        title="Failed to load users"
+        description={error.message}
+        onRetry={() => {
+          clearError();
+          loadUsers();
+        }}
+      />
+    );
+  }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-in fade-in-50 duration-500">
+      <div className="grid gap-4 md:grid-cols-3">
+        <div className="p-6 bg-gradient-to-br from-card/50 to-card/30 dark:from-card/20 dark:to-card/10 border border-border/50 rounded-xl transition-all duration-300 hover:shadow-lg hover:border-border/80 group admin-card">
+          <div className="flex items-center gap-2">
+            <div className="p-2 bg-primary/10 rounded-xl">
+              <Users className="h-5 w-5 text-primary" />
+            </div>
+            <div className="space-y-0.5">
+              <div className="text-sm text-muted-foreground">
+                Toplam Kullanıcı
+              </div>
+              <div className="text-2xl font-bold">{users.length}</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-6 bg-gradient-to-br from-card/50 to-card/30 dark:from-card/20 dark:to-card/10 border border-border/50 rounded-xl transition-all duration-300 hover:shadow-lg hover:border-border/80 group admin-card">
+          <div className="flex items-center gap-2">
+            <div className="p-2 bg-primary/10 rounded-xl">
+              <ShieldCheck className="h-5 w-5 text-primary" />
+            </div>
+            <div className="space-y-0.5">
+              <div className="text-sm text-muted-foreground">Admin Sayısı</div>
+              <div className="text-2xl font-bold">
+                {users.filter((u) => u.user_type === "admin").length}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-6 bg-gradient-to-br from-card/50 to-card/30 dark:from-card/20 dark:to-card/10 border border-border/50 rounded-xl transition-all duration-300 hover:shadow-lg hover:border-border/80 group admin-card">
+          <div className="flex items-center gap-2">
+            <div className="p-2 bg-primary/10 rounded-xl">
+              <UserPlus className="h-5 w-5 text-primary" />
+            </div>
+            <div className="space-y-0.5">
+              <div className="text-sm text-muted-foreground">Bu Ay Katılan</div>
+              <div className="text-2xl font-bold">
+                {
+                  users.filter(
+                    (u) =>
+                      (u.created_at
+                        ? new Date(u.created_at).getMonth()
+                        : -1) === new Date().getMonth(),
+                  ).length
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-          Kullanıcılar
-        </h1>
+        <div className="flex items-center gap-4">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+            Users
+          </h1>
+          <div className="flex items-center gap-2 bg-muted/50 p-1 rounded-lg">
+            <Button
+              variant={viewMode === "table" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("table")}
+              className="h-8 px-2"
+            >
+              <LayoutList className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === "grid" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("grid")}
+              className="h-8 px-2"
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
         <Button
-          onClick={() => setShowCreateDialog(true)}
-          className="w-full sm:w-auto h-10 sm:h-9"
+          onClick={handleCreateUser}
+          className="w-full sm:w-auto h-10 sm:h-9 admin-button"
         >
-          <Plus className="mr-2 h-4 w-4" /> Yeni Kullanıcı
+          <Plus className="mr-2 h-4 w-4" /> New User
         </Button>
       </div>
 
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-        <div className="relative flex-1 w-full sm:max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Kullanıcı ara..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 h-10 sm:h-9"
-          />
+        {selectedUsers.length > 0 && (
+          <div className="flex items-center gap-2 p-2 bg-primary/5 border border-primary/20 rounded-lg animate-slide-up">
+            <span className="text-sm text-muted-foreground">
+              {selectedUsers.length} user(s) selected
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowBulkRoleDialog(true)}
+              className="h-8"
+            >
+              <UserCog className="h-4 w-4 mr-2" />
+              Change Role
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowBulkDeleteDialog(true)}
+              className="h-8 text-destructive hover:text-destructive"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
+            </Button>
+          </div>
+        )}
+        <div className="flex flex-col sm:flex-row gap-4 w-full">
+          <div className="relative flex-1 w-full sm:max-w-sm">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Kullanıcı ara..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 h-10 sm:h-9"
+            />
+          </div>
+
+          <Select value={roleFilter} onValueChange={setRoleFilter}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder="Rol seç" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tümü</SelectItem>
+              <SelectItem value="admin">Yöneticiler</SelectItem>
+              <SelectItem value="developer">Geliştiriciler</SelectItem>
+              <SelectItem value="user">Kullanıcılar</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder="Sıralama" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="name_asc">İsim (A-Z)</SelectItem>
+              <SelectItem value="name_desc">İsim (Z-A)</SelectItem>
+              <SelectItem value="date_asc">En Eski</SelectItem>
+              <SelectItem value="date_desc">En Yeni</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
-      <div className="border border-border/50 rounded-xl bg-card/50 backdrop-blur-xl shadow-sm overflow-hidden">
-        <div className="block lg:hidden">
-          {loading ? (
-            <div className="p-4 text-center text-muted-foreground">
-              Yükleniyor...
-            </div>
-          ) : filteredUsers.length === 0 ? (
-            <div className="p-4 text-center text-muted-foreground">
-              Kullanıcı bulunamadı
-            </div>
-          ) : (
-            <div className="divide-y divide-border/50">
-              {filteredUsers.map((user) => (
-                <div key={user.id} className="p-4 space-y-3">
-                  <div className="flex justify-between items-start gap-2">
-                    <div>
-                      <div className="font-medium">{user.full_name || "-"}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {user.email}
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <div className="flex gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedUser(user);
-                            setShowAssociationsDialog(true);
+      <div className="space-y-4">
+        {viewMode === "grid" ? (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {paginatedUsers.map((user) => (
+              <UserCard
+                key={user.id}
+                user={user}
+                onEdit={() => {
+                  setSelectedUser(user);
+                  setShowUserDialog(true);
+                }}
+                onDelete={() => {
+                  setSelectedUser(user);
+                  setShowDeleteDialog(true);
+                }}
+                onViewReport={() =>
+                  (window.location.href = `/admin/users/${user.id}/report`)
+                }
+                onManageRelations={() => {
+                  setSelectedUser(user);
+                  setShowAssociationsDialog(true);
+                }}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="border border-border/50 rounded-xl bg-card/50 backdrop-blur-xl shadow-sm overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="w-12">
+                    <Checkbox
+                      checked={selectedUsers.length === paginatedUsers.length}
+                      onCheckedChange={(checked) => {
+                        setSelectedUsers(
+                          checked ? paginatedUsers.map((user) => user.id) : [],
+                        );
+                      }}
+                    />
+                  </TableHead>
+                  <TableHead>Full Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Registration Date</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={6}>
+                      <LoadingState
+                        title="Loading Users"
+                        description="Please wait while we fetch user data..."
+                      />
+                    </TableCell>
+                  </TableRow>
+                ) : paginatedUsers.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8">
+                      No users found
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  paginatedUsers.map((user) => (
+                    <TableRow key={user.id} className="table-row-hover">
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedUsers.includes(user.id)}
+                          onCheckedChange={(checked) => {
+                            setSelectedUsers((prev) =>
+                              checked
+                                ? [...prev, user.id]
+                                : prev.filter((id) => id !== user.id),
+                            );
                           }}
-                          className="h-8 w-8 p-0"
-                        >
-                          <Link className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() =>
-                            (window.location.href = `/admin/users/${user.id}/report`)
-                          }
-                          className="h-8 w-8 p-0"
-                        >
-                          <BarChart2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setSelectedUser(user);
-                          setShowUserDialog(true);
-                        }}
-                        className="h-8 w-8 p-0"
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="h-4 w-4"
-                        >
-                          <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
-                          <path d="m15 5 4 4" />
-                        </svg>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                        onClick={() => {
-                          setSelectedUser(user);
-                          setShowDeleteDialog(true);
-                        }}
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="h-4 w-4"
-                        >
-                          <path d="M3 6h18" />
-                          <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                          <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-                        </svg>
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <div className="px-2 py-1 rounded-md bg-primary/10 text-primary text-xs">
-                      {user.user_type === "admin"
-                        ? "Yönetici"
-                        : user.user_type === "developer"
-                          ? "Geliştirici"
-                          : "Kullanıcı"}
-                    </div>
-                    <div className="text-muted-foreground">
-                      {new Date(user.created_at).toLocaleDateString()}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="hidden lg:block">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Ad Soyad</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Rol</TableHead>
-                <TableHead>Kayıt Tarihi</TableHead>
-                <TableHead>İşlemler</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center">
-                    Yükleniyor...
-                  </TableCell>
-                </TableRow>
-              ) : filteredUsers.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center">
-                    Kullanıcı bulunamadı
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredUsers.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell>{user.full_name || "-"}</TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>
-                      {user.user_type === "admin"
-                        ? "Yönetici"
-                        : user.user_type === "developer"
-                          ? "Geliştirici"
-                          : "Kullanıcı"}
-                    </TableCell>
-                    <TableCell>
-                      {new Date(user.created_at).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <div className="relative">
+                            <div className="w-10 h-10 rounded-full bg-primary/10 ring-2 ring-primary/20 flex items-center justify-center overflow-hidden">
+                              {user.avatar_url ? (
+                                <img
+                                  src={user.avatar_url}
+                                  alt={user.full_name || user.email}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <span className="text-lg font-semibold text-primary">
+                                  {(user.full_name ||
+                                    user.email)[0].toUpperCase()}
+                                </span>
+                              )}
+                            </div>
+                            <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-green-500 ring-2 ring-background" />
+                          </div>
+                          <div>
+                            <div className="font-medium">
+                              {user.full_name || "-"}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {user.email}
+                            </div>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>
+                        <RoleBadge role={user.user_type} />
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-1">
+                          <div className="text-sm">
+                            {user.created_at
+                              ? new Date(user.created_at).toLocaleDateString()
+                              : "-"}
+                          </div>
+                          <ActivityIndicator lastActive={user.last_active} />
+                        </div>
+                      </TableCell>
+                      <TableCell>
                         <div className="flex gap-2">
                           <Button
                             variant="ghost"
@@ -324,9 +442,10 @@ export function UsersPage() {
                               setSelectedUser(user);
                               setShowAssociationsDialog(true);
                             }}
+                            className="admin-button"
                           >
                             <Link className="h-4 w-4 mr-2" />
-                            İlişkiler
+                            Relations
                           </Button>
                           <Button
                             variant="ghost"
@@ -334,204 +453,49 @@ export function UsersPage() {
                             onClick={() =>
                               (window.location.href = `/admin/users/${user.id}/report`)
                             }
+                            className="admin-button"
                           >
                             <BarChart2 className="h-4 w-4 mr-2" />
-                            Raporlar
+                            Reports
                           </Button>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedUser(user);
-                            setShowUserDialog(true);
-                          }}
-                        >
-                          Düzenle
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-destructive hover:text-destructive"
-                          onClick={() => {
-                            setSelectedUser(user);
-                            setShowDeleteDialog(true);
-                          }}
-                        >
-                          Sil
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+
+        <DataTablePagination
+          currentPage={currentPage}
+          pageSize={pageSize}
+          totalItems={filteredUsers.length}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={setPageSize}
+        />
       </div>
 
       <UserDialog
         user={selectedUser}
-        open={showUserDialog}
-        onOpenChange={setShowUserDialog}
+        open={showUserDialog || showCreateDialog}
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowUserDialog(false);
+            setShowCreateDialog(false);
+            setSelectedUser(null);
+          }
+        }}
         onSave={loadUsers}
       />
 
-      {selectedUser && (
-        <UserAssociationsDialog
-          userId={selectedUser.id}
-          open={showAssociationsDialog}
-          onOpenChange={setShowAssociationsDialog}
-          onSave={loadUsers}
-        />
-      )}
-
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Kullanıcıyı Sil</AlertDialogTitle>
-            <AlertDialogDescription>
-              Bu kullanıcıyı silmek istediğinize emin misiniz? Bu işlem geri
-              alınamaz.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>İptal</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteUser}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Sil
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Yeni Kullanıcı Oluştur</DialogTitle>
-            <DialogDescription>
-              Yeni kullanıcı bilgilerini girin
-            </DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={handleCreateUser} className="space-y-4">
-            <div className="space-y-2">
-              <Label>Ad Soyad</Label>
-              <Input
-                value={newUserData.full_name}
-                onChange={(e) =>
-                  setNewUserData((prev) => ({
-                    ...prev,
-                    full_name: e.target.value,
-                  }))
-                }
-                placeholder="Ad Soyad"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Email</Label>
-              <Input
-                type="email"
-                value={newUserData.email}
-                onChange={(e) =>
-                  setNewUserData((prev) => ({ ...prev, email: e.target.value }))
-                }
-                placeholder="ornek@email.com"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Şifre</Label>
-              <Input
-                type="password"
-                value={newUserData.password}
-                onChange={(e) =>
-                  setNewUserData((prev) => ({
-                    ...prev,
-                    password: e.target.value,
-                  }))
-                }
-                placeholder="********"
-                required
-                minLength={6}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Rol</Label>
-              <Select
-                value={newUserData.user_type}
-                onValueChange={(value) =>
-                  setNewUserData((prev) => ({ ...prev, user_type: value }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Rol seçin" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="user">Kullanıcı</SelectItem>
-                  <SelectItem value="admin">Yönetici</SelectItem>
-                  <SelectItem value="developer">Geliştirici</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label>Saatlik Ücret</Label>
-                <Input
-                  type="number"
-                  value={newUserData.default_rate}
-                  onChange={(e) =>
-                    setNewUserData((prev) => ({
-                      ...prev,
-                      default_rate: parseFloat(e.target.value) || 0,
-                    }))
-                  }
-                  min="0"
-                  step="0.01"
-                  placeholder="Saatlik ücret"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Para Birimi</Label>
-                <Select
-                  value={newUserData.currency}
-                  onValueChange={(value) =>
-                    setNewUserData((prev) => ({ ...prev, currency: value }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Para birimi seçin" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="USD">USD</SelectItem>
-                    <SelectItem value="EUR">EUR</SelectItem>
-                    <SelectItem value="TRY">TRY</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setShowCreateDialog(false)}
-              >
-                İptal
-              </Button>
-              <Button type="submit">Oluştur</Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <UserAssociationsDialog
+        user={selectedUser}
+        open={showAssociationsDialog}
+        onOpenChange={setShowAssociationsDialog}
+        onSave={loadUsers}
+      />
     </div>
   );
 }

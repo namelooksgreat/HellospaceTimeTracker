@@ -12,7 +12,10 @@ export interface User {
   email: string;
   full_name: string | null;
   user_type: string;
-  created_at: string;
+  created_at: string | null;
+  is_active: boolean | null;
+  avatar_url: string | null;
+  last_active: string | null;
 }
 
 export async function getUserTypes() {

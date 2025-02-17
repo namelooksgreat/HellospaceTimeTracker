@@ -71,9 +71,11 @@ export function SaveTimeEntryDialog({
 
   useEffect(() => {
     if (open && initialRender.current) {
-      const activeElement = document.activeElement as HTMLElement;
-      activeElement?.blur?.();
-      initialRender.current = false;
+      requestAnimationFrame(() => {
+        const activeElement = document.activeElement as HTMLElement;
+        activeElement?.blur?.();
+        initialRender.current = false;
+      });
     }
   }, [open]);
 

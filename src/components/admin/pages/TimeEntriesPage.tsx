@@ -1,46 +1,16 @@
-import { useState, useEffect, useMemo } from "react";
-import { useRealtimeSync } from "@/lib/hooks/useRealtimeSync";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Plus, Search, Trash2 } from "lucide-react";
-import { TimeEntryDialog } from "../dialogs/TimeEntryDialog";
-import { handleError } from "@/lib/utils/error-handler";
-import { showSuccess } from "@/lib/utils/toast";
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { AdminHeader } from "../components/AdminHeader";
+import { AdminFilters } from "../components/AdminFilters";
+import { AdminTable } from "../components/AdminTable";
+import { Button } from "@/components/ui/button";
+import { Clock, Trash2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useAdminUI } from "@/hooks/useAdminUI";
+import { DataTablePagination } from "@/components/ui/data-table-pagination";
+import { ErrorState } from "@/components/ui/error-state";
 import { TimeEntry } from "@/types";
 import { formatDuration } from "@/lib/utils/time";
-import { DateRangePicker } from "@/components/ui/date-range-picker";
-import { DateRange } from "react-day-picker";
-import {
-  startOfDay,
-  endOfDay,
-  isWithinInterval,
-  startOfWeek,
-  endOfWeek,
-  startOfMonth,
-  endOfMonth,
-  startOfYear,
-  endOfYear,
-} from "date-fns";
-import { tr } from "date-fns/locale";
 import {
   Select,
   SelectContent,
@@ -51,380 +21,233 @@ import {
 
 export function TimeEntriesPage() {
   const [entries, setEntries] = useState<TimeEntry[]>([]);
-  const [projects, setProjects] = useState<
-    Array<{
-      id: string;
-      name: string;
-      color: string;
-      customer_id: string;
-      customer: { id: string; name: string } | null;
-    }>
-  >([]);
-  const [loading, setLoading] = useState(true);
+  const [filteredEntries, setFilteredEntries] = useState<TimeEntry[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedEntry, setSelectedEntry] = useState<TimeEntry | null>(null);
-  const [showEntryDialog, setShowEntryDialog] = useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [dateRange, setDateRange] = useState<DateRange>();
-  const [period, setPeriod] = useState<
-    "all" | "daily" | "weekly" | "monthly" | "yearly"
-  >("all");
+  const [selectedEntries, setSelectedEntries] = useState<string[]>([]);
+  const [sortBy, setSortBy] = useState("date_desc");
+  const [userFilter, setUserFilter] = useState("all");
+
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  const { isLoading, error, handleAsync, clearError } = useAdminUI();
 
   const loadData = async () => {
-    try {
-      setLoading(true);
+    await handleAsync(
+      async () => {
+        const { data: entriesData, error } = await supabase
+          .from("time_entries")
+          .select(
+            `
+            *,
+            project:projects!left(id, name, color, customer:customers!left(
+              id, name, customer_rates(hourly_rate, currency)
+            ))
+          `,
+          )
+          .order("created_at", { ascending: false });
 
-      // Construct base query for time entries
-      let timeEntriesQuery = supabase
-        .from("time_entries")
-        .select(
-          `
-          id,
-          task_name,
-          description,
-          duration,
-          start_time,
-          created_at,
-          user_id,
-          project_id,
-          project:projects!left(id, name, color, customer:customers(id, name))
-        `,
-        )
-        .order("created_at", { ascending: false });
+        if (error) throw error;
 
-      // Projects query
-      const projectsQuery = supabase
-        .from("projects")
-        .select(
-          `
-          id,
-          name,
-          color,
-          customer_id,
-          customer:customers(id, name)
-        `,
-        )
-        .order("name");
+        const transformedEntries = (entriesData || []).map((entry) => ({
+          ...entry,
+          project: entry.project
+            ? {
+                id: entry.project.id,
+                name: entry.project.name,
+                color: entry.project.color,
+                customer: entry.project.customer
+                  ? {
+                      id: entry.project.customer.id,
+                      name: entry.project.customer.name,
+                      customer_rates: entry.project.customer.customer_rates,
+                    }
+                  : undefined,
+              }
+            : undefined,
+        }));
 
-      const [
-        { data: entriesData, error: entriesError },
-        { data: projectsData, error: projectsError },
-      ] = await Promise.all([timeEntriesQuery, projectsQuery]);
-
-      if (entriesError) throw entriesError;
-      if (projectsError) throw projectsError;
-
-      // Transform entries data
-      const transformedEntries = (entriesData || []).map((entry: any) => ({
-        id: entry.id,
-        task_name: entry.task_name,
-        description: entry.description,
-        duration: entry.duration,
-        start_time: entry.start_time,
-        created_at: entry.created_at,
-        user_id: entry.user_id,
-        project_id: entry.project_id,
-        project: entry.project
-          ? {
-              id: entry.project.id,
-              name: entry.project.name,
-              color: entry.project.color,
-              customer: entry.project.customer
-                ? {
-                    id: entry.project.customer.id,
-                    name: entry.project.customer.name,
-                  }
-                : undefined,
-            }
-          : null,
-      }));
-
-      // Transform projects data
-      const transformedProjects = (projectsData || []).map((project: any) => ({
-        id: project.id,
-        name: project.name,
-        color: project.color,
-        customer_id: project.customer_id,
-        customer: project.customer
-          ? {
-              id: project.customer.id,
-              name: project.customer.name,
-            }
-          : null,
-      }));
-
-      setEntries(transformedEntries);
-      setProjects(transformedProjects);
-    } catch (error) {
-      handleError(error, "TimeEntriesPage");
-    } finally {
-      setLoading(false);
-    }
+        setEntries(transformedEntries);
+        filterAndSortEntries(
+          transformedEntries,
+          searchQuery,
+          sortBy,
+          userFilter,
+        );
+      },
+      {
+        loadingMessage: "Loading time entries...",
+        errorMessage: "Failed to load time entries",
+      },
+    );
   };
 
   useEffect(() => {
     loadData();
   }, []);
 
-  useRealtimeSync("time_entries", () => {
-    loadData();
-  });
-
-  const handleDeleteEntry = async () => {
-    if (!selectedEntry) return;
-
-    try {
-      const { error } = await supabase
-        .from("time_entries")
-        .delete()
-        .eq("id", selectedEntry.id);
-
-      if (error) throw error;
-      showSuccess("Zaman girişi başarıyla silindi");
-      loadData();
-    } catch (error) {
-      handleError(error, "TimeEntriesPage");
-    } finally {
-      setShowDeleteDialog(false);
-      setSelectedEntry(null);
-    }
-  };
-
-  const filteredEntries = useMemo(() => {
-    let filtered = entries.filter(
+  const filterAndSortEntries = (
+    data: TimeEntry[],
+    query: string,
+    sort: string,
+    user: string,
+  ) => {
+    let filtered = data.filter(
       (entry) =>
-        entry.task_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        entry.project?.name
-          ?.toLowerCase()
-          .includes(searchQuery.toLowerCase()) ||
-        entry.project?.customer?.name
-          ?.toLowerCase()
-          .includes(searchQuery.toLowerCase()),
+        entry.task_name.toLowerCase().includes(query.toLowerCase()) &&
+        (user === "all" || entry.user_id === user),
     );
 
-    // Apply date range filter if set
-    if (dateRange?.from) {
-      filtered = filtered.filter((entry) => {
-        const entryDate = new Date(entry.start_time);
-        const start = dateRange.from
-          ? startOfDay(dateRange.from)
-          : startOfDay(new Date());
-        const end = dateRange.to
-          ? endOfDay(dateRange.to)
-          : endOfDay(dateRange.from || new Date());
-        return isWithinInterval(entryDate, { start, end });
-      });
-    }
-    // Apply period filter
-    else if (period !== "all") {
-      const now = new Date();
-      let start: Date;
-      let end: Date;
-
-      switch (period) {
-        case "daily":
-          start = startOfDay(now);
-          end = endOfDay(now);
-          break;
-        case "weekly":
-          start = startOfWeek(now, { locale: tr });
-          end = endOfWeek(now, { locale: tr });
-          break;
-        case "monthly":
-          start = startOfMonth(now);
-          end = endOfMonth(now);
-          break;
-        case "yearly":
-          start = startOfYear(now);
-          end = endOfYear(now);
-          break;
+    filtered.sort((a, b) => {
+      switch (sort) {
+        case "date_asc":
+          return (
+            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+          );
+        case "date_desc":
+          return (
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          );
+        case "duration_asc":
+          return a.duration - b.duration;
+        case "duration_desc":
+          return b.duration - a.duration;
         default:
-          return filtered;
-      }
-
-      filtered = filtered.filter((entry) => {
-        const entryDate = new Date(entry.start_time);
-        return isWithinInterval(entryDate, { start, end });
-      });
-    }
-
-    return filtered;
-  }, [entries, searchQuery, dateRange, period]);
-
-  // Get unique customers from projects
-  const customers = useMemo(() => {
-    const uniqueCustomers = new Map();
-    projects.forEach((project) => {
-      if (project.customer) {
-        uniqueCustomers.set(project.customer.id, project.customer);
+          return 0;
       }
     });
-    return Array.from(uniqueCustomers.values());
-  }, [projects]);
+
+    setFilteredEntries(filtered);
+  };
+
+  useEffect(() => {
+    filterAndSortEntries(entries, searchQuery, sortBy, userFilter);
+  }, [entries, searchQuery, sortBy, userFilter]);
+
+  const paginatedEntries = filteredEntries.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
+  );
+
+  if (error) {
+    return (
+      <ErrorState
+        title="Failed to load time entries"
+        description={error.message}
+        onRetry={() => {
+          clearError();
+          loadData();
+        }}
+      />
+    );
+  }
+
+  const totalDuration = entries.reduce((sum, entry) => sum + entry.duration, 0);
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Zaman Girişleri</h1>
-        <Button onClick={() => setShowEntryDialog(true)}>
-          <Plus className="mr-2 h-4 w-4" /> Zaman Girişi Ekle
-        </Button>
-      </div>
-
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-        <div className="relative flex-1 max-w-sm w-full">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Zaman girişi ara..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <Select
-            value={period}
-            onValueChange={(value: any) => setPeriod(value)}
-          >
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Periyot seçin" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tümü</SelectItem>
-              <SelectItem value="daily">Bugün</SelectItem>
-              <SelectItem value="weekly">Bu Hafta</SelectItem>
-              <SelectItem value="monthly">Bu Ay</SelectItem>
-              <SelectItem value="yearly">Bu Yıl</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <DateRangePicker
-            date={dateRange}
-            onDateChange={(range) => {
-              setPeriod("all");
-              setDateRange(range);
-            }}
-          />
-        </div>
-      </div>
-
-      <div className="border border-border/50 rounded-xl bg-card/50 backdrop-blur-xl shadow-sm">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Görev</TableHead>
-              <TableHead>Proje</TableHead>
-              <TableHead>Süre</TableHead>
-              <TableHead>Başlangıç</TableHead>
-              <TableHead>İşlemler</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center">
-                  Yükleniyor...
-                </TableCell>
-              </TableRow>
-            ) : filteredEntries.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center">
-                  Zaman girişi bulunamadı
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredEntries.map((entry) => (
-                <TableRow key={entry.id}>
-                  <TableCell className="max-w-[200px] truncate">
-                    {entry.task_name}
-                    {entry.description && (
-                      <p className="text-sm text-muted-foreground truncate">
-                        {entry.description}
-                      </p>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {entry.project ? (
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-3 h-3 rounded-full ring-1 ring-border/50"
-                          style={{ backgroundColor: entry.project.color }}
-                        />
-                        <span>
-                          {entry.project.name}
-                          {entry.project.customer?.name &&
-                            ` (${entry.project.customer.name})`}
-                        </span>
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell>{formatDuration(entry.duration)}</TableCell>
-                  <TableCell>
-                    {new Date(entry.start_time).toLocaleString()}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setSelectedEntry(entry);
-                          setShowEntryDialog(true);
-                        }}
-                      >
-                        Düzenle
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-destructive hover:text-destructive"
-                        onClick={() => {
-                          setSelectedEntry(entry);
-                          setShowDeleteDialog(true);
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
-
-      <TimeEntryDialog
-        entry={selectedEntry}
-        open={showEntryDialog}
-        onOpenChange={setShowEntryDialog}
-        onSave={loadData}
-        projects={projects}
+    <div className="space-y-8 animate-in fade-in-50 duration-500">
+      <AdminHeader
+        title="Time Entries"
+        description="View and manage time tracking records"
       />
 
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Zaman Girişini Sil</AlertDialogTitle>
-            <AlertDialogDescription>
-              Bu zaman girişini silmek istediğinize emin misiniz? Bu işlem geri
-              alınamaz.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>İptal</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteEntry}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Sil
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <AdminFilters
+        searchProps={{
+          value: searchQuery,
+          onChange: setSearchQuery,
+          placeholder: "Search time entries...",
+        }}
+        selectedCount={selectedEntries.length}
+        bulkActions={
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {}}
+            className="h-8 text-destructive hover:text-destructive"
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete
+          </Button>
+        }
+      >
+        <Select value={sortBy} onValueChange={setSortBy}>
+          <SelectTrigger className="w-full sm:w-[180px]">
+            <SelectValue placeholder="Sort by" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="date_desc">Newest First</SelectItem>
+            <SelectItem value="date_asc">Oldest First</SelectItem>
+            <SelectItem value="duration_desc">Longest First</SelectItem>
+            <SelectItem value="duration_asc">Shortest First</SelectItem>
+          </SelectContent>
+        </Select>
+      </AdminFilters>
+
+      <AdminTable
+        data={paginatedEntries}
+        columns={[
+          {
+            header: "Select",
+            cell: (entry) => (
+              <Checkbox
+                checked={selectedEntries.includes(entry.id)}
+                onCheckedChange={(checked) => {
+                  setSelectedEntries((prev) =>
+                    checked
+                      ? [...prev, entry.id]
+                      : prev.filter((id) => id !== entry.id),
+                  );
+                }}
+              />
+            ),
+          },
+          {
+            header: "Task",
+            cell: (entry) => (
+              <div>
+                <div className="font-medium">{entry.task_name}</div>
+                {entry.project && (
+                  <div className="text-sm text-muted-foreground">
+                    {entry.project.name}
+                  </div>
+                )}
+              </div>
+            ),
+          },
+          {
+            header: "Duration",
+            cell: (entry) => formatDuration(entry.duration),
+          },
+          {
+            header: "Start Time",
+            cell: (entry) => new Date(entry.start_time).toLocaleString(),
+          },
+          {
+            header: "Created At",
+            cell: (entry) => new Date(entry.created_at).toLocaleString(),
+          },
+          {
+            header: "Actions",
+            cell: (entry) => (
+              <div className="flex gap-2">
+                <Button variant="ghost" size="sm" onClick={() => {}}>
+                  Edit
+                </Button>
+              </div>
+            ),
+          },
+        ]}
+        loading={isLoading}
+      />
+
+      <DataTablePagination
+        currentPage={currentPage}
+        pageSize={pageSize}
+        totalItems={filteredEntries.length}
+        onPageChange={setCurrentPage}
+        onPageSizeChange={setPageSize}
+      />
     </div>
   );
 }

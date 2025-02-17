@@ -9,8 +9,10 @@ export function AdminLayout() {
       <BottomNav />
 
       <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto pb-20">
-        <div className="container max-w-7xl mx-auto space-y-6 sm:space-y-8 animate-in fade-in-50 duration-500">
-          <Outlet />
+        <div className="container max-w-7xl mx-auto space-y-6 sm:space-y-8">
+          <div className="page-transition-enter-active">
+            <Outlet />
+          </div>
         </div>
       </main>
     </div>

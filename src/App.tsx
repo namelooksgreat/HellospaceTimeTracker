@@ -72,7 +72,12 @@ export default function App() {
                   path="/reports"
                   element={
                     <ProtectedRoute>
-                      <ReportsPage entries={[]} onDeleteEntry={() => {}} />
+                      <ReportsPage
+                        entries={[]}
+                        projects={[]}
+                        customers={[]}
+                        onDeleteEntry={() => {}}
+                      />
                     </ProtectedRoute>
                   }
                 />
