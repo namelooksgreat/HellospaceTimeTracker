@@ -126,30 +126,41 @@ export function UserProfile({ user }: UserProfileProps) {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.updateUser({
+      // Update auth user data
+      const { error: authError } = await supabase.auth.updateUser({
         data: { full_name: formData.full_name },
       });
+      if (authError) throw authError;
 
-      if (error) throw error;
+      // Update users table
+      const { error: userError } = await supabase
+        .from("users")
+        .update({ full_name: formData.full_name })
+        .eq("id", user.id);
+      if (userError) throw userError;
 
+      // Delete existing settings first to avoid conflicts
+      await supabase.from("user_settings").delete().eq("user_id", user.id);
+
+      // Insert new settings
       const { error: settingsError } = await supabase
         .from("user_settings")
-        .upsert({
+        .insert({
           user_id: user.id,
           default_rate: formData.hourly_rate,
           currency: formData.currency,
+          created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         });
 
       if (settingsError) throw settingsError;
 
-      const { data: settingsData, error: fetchError } = await supabase
+      // Refresh settings data
+      const { data: settingsData } = await supabase
         .from("user_settings")
         .select("default_rate, currency")
         .eq("user_id", user.id)
         .single();
-
-      if (fetchError) throw fetchError;
 
       if (settingsData) {
         setFormData((prev) => ({
@@ -159,7 +170,7 @@ export function UserProfile({ user }: UserProfileProps) {
         }));
       }
 
-      showSuccess("Profil başarıyla güncellendi");
+      showSuccess("Profil bilgileriniz başarıyla güncellendi");
     } catch (error) {
       handleError(error, "UserProfile");
     } finally {

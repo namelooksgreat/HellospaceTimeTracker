@@ -235,13 +235,22 @@ export function EditTimeEntryDialog({
                     Started at
                   </Label>
                   <DateTimePicker
-                    date={new Date(formData.startTime)}
+                    date={
+                      formData.startTime
+                        ? new Date(formData.startTime)
+                        : new Date()
+                    }
                     setDate={(date) => {
                       setFormData((prev) => ({
                         ...prev,
                         startTime: date.toISOString(),
                       }));
                     }}
+                    defaultDate={
+                      formData.startTime
+                        ? new Date(formData.startTime)
+                        : undefined
+                    }
                   />
                 </div>
               </div>
