@@ -20,6 +20,7 @@ import { createUser, updateUser } from "@/lib/api/users";
 import { handleError } from "@/lib/utils/error-handler";
 import { showSuccess } from "@/lib/utils/toast";
 import { User } from "@/types";
+import { supabase } from "@/lib/supabase";
 
 interface UserDialogProps {
   user: User | null;
@@ -41,29 +42,40 @@ export function UserDialog({
     full_name: "",
     user_type: "user",
     default_rate: 0,
-    currency: "USD",
+    currency: "TRY",
   });
 
   useEffect(() => {
-    if (user) {
-      setFormData({
-        email: user.email,
-        password: "",
-        full_name: user.full_name || "",
-        user_type: user.user_type,
-        default_rate: 0,
-        currency: "USD",
-      });
-    } else {
-      setFormData({
-        email: "",
-        password: "",
-        full_name: "",
-        user_type: "user",
-        default_rate: 0,
-        currency: "USD",
-      });
-    }
+    const loadUserData = async () => {
+      if (user) {
+        // Load user settings if editing
+        const { data: settingsData } = await supabase
+          .from("user_settings")
+          .select("default_rate, currency")
+          .eq("user_id", user.id)
+          .single();
+
+        setFormData({
+          email: user.email,
+          password: "",
+          full_name: user.full_name || "",
+          user_type: user.user_type,
+          default_rate: settingsData?.default_rate || 0,
+          currency: settingsData?.currency || "TRY",
+        });
+      } else {
+        setFormData({
+          email: "",
+          password: "",
+          full_name: "",
+          user_type: "user",
+          default_rate: 0,
+          currency: "TRY",
+        });
+      }
+    };
+
+    loadUserData();
   }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -73,10 +85,27 @@ export function UserDialog({
     setLoading(true);
     try {
       if (user?.id) {
+        // Update user data
         await updateUser(user.id, {
           full_name: formData.full_name,
           user_type: formData.user_type,
         });
+
+        // Delete existing settings first
+        await supabase.from("user_settings").delete().eq("user_id", user.id);
+
+        // Then insert new settings
+        const { error: settingsError } = await supabase
+          .from("user_settings")
+          .insert({
+            user_id: user.id,
+            default_rate: formData.default_rate,
+            currency: formData.currency,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          });
+
+        if (settingsError) throw settingsError;
         showSuccess("User updated successfully");
       } else {
         if (!formData.password) {
@@ -170,6 +199,39 @@ export function UserDialog({
                 <SelectItem value="user">User</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Hourly Rate</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <Input
+                type="number"
+                value={formData.default_rate}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    default_rate: parseFloat(e.target.value) || 0,
+                  }))
+                }
+                min="0"
+                step="0.01"
+              />
+              <Select
+                value={formData.currency}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({ ...prev, currency: value }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select currency" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="USD">USD</SelectItem>
+                  <SelectItem value="EUR">EUR</SelectItem>
+                  <SelectItem value="TRY">TRY</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {!user && formData.user_type !== "user" && (
