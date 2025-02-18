@@ -14,7 +14,7 @@ interface TimeEntryDisplay {
 
 interface DailyReportProps {
   entries: TimeEntryDisplay[];
-  onDeleteEntry?: (id: string) => void;
+  onDeleteEntry: (id: string) => void;
   onEditEntry?: (id: string) => void;
 }
 
@@ -30,12 +30,13 @@ export function DailyReport({
           entries.map((entry) => (
             <div key={entry.id} className="animate-in fade-in-50 duration-300">
               <TimeEntry
+                id={entry.id}
                 taskName={entry.taskName}
                 projectName={entry.projectName}
                 duration={entry.duration}
                 startTime={entry.startTime}
                 projectColor={entry.projectColor}
-                onDelete={() => onDeleteEntry?.(entry.id)}
+                onDelete={() => onDeleteEntry(entry.id)}
                 onEdit={() => onEditEntry?.(entry.id)}
               />
             </div>

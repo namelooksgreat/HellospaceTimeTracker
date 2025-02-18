@@ -240,12 +240,12 @@ export function EditTimeEntryDialog({
                         new Date(formData.startTime).toISOString().split("T")[0]
                       }
                       onChange={(e) => {
-                        const [_, time] = new Date(formData.startTime)
-                          .toISOString()
-                          .split("T");
+                        const currentTime = new Date(formData.startTime)
+                          .toTimeString()
+                          .substring(0, 5);
                         setFormData((prev) => ({
                           ...prev,
-                          startTime: `${e.target.value}T${time}`,
+                          startTime: `${e.target.value}T${currentTime}:00.000Z`,
                         }));
                       }}
                       className="h-8 text-sm"
@@ -253,16 +253,15 @@ export function EditTimeEntryDialog({
                     <Input
                       type="time"
                       value={new Date(formData.startTime)
-                        .toISOString()
-                        .split("T")[1]
+                        .toTimeString()
                         .substring(0, 5)}
                       onChange={(e) => {
-                        const [date] = new Date(formData.startTime)
+                        const currentDate = new Date(formData.startTime)
                           .toISOString()
-                          .split("T");
+                          .split("T")[0];
                         setFormData((prev) => ({
                           ...prev,
-                          startTime: `${date}T${e.target.value}:00.000Z`,
+                          startTime: `${currentDate}T${e.target.value}:00.000Z`,
                         }));
                       }}
                       className="h-8 text-sm"

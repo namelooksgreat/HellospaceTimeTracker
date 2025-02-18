@@ -56,6 +56,9 @@ export const deleteTimeEntry = async (id: string): Promise<void> => {
 
 export const getProjects = async (): Promise<Project[]> => {
   return handleApiRequest(async () => {
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError) throw userError;
+
     const { data, error } = await supabase
       .from("projects")
       .select(
@@ -73,9 +76,18 @@ export const getProjects = async (): Promise<Project[]> => {
 
 export const getCustomers = async (): Promise<Customer[]> => {
   return handleApiRequest(async () => {
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError) throw userError;
+
     const { data, error } = await supabase
       .from("customers")
-      .select("*")
+      .select(
+        `
+        *,
+        user_customers!inner(user_id)
+      `,
+      )
+      .eq("user_customers.user_id", userData.user.id)
       .order("name");
 
     if (error) throw error;

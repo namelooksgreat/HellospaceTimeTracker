@@ -47,9 +47,8 @@ function Home() {
 
       if (error) throw error;
 
-      // Refresh the data after successful deletion
+      // Refresh data after deletion
       await fetchTimeEntriesData();
-
       toast.success("Time entry deleted successfully");
     } catch (error) {
       handleError(error, "Home");

@@ -5,6 +5,7 @@ import { Pencil, Trash2 } from "lucide-react";
 import { formatDate, formatStartTime } from "@/lib/utils/time";
 
 interface TimeEntryProps {
+  id?: string;
   taskName: string;
   projectName?: string;
   duration: number;

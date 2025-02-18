@@ -28,10 +28,19 @@ import {
 
 interface ReportsPageProps {
   entries: TimeEntry[];
-  projects: Array<{ id: string; name: string }>;
+  projects: Array<{
+    id: string;
+    name: string;
+    color: string;
+    customer_id: string;
+    customer?: { id: string; name: string } | null;
+  }>;
   customers: Array<{ id: string; name: string }>;
   onDeleteEntry?: (id: string) => void;
 }
+
+import { EditTimeEntryDialog } from "../EditTimeEntryDialog";
+import { useDialogStore } from "@/store/dialogStore";
 
 export default function ReportsPage({
   entries,
@@ -39,6 +48,29 @@ export default function ReportsPage({
   customers,
   onDeleteEntry,
 }: ReportsPageProps) {
+  const { editTimeEntryDialog, setEditTimeEntryDialog } = useDialogStore();
+  const [selectedEntry, setSelectedEntry] = useState<TimeEntry | null>(null);
+
+  const handleEditEntry = async (data: any) => {
+    try {
+      if (!selectedEntry) return;
+
+      const { error } = await supabase
+        .from("time_entries")
+        .update({
+          task_name: data.taskName,
+          project_id: data.projectId || null,
+          description: data.description,
+          duration: data.duration,
+        })
+        .eq("id", selectedEntry.id);
+
+      if (error) throw error;
+      setEditTimeEntryDialog(false, null);
+    } catch (error) {
+      console.error("Error updating time entry:", error);
+    }
+  };
   const { session } = useAuth();
   const [showFilters, setShowFilters] = useState(false);
   const isMobile = useMediaQuery("(max-width: 768px)");
@@ -257,18 +289,38 @@ export default function ReportsPage({
         </div>
       )}
 
-      <DailyReport
-        entries={filteredEntries.map((entry) => ({
-          id: entry.id,
-          taskName: entry.task_name,
-          projectName: entry.project?.name || "",
-          duration: entry.duration,
-          startTime: entry.start_time,
-          createdAt: entry.created_at,
-          projectColor: entry.project?.color || "#94A3B8",
-        }))}
-        onDeleteEntry={onDeleteEntry}
-      />
+      <>
+        <DailyReport
+          entries={filteredEntries.map((entry) => ({
+            id: entry.id,
+            taskName: entry.task_name,
+            projectName: entry.project?.name || "",
+            duration: entry.duration,
+            startTime: entry.start_time,
+            createdAt: entry.created_at,
+            projectColor: entry.project?.color || "#94A3B8",
+          }))}
+          onDeleteEntry={(id) => {
+            if (onDeleteEntry) {
+              onDeleteEntry(id);
+            }
+          }}
+          onEditEntry={(id) => {
+            const entry = entries.find((e) => e.id === id);
+            if (entry) {
+              setSelectedEntry(entry);
+              setEditTimeEntryDialog(true, id);
+            }
+          }}
+        />
+
+        <EditTimeEntryDialog
+          entry={selectedEntry}
+          projects={projects}
+          customers={customers}
+          onSave={handleEditEntry}
+        />
+      </>
     </div>
   );
 }
