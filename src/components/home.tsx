@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { showSuccess } from "@/lib/utils/toast";
 import { toast } from "sonner";
 import { EditTimeEntryDialog } from "./EditTimeEntryDialog";
+import { useDialogStore } from "@/store/dialogStore";
 import { useHomeData } from "@/lib/hooks/useHomeData";
 import { Navigate } from "react-router-dom";
 import { MainLayout } from "@/components/layouts/MainLayout";
@@ -21,7 +22,6 @@ import {
 } from "@/lib/api";
 import type { Project, Customer, TimeEntry as TimeEntryType } from "@/types";
 import TimeEntryComponent from "./TimeEntry";
-import TimeEntryList from "./TimeEntryList";
 
 // Lazy load components
 const TimeTracker = lazy(() => import("@/components/TimeTracker"));
@@ -59,7 +59,7 @@ function Home() {
   const [selectedEntry, setSelectedEntry] = useState<TimeEntryType | null>(
     null,
   );
-  const [showEditDialog, setShowEditDialog] = useState(false);
+  const { setEditTimeEntryDialog } = useDialogStore();
 
   const handleEditEntry = useCallback(
     async (data: {
@@ -107,7 +107,7 @@ function Home() {
         }
 
         showSuccess("Time entry updated successfully");
-        setShowEditDialog(false);
+        setEditTimeEntryDialog(false, null);
         await fetchTimeEntriesData();
       } catch (error) {
         handleError(error, "Home");
@@ -162,17 +162,23 @@ function Home() {
                         <div className="text-sm font-medium text-muted-foreground">
                           Recent Entries
                         </div>
-                        <TimeEntryList
-                          entries={timeEntries}
-                          onEditEntry={(id) => {
-                            const entry = timeEntries.find((e) => e.id === id);
-                            if (entry) {
-                              setSelectedEntry(entry);
-                              setShowEditDialog(true);
-                            }
-                          }}
-                          onDeleteEntry={handleDeleteTimeEntry}
-                        />
+                        <div className="space-y-3">
+                          {timeEntries.slice(0, 2).map((entry) => (
+                            <TimeEntryComponent
+                              key={entry.id}
+                              taskName={entry.task_name}
+                              projectName={entry.project?.name || ""}
+                              duration={entry.duration}
+                              startTime={entry.start_time}
+                              projectColor={entry.project?.color || "#94A3B8"}
+                              onEdit={() => {
+                                setSelectedEntry(entry);
+                                setEditTimeEntryDialog(true, entry.id);
+                              }}
+                              onDelete={() => handleDeleteTimeEntry(entry.id)}
+                            />
+                          ))}
+                        </div>
                       </div>
                     </div>
                   )}

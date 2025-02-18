@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { DateTimePicker } from "@/components/ui/date-time-picker";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
@@ -229,44 +230,19 @@ export function EditTimeEntryDialog({
                     </span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 mt-2">
-                  <div className="text-sm text-muted-foreground">
+                <div className="mt-2">
+                  <Label className="text-sm text-muted-foreground mb-2">
                     Started at
-                  </div>
-                  <div className="flex-1 grid grid-cols-2 gap-2">
-                    <Input
-                      type="date"
-                      value={
-                        new Date(formData.startTime).toISOString().split("T")[0]
-                      }
-                      onChange={(e) => {
-                        const currentTime = new Date(formData.startTime)
-                          .toTimeString()
-                          .substring(0, 5);
-                        setFormData((prev) => ({
-                          ...prev,
-                          startTime: `${e.target.value}T${currentTime}:00.000Z`,
-                        }));
-                      }}
-                      className="h-8 text-sm"
-                    />
-                    <Input
-                      type="time"
-                      value={new Date(formData.startTime)
-                        .toTimeString()
-                        .substring(0, 5)}
-                      onChange={(e) => {
-                        const currentDate = new Date(formData.startTime)
-                          .toISOString()
-                          .split("T")[0];
-                        setFormData((prev) => ({
-                          ...prev,
-                          startTime: `${currentDate}T${e.target.value}:00.000Z`,
-                        }));
-                      }}
-                      className="h-8 text-sm"
-                    />
-                  </div>
+                  </Label>
+                  <DateTimePicker
+                    date={new Date(formData.startTime)}
+                    setDate={(date) => {
+                      setFormData((prev) => ({
+                        ...prev,
+                        startTime: date.toISOString(),
+                      }));
+                    }}
+                  />
                 </div>
               </div>
             </div>
