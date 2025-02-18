@@ -43,6 +43,7 @@ import { useAdminUI } from "@/hooks/useAdminUI";
 import { RoleBadge } from "@/components/ui/role-badge";
 import { ActivityIndicator } from "@/components/ui/activity-indicator";
 import { UserCard } from "../UserCard";
+import { UserRole } from "@/types/roles";
 
 export function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -294,6 +295,7 @@ export function UsersPage() {
               <SelectItem value="all">Tümü</SelectItem>
               <SelectItem value="admin">Yöneticiler</SelectItem>
               <SelectItem value="developer">Geliştiriciler</SelectItem>
+              <SelectItem value="designer">Tasarımcılar</SelectItem>
               <SelectItem value="user">Kullanıcılar</SelectItem>
             </SelectContent>
           </Select>
@@ -421,7 +423,7 @@ export function UsersPage() {
                       </TableCell>
                       <TableCell>{user.email}</TableCell>
                       <TableCell>
-                        <RoleBadge role={user.user_type} />
+                        <RoleBadge role={user.user_type as UserRole} />
                       </TableCell>
                       <TableCell>
                         <div className="space-y-1">
@@ -435,6 +437,18 @@ export function UsersPage() {
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedUser(user);
+                              setShowUserDialog(true);
+                            }}
+                            className="admin-button"
+                          >
+                            <UserCog className="h-4 w-4 mr-2" />
+                            Edit
+                          </Button>
                           <Button
                             variant="ghost"
                             size="sm"

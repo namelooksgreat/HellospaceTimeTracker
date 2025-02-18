@@ -1,42 +1,28 @@
-import { Shield, Code, User } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { UserRole } from "@/types/roles";
 
 interface RoleBadgeProps {
-  role: string;
+  role: UserRole;
 }
 
 export function RoleBadge({ role }: RoleBadgeProps) {
-  const getRoleConfig = (role: string) => {
-    switch (role) {
-      case "admin":
-        return {
-          icon: Shield,
-          label: "Yönetici",
-          className: "bg-primary/10 text-primary border-primary/20",
-        };
-      case "developer":
-        return {
-          icon: Code,
-          label: "Geliştirici",
-          className: "bg-blue-500/10 text-blue-500 border-blue-500/20",
-        };
-      default:
-        return {
-          icon: User,
-          label: "Kullanıcı",
-          className: "bg-slate-500/10 text-slate-500 border-slate-500/20",
-        };
-    }
+  const styles = {
+    admin: "bg-primary/10 text-primary border-primary/20",
+    developer:
+      "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 border-blue-200 dark:border-blue-800",
+    designer:
+      "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 border-purple-200 dark:border-purple-800",
+    user: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700",
   };
 
-  const config = getRoleConfig(role);
-  const Icon = config.icon;
-
   return (
-    <div
-      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border ${config.className}`}
+    <span
+      className={cn(
+        "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border",
+        styles[role],
+      )}
     >
-      <Icon className="h-3.5 w-3.5" />
-      {config.label}
-    </div>
+      {role.charAt(0).toUpperCase() + role.slice(1)}
+    </span>
   );
 }

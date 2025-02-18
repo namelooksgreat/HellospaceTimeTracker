@@ -6,6 +6,7 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import { RoleBadge } from "../ui/role-badge";
 import {
   Select,
   SelectContent,
@@ -17,6 +18,7 @@ import { Card, CardContent } from "../ui/card";
 import { Camera, LogOut, Loader2 } from "lucide-react";
 import { handleError } from "@/lib/utils/error-handler";
 import { showSuccess } from "@/lib/utils/toast";
+import { UserRole } from "@/types/roles";
 
 interface UserProfileProps {
   user: {
@@ -24,7 +26,7 @@ interface UserProfileProps {
     email: string;
     full_name?: string;
     avatar_url?: string;
-    role?: string;
+    user_type?: string;
   };
 }
 
@@ -40,19 +42,28 @@ export function UserProfile({ user }: UserProfileProps) {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        // Fetch user metadata and settings in parallel
-        const [userResponse, settingsResponse] = await Promise.all([
-          supabase.auth.getUser(),
-          supabase
-            .from("user_settings")
-            .select("default_rate, currency")
-            .eq("user_id", user.id)
-            .single(),
-        ]);
+        const [userResponse, settingsResponse, userDataResponse] =
+          await Promise.all([
+            supabase.auth.getUser(),
+            supabase
+              .from("user_settings")
+              .select("default_rate, currency")
+              .eq("user_id", user.id)
+              .single(),
+            supabase
+              .from("users")
+              .select("user_type")
+              .eq("id", user.id)
+              .single(),
+          ]);
 
         if (userResponse.error) throw userResponse.error;
+        if (userDataResponse.error) throw userDataResponse.error;
 
-        // Update full name if available
+        if (userDataResponse.data?.user_type) {
+          user.user_type = userDataResponse.data.user_type;
+        }
+
         if (userResponse.data.user?.user_metadata?.full_name) {
           setFormData((prev) => ({
             ...prev,
@@ -60,9 +71,7 @@ export function UserProfile({ user }: UserProfileProps) {
           }));
         }
 
-        // Update hourly rate and currency if available
         if (!settingsResponse.error && settingsResponse.data) {
-          console.log("Found settings data:", settingsResponse.data);
           setFormData((prev) => ({
             ...prev,
             hourly_rate: settingsResponse.data.default_rate,
@@ -72,11 +81,9 @@ export function UserProfile({ user }: UserProfileProps) {
           settingsResponse.error &&
           settingsResponse.error.code !== "PGRST116"
         ) {
-          console.error("Error fetching settings:", settingsResponse.error);
           throw settingsResponse.error;
         }
       } catch (error) {
-        console.error("Error in fetchUserData:", error);
         handleError(error, "UserProfile");
       }
     };
@@ -125,7 +132,6 @@ export function UserProfile({ user }: UserProfileProps) {
 
       if (error) throw error;
 
-      // Update user settings
       const { error: settingsError } = await supabase
         .from("user_settings")
         .upsert({
@@ -137,7 +143,6 @@ export function UserProfile({ user }: UserProfileProps) {
 
       if (settingsError) throw settingsError;
 
-      // Refetch user settings to update the displayed values
       const { data: settingsData, error: fetchError } = await supabase
         .from("user_settings")
         .select("default_rate, currency")
@@ -166,25 +171,21 @@ export function UserProfile({ user }: UserProfileProps) {
     <form onSubmit={handleSubmit} className="space-y-6">
       <Card className="bg-gradient-to-br from-card/50 to-card/30 dark:from-card/20 dark:to-card/10 border border-border/50 rounded-xl transition-all duration-300 hover:shadow-lg hover:border-border/80 group overflow-hidden">
         <CardContent className="p-6 space-y-6">
-          <div className="flex items-center gap-6">
-            <Avatar className="w-20 h-20">
-              <AvatarImage
-                id="profile-avatar"
-                src={
-                  user.avatar_url ||
-                  `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`
-                }
-              />
-              <AvatarFallback>
-                {user.full_name?.[0] || user.email[0]}
-              </AvatarFallback>
-            </Avatar>
-            <div className="space-y-1">
-              <h3 className="text-lg font-medium">
-                {user.full_name || "Add your name"}
-              </h3>
-              <p className="text-sm text-muted-foreground">{user.email}</p>
-              <div className="relative">
+          <div className="flex flex-col sm:flex-row gap-6">
+            <div className="flex items-center sm:items-start gap-4 sm:flex-col">
+              <Avatar className="w-16 h-16 sm:w-24 sm:h-24 ring-2 ring-primary/20">
+                <AvatarImage
+                  id="profile-avatar"
+                  src={
+                    user.avatar_url ||
+                    `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`
+                  }
+                />
+                <AvatarFallback className="bg-primary/10 text-primary text-lg sm:text-2xl">
+                  {user.full_name?.[0] || user.email[0]}
+                </AvatarFallback>
+              </Avatar>
+              <div className="relative sm:w-full">
                 <input
                   type="file"
                   accept="image/*"
@@ -197,7 +198,7 @@ export function UserProfile({ user }: UserProfileProps) {
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="mt-2"
+                  className="w-full"
                   disabled={loading}
                   onClick={() =>
                     document.getElementById("avatar-upload")?.click()
@@ -212,75 +213,91 @@ export function UserProfile({ user }: UserProfileProps) {
                 </Button>
               </div>
             </div>
-          </div>
 
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="full_name">Full Name</Label>
-              <Input
-                id="full_name"
-                value={formData.full_name}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    full_name: e.target.value,
-                  }))
-                }
-                placeholder="Enter your full name"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                disabled
-                className="bg-muted"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="hourly_rate">Saatlik Ücret</Label>
-              <div className="grid grid-cols-2 gap-2">
-                <Input
-                  id="hourly_rate"
-                  type="number"
-                  value={formData.hourly_rate}
-                  disabled={user.role !== "admin"}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      hourly_rate: parseFloat(e.target.value) || 0,
-                    }))
-                  }
-                  min="0"
-                  step="0.01"
-                  className={user.role !== "admin" ? "bg-muted" : ""}
-                />
-                <Select
-                  value={formData.currency}
-                  onValueChange={(value: string) =>
-                    setFormData((prev) => ({ ...prev, currency: value }))
-                  }
-                  disabled={user.role !== "admin"}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Para birimi" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="USD">USD</SelectItem>
-                    <SelectItem value="EUR">EUR</SelectItem>
-                    <SelectItem value="TRY">TRY</SelectItem>
-                  </SelectContent>
-                </Select>
+            <div className="flex-1 min-w-0 space-y-6">
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-3">
+                  <h3 className="text-xl font-semibold truncate">
+                    {user.full_name || "Add your name"}
+                  </h3>
+                  {user.user_type && (
+                    <RoleBadge role={user.user_type as UserRole} />
+                  )}
+                </div>
+                <p className="text-sm text-muted-foreground truncate">
+                  {user.email}
+                </p>
               </div>
-              <p className="text-sm text-muted-foreground">
-                {user.role === "admin"
-                  ? "Bu kullanıcı için saatlik ücreti ayarlayın."
-                  : "Sadece yöneticiler saatlik ücretleri değiştirebilir."}
-              </p>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="full_name">Full Name</Label>
+                  <Input
+                    id="full_name"
+                    value={formData.full_name}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        full_name: e.target.value,
+                      }))
+                    }
+                    placeholder="Enter your full name"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    disabled
+                    className="bg-muted"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="hourly_rate">Saatlik Ücret</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input
+                      id="hourly_rate"
+                      type="number"
+                      value={formData.hourly_rate}
+                      disabled={user.user_type !== "admin"}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          hourly_rate: parseFloat(e.target.value) || 0,
+                        }))
+                      }
+                      min="0"
+                      step="0.01"
+                      className={user.user_type !== "admin" ? "bg-muted" : ""}
+                    />
+                    <Select
+                      value={formData.currency}
+                      onValueChange={(value: string) =>
+                        setFormData((prev) => ({ ...prev, currency: value }))
+                      }
+                      disabled={user.user_type !== "admin"}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Para birimi" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="USD">USD</SelectItem>
+                        <SelectItem value="EUR">EUR</SelectItem>
+                        <SelectItem value="TRY">TRY</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {user.user_type === "admin"
+                      ? "Bu kullanıcı için saatlik ücreti ayarlayın."
+                      : "Sadece yöneticiler saatlik ücretleri değiştirebilir."}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </CardContent>
