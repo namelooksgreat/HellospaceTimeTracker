@@ -4,7 +4,7 @@ import { Building2, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Calendar } from "@/components/ui/calendar";
+import { DateTimePicker } from "@/components/ui/date-time-picker";
 import {
   Popover,
   PopoverContent,
@@ -27,6 +27,15 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  MobileDialog,
+  MobileDialogContent,
+  MobileDialogHeader,
+  MobileDialogFooter,
+  MobileDialogTitle,
+  MobileDialogDescription,
+} from "@/components/ui/mobile-dialog";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useDialogStore } from "@/store/dialogStore";
 
 interface SaveTimeEntryDialogProps {
@@ -160,18 +169,25 @@ export function SaveTimeEntryDialog({
     });
   };
 
+  const isMobile = useMediaQuery("(max-width: 640px)");
+
+  const DialogComponent = isMobile ? MobileDialog : Dialog;
+  const DialogContentComponent = isMobile ? MobileDialogContent : DialogContent;
+  const DialogHeaderComponent = isMobile ? MobileDialogHeader : DialogHeader;
+  const DialogTitleComponent = isMobile ? MobileDialogTitle : DialogTitle;
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
+    <DialogComponent open={open} onOpenChange={onOpenChange}>
+      <DialogContentComponent
         className="max-w-lg w-full p-0 gap-0 overflow-hidden rounded-2xl border-border/50 shadow-xl dark:shadow-2xl dark:shadow-primary/10"
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
-        <DialogHeader className="sticky top-0 z-10 p-4 sm:p-6 bg-gradient-to-b from-background via-background to-background/80 backdrop-blur-xl border-b border-border/50">
+        <DialogHeaderComponent className="sticky top-0 z-10 p-4 sm:p-6 bg-gradient-to-b from-background via-background to-background/80 backdrop-blur-xl border-b border-border/50">
           <div className="flex items-center gap-2 text-primary">
             <Clock className="h-5 w-5" />
-            <DialogTitle className="text-lg font-semibold tracking-tight">
+            <DialogTitleComponent className="text-lg font-semibold tracking-tight">
               Save Time Entry
-            </DialogTitle>
+            </DialogTitleComponent>
           </div>
 
           <div className="mt-6">
@@ -246,42 +262,24 @@ export function SaveTimeEntryDialog({
                     </span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 mt-2">
-                  <div className="text-sm text-muted-foreground">
+                <div className="mt-2">
+                  <Label className="text-sm text-muted-foreground mb-2">
                     Started at
-                  </div>
-                  <div className="flex-1 grid grid-cols-2 gap-2">
-                    <Input
-                      type="date"
-                      value={new Date().toISOString().split("T")[0]}
-                      onChange={(e) => {
-                        const now = new Date();
-                        const time = now.toTimeString().substring(0, 5);
-                        setFormData((prev) => ({
-                          ...prev,
-                          startTime: `${e.target.value}T${time}:00.000Z`,
-                        }));
-                      }}
-                      className="h-8 text-sm"
-                    />
-                    <Input
-                      type="time"
-                      value={new Date().toTimeString().substring(0, 5)}
-                      onChange={(e) => {
-                        const today = new Date().toISOString().split("T")[0];
-                        setFormData((prev) => ({
-                          ...prev,
-                          startTime: `${today}T${e.target.value}:00.000Z`,
-                        }));
-                      }}
-                      className="h-8 text-sm"
-                    />
-                  </div>
+                  </Label>
+                  <DateTimePicker
+                    date={new Date(formData.startTime)}
+                    setDate={(date) => {
+                      setFormData((prev) => ({
+                        ...prev,
+                        startTime: date.toISOString(),
+                      }));
+                    }}
+                  />
                 </div>
               </div>
             </div>
           </div>
-        </DialogHeader>
+        </DialogHeaderComponent>
 
         <ScrollArea className="max-h-[calc(100vh-20rem)] sm:max-h-[calc(100vh-22rem)] overflow-y-auto overscroll-none bg-gradient-to-b from-transparent via-background/50 to-background/50 backdrop-blur-sm">
           <div className="p-4 sm:p-6 space-y-6">
@@ -401,7 +399,7 @@ export function SaveTimeEntryDialog({
             </Button>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      </DialogContentComponent>
+    </DialogComponent>
   );
 }

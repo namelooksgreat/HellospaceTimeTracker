@@ -1,33 +1,57 @@
 import * as React from "react";
-import { Drawer } from "vaul";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { cn } from "@/lib/utils";
+import { X } from "lucide-react";
 
-const MobileDialog = Drawer.Root;
+const MobileDialog = DialogPrimitive.Root;
 
-const MobileDialogTrigger = Drawer.Trigger;
+const MobileDialogTrigger = DialogPrimitive.Trigger;
+
+const MobileDialogPortal = DialogPrimitive.Portal;
+
+const MobileDialogClose = DialogPrimitive.Close;
+
+const MobileDialogOverlay = React.forwardRef<
+  React.ElementRef<typeof DialogPrimitive.Overlay>,
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
+>(({ className, ...props }, ref) => (
+  <DialogPrimitive.Overlay
+    ref={ref}
+    className={cn(
+      "fixed inset-0 z-50 bg-black/80 backdrop-blur-sm",
+      "data-[state=open]:animate-in data-[state=closed]:animate-out",
+      "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+      className,
+    )}
+    {...props}
+  />
+));
+MobileDialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
 const MobileDialogContent = React.forwardRef<
-  React.ElementRef<typeof Drawer.Content>,
-  React.ComponentPropsWithoutRef<typeof Drawer.Content>
+  React.ElementRef<typeof DialogPrimitive.Content>,
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
 >(({ className, children, ...props }, ref) => (
-  <Drawer.Portal>
-    <Drawer.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm" />
-    <Drawer.Content
+  <MobileDialogPortal>
+    <MobileDialogOverlay />
+    <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed inset-x-0 bottom-0 z-50 mt-24 flex h-[96%] flex-col rounded-t-[10px] bg-background",
-        "border-t border-border/50 shadow-xl",
-        "transition-transform duration-300 ease-in-out",
+        "fixed left-0 bottom-0 z-50 w-full",
+        "bg-background p-0",
+        "duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out",
+        "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+        "data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
+        "rounded-t-2xl border border-border/50 shadow-xl",
         className,
       )}
       {...props}
     >
-      <div className="mx-auto mt-4 h-1.5 w-[100px] rounded-full bg-muted" />
       {children}
-    </Drawer.Content>
-  </Drawer.Portal>
+    </DialogPrimitive.Content>
+  </MobileDialogPortal>
 ));
-MobileDialogContent.displayName = "MobileDialogContent";
+MobileDialogContent.displayName = DialogPrimitive.Content.displayName;
 
 const MobileDialogHeader = ({
   className,
@@ -35,7 +59,7 @@ const MobileDialogHeader = ({
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      "sticky top-0 z-10 p-4 sm:p-6 bg-gradient-to-b from-background via-background to-background/80 backdrop-blur-xl border-b border-border/50",
+      "flex flex-col space-y-1.5 p-4 text-center sm:text-left",
       className,
     )}
     {...props}
@@ -49,7 +73,8 @@ const MobileDialogFooter = ({
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      "sticky bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-background via-background to-background/80 backdrop-blur-xl border-t border-border/50 z-50",
+      "flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2",
+      "p-4 border-t border-border/50 bg-gradient-to-t from-background via-background to-background/80 backdrop-blur-xl",
       className,
     )}
     {...props}
@@ -58,10 +83,10 @@ const MobileDialogFooter = ({
 MobileDialogFooter.displayName = "MobileDialogFooter";
 
 const MobileDialogTitle = React.forwardRef<
-  React.ElementRef<typeof Drawer.Title>,
-  React.ComponentPropsWithoutRef<typeof Drawer.Title>
+  React.ElementRef<typeof DialogPrimitive.Title>,
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title>
 >(({ className, ...props }, ref) => (
-  <Drawer.Title
+  <DialogPrimitive.Title
     ref={ref}
     className={cn(
       "text-lg font-semibold leading-none tracking-tight",
@@ -70,22 +95,25 @@ const MobileDialogTitle = React.forwardRef<
     {...props}
   />
 ));
-MobileDialogTitle.displayName = "MobileDialogTitle";
+MobileDialogTitle.displayName = DialogPrimitive.Title.displayName;
 
 const MobileDialogDescription = React.forwardRef<
-  React.ElementRef<typeof Drawer.Description>,
-  React.ComponentPropsWithoutRef<typeof Drawer.Description>
+  React.ElementRef<typeof DialogPrimitive.Description>,
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Description>
 >(({ className, ...props }, ref) => (
-  <Drawer.Description
+  <DialogPrimitive.Description
     ref={ref}
     className={cn("text-sm text-muted-foreground", className)}
     {...props}
   />
 ));
-MobileDialogDescription.displayName = "MobileDialogDescription";
+MobileDialogDescription.displayName = DialogPrimitive.Description.displayName;
 
 export {
   MobileDialog,
+  MobileDialogPortal,
+  MobileDialogOverlay,
+  MobileDialogClose,
   MobileDialogTrigger,
   MobileDialogContent,
   MobileDialogHeader,
