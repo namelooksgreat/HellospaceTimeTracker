@@ -197,7 +197,7 @@ function TimeTracker({
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <div className="relative p-2 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 text-primary ring-1 ring-primary/20 shadow-lg shadow-primary/10 overflow-hidden group/icon">
+                <div className="relative p-2 rounded-xl bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20 text-purple-500 ring-1 ring-purple-500/20 shadow-lg shadow-purple-500/10 overflow-hidden group/icon">
                   <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent opacity-0 group-hover/icon:opacity-100 transition-opacity duration-500" />
                   <div className="absolute inset-0 bg-[linear-gradient(to_right,transparent_0%,transparent_49%,rgb(var(--primary))_50%,transparent_51%,transparent_100%)] opacity-[0.03] bg-[length:8px_100%]" />
                   <Clock
@@ -338,10 +338,11 @@ function TimeTracker({
             <Button
               onClick={handleTimerAction}
               variant={state === "paused" ? "outline" : "default"}
-              className={cn("flex-1", styles.components.timerButton, {
-                [styles.components.timerButtonRunning]: state === "running",
-                [styles.components.timerButtonPaused]: state === "paused",
-              })}
+              className={cn(
+                "flex-1",
+                "h-12 rounded-xl bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 hover:opacity-90 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0",
+                state === "paused" && "bg-none border-2 border-primary/50",
+              )}
             >
               {(state === "stopped" || !state) && (
                 <div className="flex items-center justify-center gap-2">

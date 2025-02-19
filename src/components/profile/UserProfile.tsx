@@ -192,7 +192,7 @@ export function UserProfile({ user }: UserProfileProps) {
                     `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`
                   }
                 />
-                <AvatarFallback className="bg-primary/10 text-primary text-lg sm:text-2xl">
+                <AvatarFallback className="bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20 text-purple-500 text-lg sm:text-2xl">
                   {user.full_name?.[0] || user.email[0]}
                 </AvatarFallback>
               </Avatar>
@@ -314,27 +314,33 @@ export function UserProfile({ user }: UserProfileProps) {
         </CardContent>
       </Card>
 
-      <div className="flex justify-between items-center">
-        <Button
-          type="button"
-          variant="destructive"
-          onClick={async () => {
-            try {
-              await useAuthStore.getState().signOut();
-            } catch (error) {
-              handleError(error, "UserProfile");
-            }
-          }}
-          className="gap-2"
-        >
-          <LogOut className="h-4 w-4" />
-          Çıkış Yap
-        </Button>
+      <div className="sticky bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-background via-background to-background/80 backdrop-blur-xl border-t border-border/50 z-50">
+        <div className="flex gap-3 max-w-xl mx-auto">
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={async () => {
+              try {
+                await useAuthStore.getState().signOut();
+              } catch (error) {
+                handleError(error, "UserProfile");
+              }
+            }}
+            className="h-12 flex-1 rounded-xl hover:opacity-90 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0"
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            Çıkış Yap
+          </Button>
 
-        <Button type="submit" disabled={loading}>
-          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Değişiklikleri Kaydet
-        </Button>
+          <Button
+            type="submit"
+            disabled={loading}
+            className="h-12 flex-1 rounded-xl bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 hover:opacity-90 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0"
+          >
+            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Değişiklikleri Kaydet
+          </Button>
+        </div>
       </div>
     </form>
   );

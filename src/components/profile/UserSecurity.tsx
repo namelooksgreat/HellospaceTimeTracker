@@ -3,59 +3,115 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Card, CardContent } from "../ui/card";
-import { Loader2 } from "lucide-react";
+import { Lock, Loader2 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { handleError } from "@/lib/utils/error-handler";
+import { showSuccess } from "@/lib/utils/toast";
 
-export function UserSecurity() {
+export function UserSecurity({ userId }: { userId?: string }) {
   const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!userId) return;
+
+    if (formData.newPassword !== formData.confirmPassword) {
+      handleError(new Error("Passwords do not match"), "UserSecurity");
+      return;
+    }
+
     setLoading(true);
-    // TODO: Implement password change
-    setTimeout(() => setLoading(false), 1000);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: formData.newPassword,
+      });
+
+      if (error) throw error;
+
+      showSuccess("Password updated successfully");
+      setFormData({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+    } catch (error) {
+      handleError(error, "UserSecurity");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <Card className="bg-gradient-to-br from-card/50 to-card/30 dark:from-card/20 dark:to-card/10 border border-border/50 rounded-xl transition-all duration-300 hover:shadow-lg hover:border-border/80 group overflow-hidden">
-        <CardContent className="p-6 space-y-6">
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="current_password">Current Password</Label>
-              <Input
-                id="current_password"
-                type="password"
-                placeholder="Enter current password"
-              />
-            </div>
+    <Card className="bg-gradient-to-br from-card/50 to-card/30 dark:from-card/20 dark:to-card/10 border border-border/50 rounded-xl transition-all duration-300 hover:shadow-lg hover:border-border/80 group overflow-hidden">
+      <CardContent className="p-6 space-y-6">
+        <div className="flex items-center gap-2 text-primary">
+          <Lock className="h-5 w-5" />
+          <h2 className="text-lg font-semibold tracking-tight">
+            Security Settings
+          </h2>
+        </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="new_password">New Password</Label>
-              <Input
-                id="new_password"
-                type="password"
-                placeholder="Enter new password"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="confirm_password">Confirm New Password</Label>
-              <Input
-                id="confirm_password"
-                type="password"
-                placeholder="Confirm new password"
-              />
-            </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label>Current Password</Label>
+            <Input
+              type="password"
+              value={formData.currentPassword}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  currentPassword: e.target.value,
+                }))
+              }
+              required
+            />
           </div>
-        </CardContent>
-      </Card>
 
-      <div className="flex justify-end">
-        <Button type="submit" disabled={loading}>
-          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Update Password
-        </Button>
-      </div>
-    </form>
+          <div className="space-y-2">
+            <Label>New Password</Label>
+            <Input
+              type="password"
+              value={formData.newPassword}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  newPassword: e.target.value,
+                }))
+              }
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Confirm New Password</Label>
+            <Input
+              type="password"
+              value={formData.confirmPassword}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  confirmPassword: e.target.value,
+                }))
+              }
+              required
+            />
+          </div>
+
+          <Button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 hover:opacity-90 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0"
+          >
+            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Update Password
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
   );
 }

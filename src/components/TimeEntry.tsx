@@ -64,7 +64,7 @@ function TimeEntryComponent({
               <span className="font-mono">{formattedTime}</span>
             </div>
             <span className="text-border/50">•</span>
-            <div className="font-mono font-medium text-foreground bg-accent/20 px-2 py-0.5 rounded-md">
+            <div className="font-mono font-medium text-foreground bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20 px-2 py-0.5 rounded-md">
               {formatDuration(duration)}
             </div>
           </div>

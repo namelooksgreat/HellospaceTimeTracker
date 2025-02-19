@@ -287,7 +287,7 @@ export default function ReportsPage({
       </div>
 
       {showFilters && (
-        <Card>
+        <Card className="bg-gradient-to-br from-card/50 to-card/30 dark:from-card/20 dark:to-card/10 border border-border/50 rounded-xl transition-all duration-300 hover:shadow-lg hover:border-border/80">
           <CardContent className="p-4">
             <AdvancedFilters
               projects={projects}

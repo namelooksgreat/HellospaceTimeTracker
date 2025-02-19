@@ -3,6 +3,7 @@ import { LoginForm } from "./LoginForm";
 import { RegisterForm } from "./RegisterForm";
 import { Button } from "../ui/button";
 import { m, AnimatePresence, LazyMotion, domAnimation } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 export function AuthPage() {
   const [mode, setMode] = useState<"login" | "register">("login");
@@ -32,21 +33,23 @@ export function AuthPage() {
             </p>
           </div>
 
-          <div className="relative bg-card rounded-2xl p-4 sm:p-6 shadow-xl border border-border/50 backdrop-blur-xl overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-primary/2 to-transparent" />
+          <div className="relative bg-gradient-to-br from-card/50 to-card/30 dark:from-card/20 dark:to-card/10 border border-border/50 rounded-xl p-4 sm:p-6 shadow-xl backdrop-blur-xl overflow-hidden transition-all duration-300 hover:shadow-lg hover:border-border/80 group">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-50" />
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,transparent_0%,transparent_49%,rgb(var(--primary))_50%,transparent_51%,transparent_100%)] opacity-[0.03] bg-[length:8px_100%]" />
+            <div className="absolute inset-0 bg-grid-white/[0.02]" />
 
             <div className="relative space-y-6">
-              <div className="flex p-1 gap-1 bg-muted/50 rounded-lg">
+              <div className="flex p-1 gap-1 bg-muted/50 rounded-xl">
                 <Button
                   variant={mode === "login" ? "default" : "ghost"}
-                  className="flex-1 font-medium rounded-md"
+                  className="flex-1 font-medium rounded-lg transition-all duration-300"
                   onClick={() => setMode("login")}
                 >
                   Giriş Yap
                 </Button>
                 <Button
                   variant={mode === "register" ? "default" : "ghost"}
-                  className="flex-1 font-medium rounded-md"
+                  className="flex-1 font-medium rounded-lg transition-all duration-300"
                   onClick={() => setMode("register")}
                 >
                   Kayıt Ol
