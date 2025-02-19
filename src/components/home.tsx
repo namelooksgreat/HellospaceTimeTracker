@@ -15,6 +15,16 @@ import { usePerformanceTracking } from "@/hooks/usePerformanceTracking";
 import { handleError } from "@/lib/utils/error-handler";
 import { ErrorBoundary } from "./ErrorBoundary";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "./ui/alert-dialog";
+import {
   getProjects,
   getTimeEntries,
   deleteTimeEntry,
@@ -38,18 +48,27 @@ function Home() {
   const { projects, customers, timeEntries, loading, fetchTimeEntriesData } =
     useHomeData(session);
 
+  const [entryToDelete, setEntryToDelete] = useState<string | null>(null);
+
   const handleDeleteTimeEntry = async (id: string) => {
+    setEntryToDelete(id);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!entryToDelete) return;
+
     try {
       const { error } = await supabase
         .from("time_entries")
         .delete()
-        .eq("id", id);
+        .eq("id", entryToDelete);
 
       if (error) throw error;
 
       // Refresh data after deletion
       await fetchTimeEntriesData();
       toast.success("Time entry deleted successfully");
+      setEntryToDelete(null);
     } catch (error) {
       handleError(error, "Home");
       toast.error("Failed to delete time entry");
@@ -204,6 +223,30 @@ function Home() {
               onSave={handleEditEntry}
             />
           )}
+
+          <AlertDialog
+            open={!!entryToDelete}
+            onOpenChange={(open) => !open && setEntryToDelete(null)}
+          >
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Time Entry</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete this time entry? This action
+                  cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleConfirmDelete}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </main>
       </div>
     </MainLayout>

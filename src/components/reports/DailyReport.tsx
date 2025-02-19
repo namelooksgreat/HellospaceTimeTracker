@@ -1,6 +1,17 @@
 import { ScrollArea } from "../ui/scroll-area";
 import TimeEntry from "../TimeEntry";
 import { Clock } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../ui/alert-dialog";
+import { useState } from "react";
 
 interface TimeEntryDisplay {
   id: string;
@@ -23,34 +34,73 @@ export function DailyReport({
   onDeleteEntry,
   onEditEntry,
 }: DailyReportProps) {
+  const [entryToDelete, setEntryToDelete] = useState<TimeEntryDisplay | null>(
+    null,
+  );
+
+  const handleConfirmDelete = async () => {
+    if (!entryToDelete) return;
+    await onDeleteEntry(entryToDelete.id);
+    setEntryToDelete(null);
+  };
+
   return (
-    <ScrollArea className="h-[calc(100vh-16rem)] sm:h-[calc(100vh-20rem)] px-1.5 sm:px-4 -mx-1.5 sm:-mx-4">
-      <div className="space-y-2 pb-[calc(4rem+env(safe-area-inset-bottom))] sm:pb-20">
-        {entries.length > 0 ? (
-          entries.map((entry) => (
-            <div key={entry.id} className="animate-in fade-in-50 duration-300">
-              <TimeEntry
-                id={entry.id}
-                taskName={entry.taskName}
-                projectName={entry.projectName}
-                duration={entry.duration}
-                startTime={entry.startTime}
-                projectColor={entry.projectColor}
-                onDelete={() => onDeleteEntry(entry.id)}
-                onEdit={() => onEditEntry?.(entry.id)}
-              />
+    <>
+      <ScrollArea className="h-[calc(100vh-16rem)] sm:h-[calc(100vh-20rem)] px-1.5 sm:px-4 -mx-1.5 sm:-mx-4">
+        <div className="space-y-2 pb-[calc(4rem+env(safe-area-inset-bottom))] sm:pb-20">
+          {entries.length > 0 ? (
+            entries.map((entry) => (
+              <div
+                key={entry.id}
+                className="animate-in fade-in-50 duration-300"
+              >
+                <TimeEntry
+                  id={entry.id}
+                  taskName={entry.taskName}
+                  projectName={entry.projectName}
+                  duration={entry.duration}
+                  startTime={entry.startTime}
+                  projectColor={entry.projectColor}
+                  onDelete={() => setEntryToDelete(entry)}
+                  onEdit={() => onEditEntry?.(entry.id)}
+                />
+              </div>
+            ))
+          ) : (
+            <div className="flex flex-col items-center justify-center h-[300px] text-muted-foreground">
+              <Clock className="h-12 w-12 mb-4 text-muted-foreground/50" />
+              <p className="text-center mb-1">No time entries for today</p>
+              <p className="text-sm text-muted-foreground/80">
+                Start tracking your time to see entries here
+              </p>
             </div>
-          ))
-        ) : (
-          <div className="flex flex-col items-center justify-center h-[300px] text-muted-foreground">
-            <Clock className="h-12 w-12 mb-4 text-muted-foreground/50" />
-            <p className="text-center mb-1">No time entries for today</p>
-            <p className="text-sm text-muted-foreground/80">
-              Start tracking your time to see entries here
-            </p>
-          </div>
-        )}
-      </div>
-    </ScrollArea>
+          )}
+        </div>
+      </ScrollArea>
+
+      <AlertDialog
+        open={!!entryToDelete}
+        onOpenChange={() => setEntryToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Time Entry</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this time entry? This action
+              cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
