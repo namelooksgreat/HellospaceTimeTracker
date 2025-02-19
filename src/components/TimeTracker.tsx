@@ -378,15 +378,12 @@ function TimeTracker({
 
           <Button
             onClick={() => {
-              setTaskName("");
-              setProjectId("");
-              setCustomerId("");
               setSaveTimeEntryDialog(
                 true,
                 {
-                  taskName: "",
-                  projectId: "",
-                  customerId: "",
+                  taskName: taskName,
+                  projectId: selectedProject,
+                  customerId: selectedCustomer,
                 },
                 true,
               );

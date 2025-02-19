@@ -116,7 +116,6 @@ export function SaveTimeEntryDialog({
 
   useEffect(() => {
     if (open) {
-      // Reset form data when dialog opens
       const now = new Date();
       const year = now.getFullYear();
       const month = String(now.getMonth() + 1).padStart(2, "0");
@@ -125,15 +124,29 @@ export function SaveTimeEntryDialog({
       const minutes = String(now.getMinutes()).padStart(2, "0");
       const formattedDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
 
-      setFormData({
-        taskName: initialTaskName || "",
-        projectId: initialProjectId || "",
-        customerId: initialCustomerId || "",
-        description: "",
-        tags: [],
-        startTime: formattedDateTime,
-      });
-      setDuration(initialDuration);
+      if (saveTimeEntryDialog.isManualEntry) {
+        // Manuel giriş için formu sıfırla
+        setFormData({
+          taskName: "",
+          projectId: "",
+          customerId: "",
+          description: "",
+          tags: [],
+          startTime: formattedDateTime,
+        });
+        setDuration(0);
+      } else {
+        // Durdur butonundan gelen veriler için mevcut değerleri koru
+        setFormData({
+          taskName: initialTaskName || "",
+          projectId: initialProjectId || "",
+          customerId: initialCustomerId || "",
+          description: "",
+          tags: [],
+          startTime: formattedDateTime,
+        });
+        setDuration(initialDuration);
+      }
     }
   }, [
     open,
@@ -142,6 +155,7 @@ export function SaveTimeEntryDialog({
     initialCustomerId,
     initialDuration,
     setDuration,
+    saveTimeEntryDialog.isManualEntry,
   ]);
 
   const formatDuration = (seconds: number) => {
@@ -262,19 +276,41 @@ export function SaveTimeEntryDialog({
                     </span>
                   </div>
                 </div>
-                <div className="mt-2">
-                  <Label className="text-sm text-muted-foreground mb-2">
+                <div className="mt-2 space-y-2">
+                  <Label className="text-sm text-muted-foreground">
                     Started at
                   </Label>
-                  <DateTimePicker
-                    date={new Date(formData.startTime)}
-                    setDate={(date) => {
-                      setFormData((prev) => ({
-                        ...prev,
-                        startTime: date.toISOString(),
-                      }));
-                    }}
-                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <DateTimePicker
+                      date={new Date(formData.startTime)}
+                      setDate={(date) => {
+                        const currentDate = new Date(formData.startTime);
+                        date.setHours(currentDate.getHours());
+                        date.setMinutes(currentDate.getMinutes());
+                        setFormData((prev) => ({
+                          ...prev,
+                          startTime: date.toISOString(),
+                        }));
+                      }}
+                    />
+                    <Input
+                      type="time"
+                      value={format(new Date(formData.startTime), "HH:mm")}
+                      onChange={(e) => {
+                        const [hours, minutes] = e.target.value
+                          .split(":")
+                          .map(Number);
+                        const date = new Date(formData.startTime);
+                        date.setHours(hours);
+                        date.setMinutes(minutes);
+                        setFormData((prev) => ({
+                          ...prev,
+                          startTime: date.toISOString(),
+                        }));
+                      }}
+                      className="h-10"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
