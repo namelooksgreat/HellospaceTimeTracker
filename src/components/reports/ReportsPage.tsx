@@ -76,7 +76,19 @@ export default function ReportsPage({
 
   const [timeRange, setTimeRange] = useState<
     "daily" | "weekly" | "monthly" | "yearly"
-  >("daily");
+  >(
+    () =>
+      (localStorage.getItem("reportsTimeRange") as
+        | "daily"
+        | "weekly"
+        | "monthly"
+        | "yearly") || "daily",
+  );
+
+  // Save timeRange to localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem("reportsTimeRange", timeRange);
+  }, [timeRange]);
 
   const [userSettings, setUserSettings] = useState<{
     default_rate: number;
@@ -240,16 +252,21 @@ export default function ReportsPage({
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <Card className="bg-gradient-to-br from-card/50 to-card/30 dark:from-card/20 dark:to-card/10 border border-border/50 rounded-xl p-3 transition-all duration-300 hover:shadow-lg hover:border-border/80 group">
-          <div className="space-y-1">
-            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-              <Clock className="h-3.5 w-3.5" />
-              <span className="truncate">Total Time</span>
+        <Card className="relative overflow-hidden bg-gradient-to-br from-card/50 to-card/30 dark:from-black/80 dark:via-black/60 dark:to-black/40 border border-border/50 rounded-xl p-4 transition-all duration-300 hover:shadow-lg hover:border-border/80 group">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-50" />
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,transparent_0%,transparent_49%,rgb(var(--primary))_50%,transparent_51%,transparent_100%)] opacity-[0.03] bg-[length:8px_100%]" />
+          <div className="absolute inset-0 bg-grid-white/[0.02]" />
+          <div className="relative z-10 space-y-2">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-primary/10 text-primary ring-1 ring-primary/20">
+                <Clock className="h-4 w-4" />
+              </div>
+              <div className="text-sm font-medium">Total Time</div>
             </div>
-            <div className="text-lg sm:text-2xl font-mono font-bold tracking-tight">
+            <div className="text-xl sm:text-3xl font-mono font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500">
               {formatDuration(totalDuration)}
             </div>
-            <div className="text-[10px] sm:text-xs text-muted-foreground truncate">
+            <div className="text-xs text-muted-foreground">
               {timeRange === "daily"
                 ? "Today"
                 : timeRange === "weekly"
@@ -261,19 +278,24 @@ export default function ReportsPage({
           </div>
         </Card>
 
-        <Card className="bg-gradient-to-br from-card/50 to-card/30 dark:from-card/20 dark:to-card/10 border border-border/50 rounded-xl p-3 transition-all duration-300 hover:shadow-lg hover:border-border/80 group">
-          <div className="space-y-1">
-            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-              <DollarSign className="h-3.5 w-3.5" />
-              <span className="truncate">Total Earnings</span>
+        <Card className="relative overflow-hidden bg-gradient-to-br from-card/50 to-card/30 dark:from-black/80 dark:via-black/60 dark:to-black/40 border border-border/50 rounded-xl p-4 transition-all duration-300 hover:shadow-lg hover:border-border/80 group">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-50" />
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,transparent_0%,transparent_49%,rgb(var(--primary))_50%,transparent_51%,transparent_100%)] opacity-[0.03] bg-[length:8px_100%]" />
+          <div className="absolute inset-0 bg-grid-white/[0.02]" />
+          <div className="relative z-10 space-y-2">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-primary/10 text-primary ring-1 ring-primary/20">
+                <DollarSign className="h-4 w-4" />
+              </div>
+              <div className="text-sm font-medium">Total Earnings</div>
             </div>
-            <div className="text-lg sm:text-2xl font-mono font-bold tracking-tight">
+            <div className="text-lg sm:text-3xl font-mono font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500">
               {new Intl.NumberFormat("tr-TR", {
                 style: "currency",
                 currency: userSettings?.currency || "TRY",
               }).format(totalEarnings)}
             </div>
-            <div className="text-[10px] sm:text-xs text-muted-foreground truncate">
+            <div className="text-xs text-muted-foreground">
               {timeRange === "daily"
                 ? "Today"
                 : timeRange === "weekly"

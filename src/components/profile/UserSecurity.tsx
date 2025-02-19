@@ -47,7 +47,10 @@ export function UserSecurity({ userId }: { userId?: string }) {
   };
 
   return (
-    <Card className="bg-gradient-to-br from-card/50 to-card/30 dark:from-card/20 dark:to-card/10 border border-border/50 rounded-xl transition-all duration-300 hover:shadow-lg hover:border-border/80 group overflow-hidden">
+    <Card className="relative overflow-hidden bg-gradient-to-br from-card/50 to-card/30 dark:from-black/80 dark:via-black/60 dark:to-black/40 border border-border/50 rounded-xl transition-all duration-300 hover:shadow-lg hover:border-border/80 group">
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-50" />
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,transparent_0%,transparent_49%,rgb(var(--primary))_50%,transparent_51%,transparent_100%)] opacity-[0.03] bg-[length:8px_100%]" />
+      <div className="absolute inset-0 bg-grid-white/[0.02]" />
       <CardContent className="p-6 space-y-6">
         <div className="flex items-center gap-2 text-primary">
           <Lock className="h-5 w-5" />

@@ -3,6 +3,7 @@ import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { Card, CardContent } from "../ui/card";
 import { Label } from "../ui/label";
 import { Switch } from "../ui/switch";
+import { Button } from "../ui/button";
 import {
   Select,
   SelectContent,
@@ -16,7 +17,10 @@ export function UserPreferences() {
   const { language, setLanguage } = useLanguage();
 
   return (
-    <Card className="relative overflow-hidden bg-gradient-to-br from-card/50 to-card/30 dark:from-card/20 dark:to-card/10 border border-border/50 rounded-xl transition-all duration-300 hover:shadow-lg hover:border-border/80 group">
+    <Card className="relative overflow-hidden bg-gradient-to-br from-card/50 to-card/30 dark:from-black/80 dark:via-black/60 dark:to-black/40 border border-border/50 rounded-xl transition-all duration-300 hover:shadow-lg hover:border-border/80 group">
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-50" />
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,transparent_0%,transparent_49%,rgb(var(--primary))_50%,transparent_51%,transparent_100%)] opacity-[0.03] bg-[length:8px_100%]" />
+      <div className="absolute inset-0 bg-grid-white/[0.02]" />
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-50" />
       <div className="absolute inset-0 bg-[linear-gradient(to_right,transparent_0%,transparent_49%,rgb(var(--primary))_50%,transparent_51%,transparent_100%)] opacity-[0.03] bg-[length:8px_100%]" />
       <div className="absolute inset-0 bg-grid-white/[0.02]" />
@@ -103,6 +107,29 @@ export function UserPreferences() {
               </p>
             </div>
             <Switch className="data-[state=checked]:bg-primary" />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label>
+                {language === "tr" ? "Onboarding Turu" : "Onboarding Tour"}
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                {language === "tr"
+                  ? "Uygulama tanıtım turunu tekrar görüntüle"
+                  : "View the app introduction tour again"}
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => {
+                localStorage.removeItem("hasSeenOnboarding");
+                window.location.reload();
+              }}
+              className="bg-background/50 hover:bg-accent/50 transition-all duration-150"
+            >
+              {language === "tr" ? "Turu Başlat" : "Start Tour"}
+            </Button>
           </div>
         </div>
       </CardContent>

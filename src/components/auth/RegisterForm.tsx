@@ -61,8 +61,12 @@ export function RegisterForm() {
           onChange={(e) =>
             setFormData((prev) => ({ ...prev, fullName: e.target.value }))
           }
+          placeholder="Enter your full name"
           required
         />
+        <p className="text-xs text-muted-foreground">
+          This will be displayed on your profile.
+        </p>
       </div>
 
       <div className="space-y-2">
@@ -73,8 +77,12 @@ export function RegisterForm() {
           onChange={(e) =>
             setFormData((prev) => ({ ...prev, email: e.target.value }))
           }
+          placeholder="Enter your email address"
           required
         />
+        <p className="text-xs text-muted-foreground">
+          You'll use this email to log in to your account.
+        </p>
       </div>
 
       <div className="space-y-2">
@@ -85,13 +93,17 @@ export function RegisterForm() {
           onChange={(e) =>
             setFormData((prev) => ({ ...prev, password: e.target.value }))
           }
+          placeholder="Choose a secure password"
           required
         />
+        <p className="text-xs text-muted-foreground">
+          Use at least 8 characters with a mix of letters, numbers & symbols.
+        </p>
       </div>
 
       <Button
         type="submit"
-        className="w-full h-12 rounded-xl bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 hover:opacity-90 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0"
+        className="w-full h-12 rounded-xl bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white hover:opacity-90 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0"
         disabled={loading}
       >
         {loading ? (

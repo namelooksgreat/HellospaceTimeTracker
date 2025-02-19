@@ -8,6 +8,7 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import { LanguageProvider } from "./lib/i18n/LanguageContext";
 import { useAuth } from "./lib/auth";
 import { AuthPage } from "./components/auth/AuthPage";
+import { ResetPasswordForm } from "./components/auth/ResetPasswordForm";
 import { AdminLayout } from "./components/admin/AdminLayout";
 import { DashboardPage } from "./components/admin/pages/DashboardPage";
 import { UsersPage } from "./components/admin/pages/UsersPage";
@@ -48,10 +49,18 @@ export default function App() {
               )}
 
               <Routes>
-                <Route
-                  path="/auth"
-                  element={session ? <Navigate to="/" replace /> : <AuthPage />}
-                />
+                <Route path="/auth">
+                  <Route
+                    index
+                    element={
+                      session ? <Navigate to="/" replace /> : <AuthPage />
+                    }
+                  />
+                  <Route
+                    path="reset-password"
+                    element={<ResetPasswordForm />}
+                  />
+                </Route>
                 <Route
                   path="/"
                   element={

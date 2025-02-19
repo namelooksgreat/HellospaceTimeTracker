@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/authStore";
 import { AvatarService } from "@/lib/services/avatarService";
 import { Button } from "../ui/button";
@@ -15,7 +16,7 @@ import {
   SelectValue,
 } from "../ui/select";
 import { Card, CardContent } from "../ui/card";
-import { Camera, LogOut, Loader2 } from "lucide-react";
+import { Camera, LogOut, Loader2, User } from "lucide-react";
 import { handleError } from "@/lib/utils/error-handler";
 import { showSuccess } from "@/lib/utils/toast";
 import { UserRole } from "@/types/roles";
@@ -113,7 +114,7 @@ export function UserProfile({ user }: UserProfileProps) {
         avatarImage.src = publicUrl;
       }
 
-      showSuccess("Profil fotoğrafı güncellendi");
+      showSuccess("Profile photo updated");
     } catch (error) {
       handleError(error, "UserProfile");
     } finally {
@@ -170,7 +171,7 @@ export function UserProfile({ user }: UserProfileProps) {
         }));
       }
 
-      showSuccess("Profil bilgileriniz başarıyla güncellendi");
+      showSuccess("Profile information updated successfully");
     } catch (error) {
       handleError(error, "UserProfile");
     } finally {
@@ -180,23 +181,35 @@ export function UserProfile({ user }: UserProfileProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <Card className="bg-gradient-to-br from-card/50 to-card/30 dark:from-card/20 dark:to-card/10 border border-border/50 rounded-xl transition-all duration-300 hover:shadow-lg hover:border-border/80 group overflow-hidden">
-        <CardContent className="p-6 space-y-6">
+      <Card className="relative overflow-hidden bg-gradient-to-br from-card/50 to-card/30 dark:from-black/80 dark:via-black/60 dark:to-black/40 border border-border/50 rounded-xl transition-all duration-300 hover:shadow-lg hover:border-border/80 group">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-50" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,transparent_0%,transparent_49%,rgb(var(--primary))_50%,transparent_51%,transparent_100%)] opacity-[0.03] bg-[length:8px_100%]" />
+        <div className="absolute inset-0 bg-grid-white/[0.02]" />
+        <CardContent className="relative z-10 p-6 space-y-6">
+          <div className="flex items-center gap-2 text-primary">
+            <User className="h-5 w-5" />
+            <h2 className="text-lg font-semibold tracking-tight">
+              Profile Information
+            </h2>
+          </div>
+
           <div className="flex flex-col sm:flex-row gap-6">
-            <div className="flex items-center sm:items-start gap-4 sm:flex-col">
-              <Avatar className="w-16 h-16 sm:w-24 sm:h-24 ring-2 ring-primary/20">
-                <AvatarImage
-                  id="profile-avatar"
-                  src={
-                    user.avatar_url ||
-                    `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`
-                  }
-                />
-                <AvatarFallback className="bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20 text-purple-500 text-lg sm:text-2xl">
-                  {user.full_name?.[0] || user.email[0]}
-                </AvatarFallback>
-              </Avatar>
-              <div className="relative sm:w-full">
+            <div className="relative">
+              <div className="relative group/avatar">
+                <div className="relative w-fit rounded-full p-[2px] bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 transition-all duration-300 group-hover/avatar:shadow-lg group-hover/avatar:shadow-primary/20">
+                  <Avatar className="w-16 h-16 sm:w-24 sm:h-24 ring-1 ring-border/50">
+                    <AvatarImage
+                      id="profile-avatar"
+                      src={
+                        user.avatar_url ||
+                        `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`
+                      }
+                    />
+                    <AvatarFallback className="bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20 text-purple-500 text-lg sm:text-2xl">
+                      {user.full_name?.[0] || user.email[0]}
+                    </AvatarFallback>
+                  </Avatar>
+                </div>
                 <input
                   type="file"
                   accept="image/*"
@@ -208,43 +221,36 @@ export function UserProfile({ user }: UserProfileProps) {
                 <Button
                   type="button"
                   variant="outline"
-                  size="sm"
-                  className="w-full"
+                  size="icon"
+                  className="absolute bottom-1 right-1 h-6 w-6 rounded-full bg-background/95 hover:bg-accent/80 transition-all duration-150 border border-border shadow-lg opacity-0 group-hover/avatar:opacity-100 scale-90 group-hover/avatar:scale-100"
                   disabled={loading}
                   onClick={() =>
                     document.getElementById("avatar-upload")?.click()
                   }
                 >
                   {loading ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <Loader2 className="h-3 w-3 animate-spin" />
                   ) : (
-                    <Camera className="h-4 w-4 mr-2" />
+                    <Camera className="h-3 w-3" />
                   )}
-                  Fotoğraf Değiştir
                 </Button>
               </div>
             </div>
 
             <div className="flex-1 min-w-0 space-y-6">
-              <div className="space-y-1.5">
-                <div className="flex items-center gap-3">
-                  <h3 className="text-xl font-semibold truncate">
-                    {user.full_name || "Add your name"}
-                  </h3>
-                  {user.user_type && (
-                    <RoleBadge role={user.user_type as UserRole} />
-                  )}
-                </div>
-                <p className="text-sm text-muted-foreground truncate">
-                  {user.email}
-                </p>
+              <div className="flex items-center gap-3">
+                <h3 className="text-xl font-semibold truncate">
+                  {user.full_name || "Add your name"}
+                </h3>
+                {user.user_type && (
+                  <RoleBadge role={user.user_type as UserRole} />
+                )}
               </div>
 
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="full_name">Full Name</Label>
+                  <Label>Full Name</Label>
                   <Input
-                    id="full_name"
                     value={formData.full_name}
                     onChange={(e) =>
                       setFormData((prev) => ({
@@ -253,13 +259,13 @@ export function UserProfile({ user }: UserProfileProps) {
                       }))
                     }
                     placeholder="Enter your full name"
+                    className="bg-background/50 hover:bg-accent/50 transition-all duration-150"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label>Email</Label>
                   <Input
-                    id="email"
                     type="email"
                     value={formData.email}
                     disabled
@@ -268,10 +274,9 @@ export function UserProfile({ user }: UserProfileProps) {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="hourly_rate">Saatlik Ücret</Label>
+                  <Label>Hourly Rate</Label>
                   <div className="grid grid-cols-2 gap-2">
                     <Input
-                      id="hourly_rate"
                       type="number"
                       value={formData.hourly_rate}
                       disabled={user.user_type !== "admin"}
@@ -283,7 +288,10 @@ export function UserProfile({ user }: UserProfileProps) {
                       }
                       min="0"
                       step="0.01"
-                      className={user.user_type !== "admin" ? "bg-muted" : ""}
+                      className={cn(
+                        "bg-background/50 hover:bg-accent/50 transition-all duration-150",
+                        user.user_type !== "admin" && "bg-muted hover:bg-muted",
+                      )}
                     />
                     <Select
                       value={formData.currency}
@@ -292,8 +300,8 @@ export function UserProfile({ user }: UserProfileProps) {
                       }
                       disabled={user.user_type !== "admin"}
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Para birimi" />
+                      <SelectTrigger className="bg-background/50 hover:bg-accent/50 transition-all duration-150">
+                        <SelectValue placeholder="Currency" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="USD">USD</SelectItem>
@@ -304,8 +312,8 @@ export function UserProfile({ user }: UserProfileProps) {
                   </div>
                   <p className="text-sm text-muted-foreground">
                     {user.user_type === "admin"
-                      ? "Bu kullanıcı için saatlik ücreti ayarlayın."
-                      : "Sadece yöneticiler saatlik ücretleri değiştirebilir."}
+                      ? "Set the hourly rate for this user."
+                      : "Only administrators can change hourly rates."}
                   </p>
                 </div>
               </div>
@@ -329,16 +337,16 @@ export function UserProfile({ user }: UserProfileProps) {
             className="h-12 flex-1 rounded-xl hover:opacity-90 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0"
           >
             <LogOut className="h-4 w-4 mr-2" />
-            Çıkış Yap
+            Sign Out
           </Button>
 
           <Button
             type="submit"
             disabled={loading}
-            className="h-12 flex-1 rounded-xl bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 hover:opacity-90 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0"
+            className="h-12 flex-1 rounded-xl bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white hover:opacity-90 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0"
           >
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Değişiklikleri Kaydet
+            Save Changes
           </Button>
         </div>
       </div>
