@@ -9,22 +9,61 @@ import { LanguageProvider } from "./lib/i18n/LanguageContext";
 import { useAuth } from "./lib/auth";
 import { AuthPage } from "./components/auth/AuthPage";
 import { ResetPasswordForm } from "./components/auth/ResetPasswordForm";
-import { AdminLayout } from "./components/admin/AdminLayout";
-import { DashboardPage } from "./components/admin/pages/DashboardPage";
-import { UsersPage } from "./components/admin/pages/UsersPage";
-import { CustomersPage } from "./components/admin/pages/CustomersPage";
-import { ProjectsPage } from "./components/admin/pages/ProjectsPage";
-import { TimeEntriesPage } from "./components/admin/pages/TimeEntriesPage";
-import { SettingsPage } from "./components/admin/pages/SettingsPage";
-import { UserReportPage } from "./components/admin/pages/UserReportPage";
-import { CustomerReportPage } from "./components/admin/pages/CustomerReportPage";
-import { CustomerPaymentsPage } from "./components/admin/pages/CustomerPaymentsPage";
+// Admin page imports
+const UserReportPage = lazy(
+  () => import("./components/admin/pages/UserReportPage"),
+);
+const CustomerReportPage = lazy(
+  () => import("./components/admin/pages/CustomerReportPage"),
+);
 
 // Optimize code splitting with prefetch
 const Home = lazy(() => import("./components/home"));
 const TimeTracker = lazy(() => import("./components/TimeTracker"));
 const ReportsPage = lazy(() => import("./components/reports/ReportsPage"));
 const ProfilePage = lazy(() => import("./components/profile/ProfilePage"));
+
+// Admin pages
+const AdminLayout = lazy(() =>
+  import("./components/admin/AdminLayout").then((module) => ({
+    default: module.AdminLayout,
+  })),
+);
+const DashboardPage = lazy(() =>
+  import("./components/admin/pages/DashboardPage").then((module) => ({
+    default: module.DashboardPage,
+  })),
+);
+const UsersPage = lazy(() =>
+  import("./components/admin/pages/UsersPage").then((module) => ({
+    default: module.UsersPage,
+  })),
+);
+const CustomersPage = lazy(() =>
+  import("./components/admin/pages/CustomersPage").then((module) => ({
+    default: module.CustomersPage,
+  })),
+);
+const ProjectsPage = lazy(() =>
+  import("./components/admin/pages/ProjectsPage").then((module) => ({
+    default: module.ProjectsPage,
+  })),
+);
+const TimeEntriesPage = lazy(() =>
+  import("./components/admin/pages/TimeEntriesPage").then((module) => ({
+    default: module.TimeEntriesPage,
+  })),
+);
+const CustomerPaymentsPage = lazy(() =>
+  import("./components/admin/pages/CustomerPaymentsPage").then((module) => ({
+    default: module.CustomerPaymentsPage,
+  })),
+);
+const SettingsPage = lazy(() =>
+  import("./components/admin/pages/SettingsPage").then((module) => ({
+    default: module.SettingsPage,
+  })),
+);
 
 export default function App() {
   // Ensure routes are properly handled
