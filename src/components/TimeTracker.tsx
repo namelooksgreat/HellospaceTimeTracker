@@ -191,8 +191,7 @@ function TimeTracker({
         "backdrop-blur-xl",
         "shadow-lg sm:shadow-xl",
         "transition-all duration-500 ease-out-expo",
-        "sm:hover:shadow-2xl sm:hover:shadow-primary/5 sm:hover:-translate-y-0.5",
-        "sm:hover:border-primary/20",
+        "border-primary/20",
         state === "running" &&
           "ring-1 ring-primary/20 shadow-2xl shadow-primary/10 border-primary/20",
       )}
@@ -211,7 +210,7 @@ function TimeTracker({
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(var(--primary),0.1),transparent_70%)]" />
 
             <div className="relative z-10">
-              <div className="flex items-center justify-between mb-2 sm:mb-4">
+              <div className="flex flex-col items-center justify-center gap-4">
                 <div className="flex items-center gap-2">
                   <div className="relative p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-gradient-to-br from-background/80 to-background/60 dark:from-black/50 dark:to-black/30 text-primary ring-1 ring-border/10 shadow-lg overflow-hidden group/icon backdrop-blur-sm">
                     <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent opacity-0 group-hover/icon:opacity-100 transition-opacity duration-500" />
@@ -220,8 +219,10 @@ function TimeTracker({
                       className={cn(
                         "relative h-5 w-5 transition-all duration-300",
                         state === "running" && "animate-timer-pulse",
-                        "group-hover/icon:scale-110 group-hover/icon:text-primary",
+                        "text-foreground dark:text-foreground",
+                        "group-hover/icon:scale-110",
                       )}
+                      strokeWidth={2}
                     />
                   </div>
                   <div className="text-sm font-medium text-muted-foreground">
@@ -232,23 +233,23 @@ function TimeTracker({
                         : t("timer.stopped")}
                   </div>
                 </div>
-                {time > 0 && (
-                  <Button
-                    onClick={handleReset}
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 rounded-lg sm:rounded-xl bg-background/80 dark:bg-black/50 hover:bg-accent/80 text-muted-foreground hover:text-foreground transition-all duration-200 ring-1 ring-border/10 hover:ring-border shadow-sm"
-                    title={t("timer.reset")}
-                  >
-                    <RotateCcw className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
 
-              <div className="flex items-center justify-center">
-                <div className="font-mono text-3xl sm:text-7xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 transition-all duration-300 relative">
-                  {formattedTime}
-                  <div className="absolute -bottom-2 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <div className="flex items-center gap-4">
+                  <div className="font-mono text-3xl sm:text-7xl font-bold tracking-tight text-foreground dark:text-foreground transition-all duration-300 relative">
+                    {formattedTime}
+                    <div className="absolute -bottom-2 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  </div>
+                  {time > 0 && (
+                    <Button
+                      onClick={handleReset}
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 rounded-lg sm:rounded-xl bg-background/80 dark:bg-black/50 hover:bg-accent/80 text-muted-foreground hover:text-foreground transition-all duration-200 ring-1 ring-border/10 hover:ring-border shadow-sm"
+                      title={t("timer.reset")}
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>

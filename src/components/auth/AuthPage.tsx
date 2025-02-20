@@ -1,6 +1,7 @@
 import React, { useState, useEffect, Suspense } from "react";
 import { LazyMotion, AnimatePresence, m, domAnimation } from "framer-motion";
 import { Button } from "../ui/button";
+import { cn } from "@/lib/utils";
 
 const LoginForm = React.lazy(() =>
   import("./LoginForm").then((mod) => ({ default: mod.LoginForm })),
@@ -125,15 +126,25 @@ export function AuthPage() {
               <div className="relative space-y-6">
                 <div className="flex p-1 gap-1 bg-muted/50 rounded-xl">
                   <Button
-                    variant={mode === "login" ? "default" : "ghost"}
-                    className="flex-1 font-medium rounded-lg transition-all duration-300"
+                    variant="ghost"
+                    className={cn(
+                      "flex-1 font-medium rounded-lg transition-all duration-300",
+                      mode === "login"
+                        ? "bg-background text-foreground shadow-sm border border-border/50"
+                        : "text-muted-foreground hover:text-foreground hover:bg-background/50",
+                    )}
                     onClick={() => setMode("login")}
                   >
                     Giriş Yap
                   </Button>
                   <Button
-                    variant={mode === "register" ? "default" : "ghost"}
-                    className="flex-1 font-medium rounded-lg transition-all duration-300"
+                    variant="ghost"
+                    className={cn(
+                      "flex-1 font-medium rounded-lg transition-all duration-300",
+                      mode === "register"
+                        ? "bg-background text-foreground shadow-sm border border-border/50"
+                        : "text-muted-foreground hover:text-foreground hover:bg-background/50",
+                    )}
                     onClick={() => setMode("register")}
                   >
                     Kayıt Ol

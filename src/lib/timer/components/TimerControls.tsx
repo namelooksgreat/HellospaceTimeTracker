@@ -1,7 +1,7 @@
 import { Play, Pause, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { styles } from "@/components/ui/styles";
+import { styles } from "@/lib/styles";
 
 interface TimerControlsProps {
   state: "stopped" | "running" | "paused";

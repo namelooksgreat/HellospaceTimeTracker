@@ -171,6 +171,7 @@ export default function App() {
                   <Route path="settings" element={<SettingsPage />} />
                 </Route>
                 {/* Catch-all route */}
+
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </div>

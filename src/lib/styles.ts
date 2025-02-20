@@ -1,30 +1,10 @@
-import { cn } from "@/lib/utils";
-
 export const styles = {
-  button: {
-    // Our brand gradient button style
-    gradient: cn(
-      "bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500",
-      "text-white",
-      "hover:opacity-90",
-      "transition-all duration-300",
-      "shadow-lg hover:shadow-xl",
-      "hover:-translate-y-0.5 active:translate-y-0",
-    ),
-    // For outline variant that uses the gradient as border
-    gradientOutline: cn(
-      "border-2 border-transparent",
-      "bg-clip-padding",
-      "bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500",
-      "hover:opacity-90",
-      "transition-all duration-300",
-      "shadow-lg hover:shadow-xl",
-      "hover:-translate-y-0.5 active:translate-y-0",
-    ),
-  },
   input: {
     base: "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background",
     hover: "hover:bg-accent/50 transition-colors duration-150",
+  },
+  label: {
+    base: "text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70",
   },
   components: {
     selectContent:

@@ -290,7 +290,7 @@ function OnboardingPage() {
                   className="space-y-6"
                 >
                   <div className="space-y-4">
-                    <div className="inline-flex p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white shadow-xl ring-2 ring-border/20">
+                    <div className="inline-flex p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-background text-foreground border border-border/50 hover:bg-accent/50 transition-all duration-300">
                       {steps[currentStep].icon}
                     </div>
                     <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">
@@ -317,10 +317,10 @@ function OnboardingPage() {
                     </div>
 
                     <div className="space-y-4">
-                      <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                      <div className="flex flex-row gap-3 w-full sm:w-auto">
                         <Button
                           onClick={handleNext}
-                          className="w-full sm:w-auto flex-1 h-11 sm:h-12 rounded-xl bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 hover:opacity-90 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0"
+                          className="flex-1 h-11 sm:h-12 rounded-xl bg-foreground text-background dark:bg-background dark:text-foreground border border-border hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent dark:hover:text-accent-foreground transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0"
                         >
                           {currentStep < steps.length - 1 ? (
                             <>
@@ -338,7 +338,7 @@ function OnboardingPage() {
                           <Button
                             variant="outline"
                             onClick={() => setHasSeenOnboarding(true)}
-                            className="w-full sm:w-auto h-11 sm:h-12 px-6 rounded-xl"
+                            className="h-11 sm:h-12 px-4 rounded-xl"
                           >
                             {language === "tr" ? "Atla" : "Skip"}
                           </Button>

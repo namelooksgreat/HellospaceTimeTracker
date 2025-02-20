@@ -3,26 +3,35 @@ import { UserRole } from "@/types/roles";
 
 interface RoleBadgeProps {
   role: UserRole;
+  className?: string;
 }
 
-export function RoleBadge({ role }: RoleBadgeProps) {
+export function RoleBadge({ role, className }: RoleBadgeProps) {
   const styles = {
-    admin: "bg-primary/10 text-primary border-primary/20",
-    developer:
-      "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 border-blue-200 dark:border-blue-800",
-    designer:
-      "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 border-purple-200 dark:border-purple-800",
-    user: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700",
+    base: "inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium border transition-colors duration-200",
+    admin: "bg-foreground/10 text-foreground border-foreground/20",
+    developer: "bg-foreground/10 text-foreground border-foreground/20",
+    designer: "bg-foreground/10 text-foreground border-foreground/20",
+    user: "bg-foreground/10 text-foreground border-foreground/20",
+  };
+
+  const labels = {
+    admin: "Admin",
+    developer: "Developer",
+    designer: "Designer",
+    user: "User",
   };
 
   return (
     <span
       className={cn(
-        "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border",
+        styles.base,
         styles[role],
+        "hover:bg-foreground/20",
+        className,
       )}
     >
-      {role.charAt(0).toUpperCase() + role.slice(1)}
+      {labels[role]}
     </span>
   );
 }

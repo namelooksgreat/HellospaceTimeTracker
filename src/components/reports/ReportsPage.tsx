@@ -217,7 +217,9 @@ export default function ReportsPage({
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-lg sm:text-2xl font-semibold tracking-tight flex items-center gap-2">
-          <Clock className="h-5 w-5 text-primary" />
+          <div className="p-2 rounded-lg bg-background text-foreground ring-1 ring-border/50 transition-colors duration-200">
+            <Clock className="h-5 w-5" />
+          </div>
           Reports
         </h2>
 

@@ -17,7 +17,7 @@ export default function ProfilePage() {
     <div className="space-y-6">
       <div className="mb-6">
         <div className="flex items-center gap-2">
-          <div className="p-2 rounded-xl bg-primary/10 text-primary ring-1 ring-primary/20">
+          <div className="p-2 rounded-xl bg-background/50 text-foreground ring-1 ring-border/50 transition-colors duration-200">
             <Settings className="h-5 w-5" />
           </div>
           <h1 className="text-xl font-semibold tracking-tight">

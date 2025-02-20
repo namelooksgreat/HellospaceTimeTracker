@@ -7,33 +7,89 @@ import { Lock, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { handleError } from "@/lib/utils/error-handler";
 import { showSuccess } from "@/lib/utils/toast";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 
-export function UserSecurity({ userId }: { userId?: string }) {
+export function UserSecurity() {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
   });
+  const { language } = useLanguage();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!userId) return;
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+    if (userError) throw userError;
+    if (!user?.email) throw new Error("User not found");
+
+    if (!formData.currentPassword) {
+      handleError(
+        new Error(
+          language === "tr"
+            ? "Mevcut şifre gerekli"
+            : "Current password is required",
+        ),
+        "UserSecurity",
+      );
+      return;
+    }
 
     if (formData.newPassword !== formData.confirmPassword) {
-      handleError(new Error("Passwords do not match"), "UserSecurity");
+      handleError(
+        new Error(
+          language === "tr" ? "Şifreler eşleşmiyor" : "Passwords do not match",
+        ),
+        "UserSecurity",
+      );
+      return;
+    }
+
+    if (formData.newPassword.length < 6) {
+      handleError(
+        new Error(
+          language === "tr"
+            ? "Şifre en az 6 karakter olmalı"
+            : "Password must be at least 6 characters",
+        ),
+        "UserSecurity",
+      );
       return;
     }
 
     setLoading(true);
     try {
+      // First verify current password by trying to sign in
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email || "",
+        password: formData.currentPassword,
+      });
+
+      if (signInError) {
+        throw new Error(
+          language === "tr"
+            ? "Mevcut şifre yanlış"
+            : "Current password is incorrect",
+        );
+      }
+
+      // Then update to new password
       const { error } = await supabase.auth.updateUser({
         password: formData.newPassword,
       });
 
       if (error) throw error;
 
-      showSuccess("Password updated successfully");
+      showSuccess(
+        language === "tr"
+          ? "Şifre başarıyla güncellendi"
+          : "Password updated successfully",
+      );
+
       setFormData({
         currentPassword: "",
         newPassword: "",
@@ -47,21 +103,20 @@ export function UserSecurity({ userId }: { userId?: string }) {
   };
 
   return (
-    <Card className="relative overflow-hidden bg-gradient-to-br from-card/50 to-card/30 dark:from-black/80 dark:via-black/60 dark:to-black/40 border border-border/50 rounded-xl transition-all duration-300 hover:shadow-lg hover:border-border/80 group">
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-50" />
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,transparent_0%,transparent_49%,rgb(var(--primary))_50%,transparent_51%,transparent_100%)] opacity-[0.03] bg-[length:8px_100%]" />
-      <div className="absolute inset-0 bg-grid-white/[0.02]" />
+    <Card className="relative overflow-hidden bg-background border border-border/50 rounded-xl transition-all duration-300 hover:shadow-lg hover:border-border/80 group">
       <CardContent className="p-6 space-y-6">
-        <div className="flex items-center gap-2 text-primary">
+        <div className="flex items-center gap-2 text-foreground">
           <Lock className="h-5 w-5" />
           <h2 className="text-lg font-semibold tracking-tight">
-            Security Settings
+            {language === "tr" ? "Güvenlik Ayarları" : "Security Settings"}
           </h2>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label>Current Password</Label>
+            <Label>
+              {language === "tr" ? "Mevcut Şifre" : "Current Password"}
+            </Label>
             <Input
               type="password"
               value={formData.currentPassword}
@@ -71,12 +126,17 @@ export function UserSecurity({ userId }: { userId?: string }) {
                   currentPassword: e.target.value,
                 }))
               }
+              placeholder={
+                language === "tr"
+                  ? "Mevcut şifrenizi girin"
+                  : "Enter your current password"
+              }
               required
             />
           </div>
 
           <div className="space-y-2">
-            <Label>New Password</Label>
+            <Label>{language === "tr" ? "Yeni Şifre" : "New Password"}</Label>
             <Input
               type="password"
               value={formData.newPassword}
@@ -86,12 +146,24 @@ export function UserSecurity({ userId }: { userId?: string }) {
                   newPassword: e.target.value,
                 }))
               }
+              placeholder={
+                language === "tr"
+                  ? "Yeni şifrenizi girin"
+                  : "Enter your new password"
+              }
               required
             />
+            <p className="text-xs text-muted-foreground">
+              {language === "tr"
+                ? "En az 8 karakter, harf, rakam ve sembol kullanın."
+                : "Use at least 8 characters with a mix of letters, numbers & symbols."}
+            </p>
           </div>
 
           <div className="space-y-2">
-            <Label>Confirm New Password</Label>
+            <Label>
+              {language === "tr" ? "Yeni Şifre Tekrar" : "Confirm New Password"}
+            </Label>
             <Input
               type="password"
               value={formData.confirmPassword}
@@ -101,6 +173,11 @@ export function UserSecurity({ userId }: { userId?: string }) {
                   confirmPassword: e.target.value,
                 }))
               }
+              placeholder={
+                language === "tr"
+                  ? "Yeni şifrenizi tekrar girin"
+                  : "Confirm your new password"
+              }
               required
             />
           </div>
@@ -108,10 +185,10 @@ export function UserSecurity({ userId }: { userId?: string }) {
           <Button
             type="submit"
             disabled={loading}
-            className="w-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 hover:opacity-90 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0"
+            className="w-full h-12 rounded-xl bg-foreground text-background hover:opacity-90 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0"
           >
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Update Password
+            {language === "tr" ? "Şifreyi Güncelle" : "Update Password"}
           </Button>
         </form>
       </CardContent>

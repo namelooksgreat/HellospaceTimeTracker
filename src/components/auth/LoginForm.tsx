@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -7,6 +6,7 @@ import { Label } from "../ui/label";
 import { LogIn, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { handleError } from "@/lib/utils/error-handler";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 export function LoginForm() {
   const [loading, setLoading] = useState(false);
@@ -14,6 +14,7 @@ export function LoginForm() {
     email: "",
     password: "",
   });
+  const { language } = useLanguage();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,12 +28,19 @@ export function LoginForm() {
 
       if (error) throw error;
 
-      // Get user's full name from metadata
       const fullName = data.user?.user_metadata?.full_name || data.user?.email;
 
-      toast.success(`Welcome back${fullName ? `, ${fullName}` : ""}!`, {
-        description: "You've successfully logged in",
-      });
+      toast.success(
+        language === "tr"
+          ? `Hoş geldiniz${fullName ? `, ${fullName}` : ""}!`
+          : `Welcome back${fullName ? `, ${fullName}` : ""}!`,
+        {
+          description:
+            language === "tr"
+              ? "Başarıyla giriş yaptınız"
+              : "You've successfully logged in",
+        },
+      );
     } catch (error) {
       handleError(error, "LoginForm");
       setLoading(false);
@@ -42,32 +50,42 @@ export function LoginForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label>Email</Label>
+        <Label>{language === "tr" ? "E-posta" : "Email"}</Label>
         <Input
           type="email"
           value={formData.email}
           onChange={(e) =>
             setFormData((prev) => ({ ...prev, email: e.target.value }))
           }
-          placeholder="Enter your email address"
+          placeholder={
+            language === "tr"
+              ? "E-posta adresinizi girin"
+              : "Enter your email address"
+          }
           required
           autoFocus
           autoComplete="email"
         />
         <p className="text-xs text-muted-foreground">
-          We'll never share your email with anyone else.
+          {language === "tr"
+            ? "E-posta adresiniz kimseyle paylaşılmayacaktır."
+            : "We'll never share your email with anyone else."}
         </p>
       </div>
 
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label>Password</Label>
+          <Label>{language === "tr" ? "Şifre" : "Password"}</Label>
           <button
             type="button"
             onClick={async () => {
               try {
                 if (!formData.email) {
-                  toast.error("Please enter your email first");
+                  toast.error(
+                    language === "tr"
+                      ? "Lütfen önce e-posta adresinizi girin"
+                      : "Please enter your email first",
+                  );
                   return;
                 }
                 setLoading(true);
@@ -78,9 +96,17 @@ export function LoginForm() {
                   },
                 );
                 if (error) throw error;
-                toast.success("Password reset email sent", {
-                  description: "Check your email for the reset link",
-                });
+                toast.success(
+                  language === "tr"
+                    ? "Şifre sıfırlama e-postası gönderildi"
+                    : "Password reset email sent",
+                  {
+                    description:
+                      language === "tr"
+                        ? "Sıfırlama bağlantısı için e-postanızı kontrol edin"
+                        : "Check your email for the reset link",
+                  },
+                );
               } catch (error) {
                 handleError(error, "LoginForm");
               } finally {
@@ -89,7 +115,7 @@ export function LoginForm() {
             }}
             className="text-xs text-primary hover:underline"
           >
-            Forgot password?
+            {language === "tr" ? "Şifremi unuttum" : "Forgot password?"}
           </button>
         </div>
         <Input
@@ -98,12 +124,16 @@ export function LoginForm() {
           onChange={(e) =>
             setFormData((prev) => ({ ...prev, password: e.target.value }))
           }
-          placeholder="Enter your password"
+          placeholder={
+            language === "tr" ? "Şifrenizi girin" : "Enter your password"
+          }
           required
           autoComplete="current-password"
         />
         <p className="text-xs text-muted-foreground">
-          Enter your secure password to access your account.
+          {language === "tr"
+            ? "Hesabınıza erişmek için güvenli şifrenizi girin."
+            : "Enter your secure password to access your account."}
         </p>
       </div>
 
@@ -117,7 +147,7 @@ export function LoginForm() {
         ) : (
           <LogIn className="mr-2 h-4 w-4" />
         )}
-        Giriş Yap
+        {language === "tr" ? "Giriş Yap" : "Sign In"}
       </Button>
     </form>
   );

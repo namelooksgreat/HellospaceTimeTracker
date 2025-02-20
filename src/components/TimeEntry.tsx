@@ -50,7 +50,7 @@ function TimeEntryComponent({
                 style={{ backgroundColor: projectColor }}
               />
               <div className="min-w-0 flex-1">
-                <h3 className="font-medium text-foreground truncate leading-tight">
+                <h3 className="font-medium text-foreground truncate leading-tight max-w-[200px] sm:max-w-[400px]">
                   {taskName}
                 </h3>
                 {projectName && (
