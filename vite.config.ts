@@ -14,6 +14,21 @@ export default defineConfig(({ command, mode }) => {
       }),
       tempo(),
     ],
+    build: {
+      rollupOptions: {
+        external: ["tempo-routes"],
+        output: {
+          manualChunks: (id) => {
+            if (id.includes("framer-motion")) {
+              return "framer-motion";
+            }
+            if (id.includes("react") || id.includes("react-dom")) {
+              return "react-vendor";
+            }
+          },
+        },
+      },
+    },
     optimizeDeps: {
       exclude: ["tempo-routes"],
       include: ["react", "react-dom", "react-router-dom", "framer-motion"],
@@ -38,6 +53,10 @@ export default defineConfig(({ command, mode }) => {
       },
       modulePreload: {
         polyfill: true,
+      },
+      commonjsOptions: {
+        transformMixedEsModules: true,
+        include: [/framer-motion/, /node_modules/],
       },
       rollupOptions: {
         external: ["tempo-routes"],
