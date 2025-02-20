@@ -10,11 +10,15 @@ import { useAuth } from "./lib/auth";
 import { AuthPage } from "./components/auth/AuthPage";
 import { ResetPasswordForm } from "./components/auth/ResetPasswordForm";
 // Admin page imports
-const UserReportPage = lazy(
-  () => import("./components/admin/pages/UserReportPage"),
+const UserReportPage = lazy(() =>
+  import("./components/admin/pages/UserReportPage").then((module) => ({
+    default: module.UserReportPage,
+  })),
 );
-const CustomerReportPage = lazy(
-  () => import("./components/admin/pages/CustomerReportPage"),
+const CustomerReportPage = lazy(() =>
+  import("./components/admin/pages/CustomerReportPage").then((module) => ({
+    default: module.CustomerReportPage,
+  })),
 );
 
 // Optimize code splitting with prefetch
