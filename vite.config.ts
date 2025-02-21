@@ -4,42 +4,20 @@ import { tempo } from "tempo-devtools/dist/vite";
 import path from "path";
 
 export default defineConfig(({ command, mode }) => {
+  const conditionalPlugins = [];
+  if (process.env.TEMPO === "true") {
+    conditionalPlugins.push(["tempo-devtools/swc", {}]);
+  }
+
   return {
     plugins: [
       react({
-        plugins:
-          process.env.TEMPO === "true" ? [["tempo-devtools/swc", {}]] : [],
+        plugins: [...conditionalPlugins],
         jsxImportSource: "react",
         fastRefresh: true,
       }),
       tempo(),
     ],
-    build: {
-      rollupOptions: {
-        external: ["tempo-routes"],
-        output: {
-          manualChunks: (id) => {
-            if (id.includes("framer-motion")) {
-              return "framer-motion";
-            }
-            if (id.includes("react") || id.includes("react-dom")) {
-              return "react-vendor";
-            }
-          },
-        },
-      },
-    },
-    optimizeDeps: {
-      exclude: ["tempo-routes"],
-      include: ["react", "react-dom", "react-router-dom", "framer-motion"],
-    },
-    base: "/",
-    server: {
-      // @ts-ignore
-      allowedHosts: process.env.TEMPO === "true" ? true : undefined,
-      host: true,
-      port: 3000,
-    },
     build: {
       sourcemap: false,
       minify: "terser",
@@ -118,12 +96,14 @@ export default defineConfig(({ command, mode }) => {
               return "auth";
             }
           },
-          format: "es",
-          entryFileNames: "[name].[hash].mjs",
-          chunkFileNames: "[name].[hash].mjs",
-          assetFileNames: "assets/[name].[hash][extname]",
         },
       },
+    },
+    server: {
+      // @ts-ignore
+      allowedHosts: process.env.TEMPO === "true" ? true : undefined,
+      host: true,
+      port: 3000,
     },
     resolve: {
       alias: {
