@@ -7,8 +7,12 @@ import { LoadingPage } from "./components/ui/loading-spinner";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { LanguageProvider } from "./lib/i18n/LanguageContext";
 import { useAuth } from "./lib/auth";
-const AuthPage = React.lazy(() => import("./components/auth/AuthPage"));
-import { ResetPasswordForm } from "./components/auth/ResetPasswordForm";
+const AuthPage = lazy(() => import("./components/auth/AuthPage"));
+const ResetPasswordForm = React.lazy(() =>
+  import("./components/auth/ResetPasswordForm").then((mod) => ({
+    default: mod.ResetPasswordForm,
+  })),
+);
 // Admin page imports
 const UserReportPage = lazy(() =>
   import("./components/admin/pages/UserReportPage").then((module) => ({

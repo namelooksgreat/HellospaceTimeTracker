@@ -2,9 +2,7 @@ import React, { useState, useEffect, Suspense } from "react";
 import { ClientOnly } from "../ClientOnly";
 import { Button } from "../ui/button";
 import { cn } from "@/lib/utils";
-const { motion, AnimatePresence } = await import(
-  /* @vite-ignore */ "framer-motion"
-);
+import { motion, AnimatePresence } from "framer-motion";
 
 const LoginForm = React.lazy(() =>
   import("./LoginForm").then((mod) => ({ default: mod.LoginForm })),
@@ -14,7 +12,7 @@ const RegisterForm = React.lazy(() =>
 );
 const OnboardingPage = React.lazy(() => import("../onboarding/OnboardingPage"));
 
-export default async function AuthPage() {
+export default function AuthPage() {
   const [showOnboarding, setShowOnboarding] = useState(() => {
     const hasSeenOnboarding = localStorage.getItem("hasSeenOnboarding");
     return !hasSeenOnboarding;
