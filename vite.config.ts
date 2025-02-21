@@ -42,59 +42,13 @@ export default defineConfig(({ command, mode }) => {
           paths: {
             "tempo-routes": "/tempo-routes",
           },
-          manualChunks: (id) => {
-            // React core ve routing
-            if (
-              id.includes("react") ||
-              id.includes("react-dom") ||
-              id.includes("react-router")
-            ) {
-              return "react-core";
-            }
-
-            // Radix UI bileşenleri
-            if (id.includes("@radix-ui/react-")) {
-              return "radix-ui";
-            }
-
-            // Framer Motion
-            if (id.includes("framer-motion")) {
-              return "animations";
-            }
-
-            // Recharts ve ilgili bağımlılıklar
-            if (id.includes("recharts") || id.includes("d3-")) {
-              return "charts";
-            }
-
-            // Tarih işleme kütüphaneleri
-            if (id.includes("date-fns")) {
-              return "date-utils";
-            }
-
-            // State management
-            if (id.includes("zustand")) {
-              return "state-management";
-            }
-
-            // UI utils
-            if (
-              id.includes("class-variance-authority") ||
-              id.includes("clsx") ||
-              id.includes("tailwind-merge")
-            ) {
-              return "ui-utils";
-            }
-
-            // Admin sayfaları
-            if (id.includes("/admin/")) {
-              return "admin";
-            }
-
-            // Auth sayfaları
-            if (id.includes("/auth/")) {
-              return "auth";
-            }
+          manualChunks: {
+            vendor: ["framer-motion"],
+            "react-core": ["react", "react-dom", "react-router-dom"],
+            "ui-utils": ["class-variance-authority", "clsx", "tailwind-merge"],
+            "date-utils": ["date-fns"],
+            "state-management": ["zustand"],
+            charts: ["recharts", "d3-scale", "d3-shape", "d3-path"],
           },
         },
       },
@@ -113,6 +67,9 @@ export default defineConfig(({ command, mode }) => {
     define: {
       "process.env.NODE_ENV": JSON.stringify(process.env.NODE_ENV),
       global: "globalThis",
+    },
+    optimizeDeps: {
+      include: ["framer-motion"],
     },
   };
 });

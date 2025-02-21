@@ -7,7 +7,7 @@ import { LoadingPage } from "./components/ui/loading-spinner";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { LanguageProvider } from "./lib/i18n/LanguageContext";
 import { useAuth } from "./lib/auth";
-import { AuthPage } from "./components/auth/AuthPage";
+const AuthPage = React.lazy(() => import("./components/auth/AuthPage"));
 import { ResetPasswordForm } from "./components/auth/ResetPasswordForm";
 // Admin page imports
 const UserReportPage = lazy(() =>
