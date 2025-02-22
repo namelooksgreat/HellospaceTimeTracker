@@ -33,16 +33,7 @@ export function RegisterForm() {
         );
       }
 
-      // Check if user exists first
-      const { data: existingUser } = await supabase
-        .from("users")
-        .select("id")
-        .eq("email", formData.email)
-        .maybeSingle();
-
-      if (existingUser) {
-        throw new Error("User already registered");
-      }
+      // No need to check users table - auth will handle this
 
       // Create auth user with metadata
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -65,24 +56,8 @@ export function RegisterForm() {
 
       if (!authData.user) throw new Error("User creation failed");
 
-      // Create user record
-      const { error: userError } = await supabase.from("users").insert([
-        {
-          id: authData.user.id,
-          email: formData.email,
-          full_name: formData.fullName,
-          user_type: "user",
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-      ]);
-
-      if (userError) {
-        if (userError.code === "23505") {
-          throw new Error("User already registered");
-        }
-        throw userError;
-      }
+      // User settings will be created by a database trigger instead
+      // This avoids RLS issues during registration
 
       toast.success(
         language === "tr" ? "Kayıt başarılı!" : "Registration successful!",

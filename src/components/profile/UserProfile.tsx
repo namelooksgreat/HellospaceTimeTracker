@@ -353,7 +353,7 @@ export function UserProfile({ user }: UserProfileProps) {
           <Button
             type="submit"
             disabled={loading}
-            className="h-12 flex-1 rounded-xl bg-foreground text-background hover:opacity-90 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0"
+            className="h-12 flex-1 rounded-xl bg-foreground text-background hover:bg-background hover:text-foreground dark:hover:bg-black dark:hover:text-white border border-foreground transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0"
           >
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Save Changes
