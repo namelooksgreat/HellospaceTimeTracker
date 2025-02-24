@@ -3,6 +3,7 @@ import { ClientOnly } from "../ClientOnly";
 import { Button } from "../ui/button";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSearchParams } from "react-router-dom";
 
 const LoginForm = React.lazy(() =>
   import("./LoginForm").then((mod) => ({ default: mod.LoginForm })),
@@ -13,6 +14,8 @@ const RegisterForm = React.lazy(() =>
 const OnboardingPage = React.lazy(() => import("../onboarding/OnboardingPage"));
 
 export default function AuthPage() {
+  const [searchParams] = useSearchParams();
+  const inviteToken = searchParams.get("token");
   const [showOnboarding, setShowOnboarding] = useState(() => {
     const hasSeenOnboarding = localStorage.getItem("hasSeenOnboarding");
     return !hasSeenOnboarding;
@@ -24,11 +27,15 @@ export default function AuthPage() {
       setShowOnboarding(false);
     }
   }, []);
-  const [mode, setMode] = useState<"login" | "register">("login");
+
+  // If there's an invite token, always show register form
+  const [mode, setMode] = useState<"login" | "register">(
+    inviteToken ? "register" : "login",
+  );
 
   return (
     <>
-      {showOnboarding && (
+      {showOnboarding && !inviteToken && (
         <Suspense fallback={null}>
           <OnboardingPage />
         </Suspense>
@@ -107,7 +114,9 @@ export default function AuthPage() {
                   </motion.div>
                 </motion.div>
                 <p className="text-sm text-muted-foreground text-center">
-                  Join the Global Productivity Community
+                  {inviteToken
+                    ? "Complete your registration"
+                    : "Join the Global Productivity Community"}
                 </p>
               </div>
 
@@ -126,32 +135,34 @@ export default function AuthPage() {
                 <div className="absolute inset-0 bg-grid-white/[0.02]" />
 
                 <div className="relative space-y-6">
-                  <div className="flex p-1 gap-1 bg-muted/50 rounded-xl">
-                    <Button
-                      variant="ghost"
-                      className={cn(
-                        "flex-1 font-medium rounded-lg transition-all duration-300",
-                        mode === "login"
-                          ? "bg-background text-foreground shadow-sm border border-border/50"
-                          : "text-muted-foreground hover:text-foreground hover:bg-background/50",
-                      )}
-                      onClick={() => setMode("login")}
-                    >
-                      Giriş Yap
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      className={cn(
-                        "flex-1 font-medium rounded-lg transition-all duration-300",
-                        mode === "register"
-                          ? "bg-background text-foreground shadow-sm border border-border/50"
-                          : "text-muted-foreground hover:text-foreground hover:bg-background/50",
-                      )}
-                      onClick={() => setMode("register")}
-                    >
-                      Kayıt Ol
-                    </Button>
-                  </div>
+                  {!inviteToken && (
+                    <div className="flex p-1 gap-1 bg-muted/50 rounded-xl">
+                      <Button
+                        variant="ghost"
+                        className={cn(
+                          "flex-1 font-medium rounded-lg transition-all duration-300",
+                          mode === "login"
+                            ? "bg-background text-foreground shadow-sm border border-border/50"
+                            : "text-muted-foreground hover:text-foreground hover:bg-background/50",
+                        )}
+                        onClick={() => setMode("login")}
+                      >
+                        Giriş Yap
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        className={cn(
+                          "flex-1 font-medium rounded-lg transition-all duration-300",
+                          mode === "register"
+                            ? "bg-background text-foreground shadow-sm border border-border/50"
+                            : "text-muted-foreground hover:text-foreground hover:bg-background/50",
+                        )}
+                        onClick={() => setMode("register")}
+                      >
+                        Kayıt Ol
+                      </Button>
+                    </div>
+                  )}
 
                   <AnimatePresence mode="wait">
                     <motion.div
@@ -165,56 +176,62 @@ export default function AuthPage() {
                       }}
                     >
                       <Suspense fallback={null}>
-                        {mode === "login" ? <LoginForm /> : <RegisterForm />}
+                        {mode === "login" ? (
+                          <LoginForm />
+                        ) : (
+                          <RegisterForm inviteToken={inviteToken} />
+                        )}
                       </Suspense>
                     </motion.div>
                   </AnimatePresence>
                 </div>
               </motion.div>
 
-              <div className="space-y-2 text-center">
-                <motion.p
-                  className="text-sm text-muted-foreground"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{
-                    delay: 0.5,
-                    duration: 0.5,
-                    ease: [0.23, 1, 0.32, 1],
-                  }}
-                >
-                  {mode === "login" ? (
-                    <>
-                      Henüz hesabınız yok mu?{" "}
-                      <button
-                        onClick={() => setMode("register")}
-                        className="text-primary hover:underline font-medium"
-                      >
-                        Kayıt olun
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      Zaten hesabınız var mı?{" "}
-                      <button
-                        onClick={() => setMode("login")}
-                        className="text-primary hover:underline font-medium"
-                      >
-                        Giriş yapın
-                      </button>
-                    </>
-                  )}
-                </motion.p>
-                <button
-                  onClick={() => {
-                    localStorage.removeItem("hasSeenOnboarding");
-                    setShowOnboarding(true);
-                  }}
-                  className="text-xs text-muted-foreground hover:text-primary transition-colors"
-                >
-                  Tanıtım turunu tekrar görüntüle
-                </button>
-              </div>
+              {!inviteToken && (
+                <div className="space-y-2 text-center">
+                  <motion.p
+                    className="text-sm text-muted-foreground"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{
+                      delay: 0.5,
+                      duration: 0.5,
+                      ease: [0.23, 1, 0.32, 1],
+                    }}
+                  >
+                    {mode === "login" ? (
+                      <>
+                        Henüz hesabınız yok mu?{" "}
+                        <button
+                          onClick={() => setMode("register")}
+                          className="text-primary hover:underline font-medium"
+                        >
+                          Kayıt olun
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        Zaten hesabınız var mı?{" "}
+                        <button
+                          onClick={() => setMode("login")}
+                          className="text-primary hover:underline font-medium"
+                        >
+                          Giriş yapın
+                        </button>
+                      </>
+                    )}
+                  </motion.p>
+                  <button
+                    onClick={() => {
+                      localStorage.removeItem("hasSeenOnboarding");
+                      setShowOnboarding(true);
+                    }}
+                    className="text-xs text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    Tanıtım turunu tekrar görüntüle
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </Suspense>

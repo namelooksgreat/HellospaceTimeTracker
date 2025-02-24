@@ -1,13 +1,6 @@
 import { useState, useEffect } from "react";
+import { useRealtimeSync } from "@/lib/hooks/useRealtimeSync";
 import { supabase } from "@/lib/supabase";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -30,10 +23,12 @@ import {
   LayoutGrid,
   UserCog,
   Trash2,
+  Mail,
 } from "lucide-react";
 import { getUsers, deleteUser, createUser, User } from "@/lib/api/users";
 import { UserDialog } from "../dialogs/UserDialog";
 import { UserAssociationsDialog } from "../dialogs/UserAssociationsDialog";
+import { CreateInvitationDialog } from "../dialogs/CreateInvitationDialog";
 import { handleError } from "@/lib/utils/error-handler";
 import { showSuccess, showError } from "@/lib/utils/toast";
 import { LoadingState } from "@/components/ui/loading-state";
@@ -44,6 +39,10 @@ import { RoleBadge } from "@/components/ui/role-badge";
 import { ActivityIndicator } from "@/components/ui/activity-indicator";
 import { UserCard } from "../UserCard";
 import { UserRole } from "@/types/roles";
+import { AdminHeader } from "../components/AdminHeader";
+import { AdminFilters } from "../components/AdminFilters";
+import { AdminTable } from "../components/AdminTable";
+import { AdminCard } from "../components/AdminCard";
 
 export function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -53,6 +52,7 @@ export function UsersPage() {
   const [showUserDialog, setShowUserDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [showAssociationsDialog, setShowAssociationsDialog] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [showBulkRoleDialog, setShowBulkRoleDialog] = useState(false);
@@ -86,7 +86,6 @@ export function UsersPage() {
   }, []);
 
   const filterAndSortUsers = (data: User[], query: string) => {
-    // Önce filtreleme yap
     let filteredData = data.filter(
       (user) =>
         (user.email.toLowerCase().includes(query.toLowerCase()) ||
@@ -94,7 +93,6 @@ export function UsersPage() {
         (roleFilter === "all" || user.user_type === roleFilter),
     );
 
-    // Sonra sıralama yap
     filteredData.sort((a, b) => {
       switch (sortBy) {
         case "name_asc":
@@ -133,24 +131,6 @@ export function UsersPage() {
     setShowCreateDialog(true);
   };
 
-  const handleDeleteUser = async () => {
-    if (!selectedUser) return;
-
-    await handleAsync(
-      async () => {
-        await deleteUser(selectedUser.id);
-        await loadUsers();
-        setShowDeleteDialog(false);
-        setSelectedUser(null);
-      },
-      {
-        loadingMessage: "Deleting user...",
-        successMessage: "User deleted successfully",
-        errorMessage: "Failed to delete user",
-      },
-    );
-  };
-
   if (error) {
     return (
       <ErrorState
@@ -167,95 +147,58 @@ export function UsersPage() {
   return (
     <div className="space-y-8 animate-in fade-in-50 duration-500">
       <div className="grid gap-4 md:grid-cols-3">
-        <div className="p-6 bg-gradient-to-br from-card/50 to-card/30 dark:from-card/20 dark:to-card/10 border border-border/50 rounded-xl transition-all duration-300 hover:shadow-lg hover:border-border/80 group admin-card">
-          <div className="flex items-center gap-2">
-            <div className="p-2 bg-primary/10 rounded-xl">
-              <Users className="h-5 w-5 text-primary" />
-            </div>
-            <div className="space-y-0.5">
-              <div className="text-sm text-muted-foreground">
-                Toplam Kullanıcı
-              </div>
-              <div className="text-2xl font-bold">{users.length}</div>
-            </div>
-          </div>
-        </div>
+        <AdminCard
+          icon={<Users className="h-5 w-5 text-primary" />}
+          title="Toplam Kullanıcı"
+          value={users.length}
+        />
 
-        <div className="p-6 bg-gradient-to-br from-card/50 to-card/30 dark:from-card/20 dark:to-card/10 border border-border/50 rounded-xl transition-all duration-300 hover:shadow-lg hover:border-border/80 group admin-card">
-          <div className="flex items-center gap-2">
-            <div className="p-2 bg-primary/10 rounded-xl">
-              <ShieldCheck className="h-5 w-5 text-primary" />
-            </div>
-            <div className="space-y-0.5">
-              <div className="text-sm text-muted-foreground">Admin Sayısı</div>
-              <div className="text-2xl font-bold">
-                {users.filter((u) => u.user_type === "admin").length}
-              </div>
-            </div>
-          </div>
-        </div>
+        <AdminCard
+          icon={<ShieldCheck className="h-5 w-5 text-primary" />}
+          title="Admin Sayısı"
+          value={users.filter((u) => u.user_type === "admin").length}
+        />
 
-        <div className="p-6 bg-gradient-to-br from-card/50 to-card/30 dark:from-card/20 dark:to-card/10 border border-border/50 rounded-xl transition-all duration-300 hover:shadow-lg hover:border-border/80 group admin-card">
-          <div className="flex items-center gap-2">
-            <div className="p-2 bg-primary/10 rounded-xl">
-              <UserPlus className="h-5 w-5 text-primary" />
-            </div>
-            <div className="space-y-0.5">
-              <div className="text-sm text-muted-foreground">Bu Ay Katılan</div>
-              <div className="text-2xl font-bold">
-                {
-                  users.filter(
-                    (u) =>
-                      (u.created_at
-                        ? new Date(u.created_at).getMonth()
-                        : -1) === new Date().getMonth(),
-                  ).length
-                }
-              </div>
-            </div>
-          </div>
-        </div>
+        <AdminCard
+          icon={<UserPlus className="h-5 w-5 text-primary" />}
+          title="Bu Ay Katılan"
+          value={
+            users.filter(
+              (u) =>
+                (u.created_at ? new Date(u.created_at).getMonth() : -1) ===
+                new Date().getMonth(),
+            ).length
+          }
+        />
       </div>
 
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-            Users
-          </h1>
-          <div className="flex items-center gap-2 bg-muted/50 p-1 rounded-lg">
-            <Button
-              variant={viewMode === "table" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("table")}
-              className="h-8 px-2"
-            >
-              <LayoutList className="h-4 w-4" />
+      <AdminHeader
+        title="Users"
+        viewMode={{
+          current: viewMode,
+          onChange: setViewMode,
+        }}
+        actions={
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setShowInviteDialog(true)}>
+              <Mail className="mr-2 h-4 w-4" /> Davet Gönder
             </Button>
-            <Button
-              variant={viewMode === "grid" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("grid")}
-              className="h-8 px-2"
-            >
-              <LayoutGrid className="h-4 w-4" />
+            <Button onClick={handleCreateUser}>
+              <Plus className="mr-2 h-4 w-4" /> New User
             </Button>
           </div>
-        </div>
+        }
+      />
 
-        <Button
-          onClick={handleCreateUser}
-          className="w-full sm:w-auto h-10 sm:h-9 admin-button"
-        >
-          <Plus className="mr-2 h-4 w-4" /> New User
-        </Button>
-      </div>
-
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-        {selectedUsers.length > 0 && (
-          <div className="flex items-center gap-2 p-2 bg-primary/5 border border-primary/20 rounded-lg animate-slide-up">
-            <span className="text-sm text-muted-foreground">
-              {selectedUsers.length} user(s) selected
-            </span>
+      <AdminFilters
+        searchProps={{
+          value: searchQuery,
+          onChange: setSearchQuery,
+          placeholder: "Kullanıcı ara...",
+        }}
+        selectedCount={selectedUsers.length}
+        bulkActions={
+          <>
             <Button
               variant="outline"
               size="sm"
@@ -274,45 +217,34 @@ export function UsersPage() {
               <Trash2 className="h-4 w-4 mr-2" />
               Delete
             </Button>
-          </div>
-        )}
-        <div className="flex flex-col sm:flex-row gap-4 w-full">
-          <div className="relative flex-1 w-full sm:max-w-sm">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Kullanıcı ara..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 h-10 sm:h-9"
-            />
-          </div>
+          </>
+        }
+      >
+        <Select value={roleFilter} onValueChange={setRoleFilter}>
+          <SelectTrigger className="w-full sm:w-[180px]">
+            <SelectValue placeholder="Rol seç" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tümü</SelectItem>
+            <SelectItem value="admin">Yöneticiler</SelectItem>
+            <SelectItem value="developer">Geliştiriciler</SelectItem>
+            <SelectItem value="designer">Tasarımcılar</SelectItem>
+            <SelectItem value="user">Kullanıcılar</SelectItem>
+          </SelectContent>
+        </Select>
 
-          <Select value={roleFilter} onValueChange={setRoleFilter}>
-            <SelectTrigger className="w-full sm:w-[180px]">
-              <SelectValue placeholder="Rol seç" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tümü</SelectItem>
-              <SelectItem value="admin">Yöneticiler</SelectItem>
-              <SelectItem value="developer">Geliştiriciler</SelectItem>
-              <SelectItem value="designer">Tasarımcılar</SelectItem>
-              <SelectItem value="user">Kullanıcılar</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-full sm:w-[180px]">
-              <SelectValue placeholder="Sıralama" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="name_asc">İsim (A-Z)</SelectItem>
-              <SelectItem value="name_desc">İsim (Z-A)</SelectItem>
-              <SelectItem value="date_asc">En Eski</SelectItem>
-              <SelectItem value="date_desc">En Yeni</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+        <Select value={sortBy} onValueChange={setSortBy}>
+          <SelectTrigger className="w-full sm:w-[180px]">
+            <SelectValue placeholder="Sıralama" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="name_asc">İsim (A-Z)</SelectItem>
+            <SelectItem value="name_desc">İsim (Z-A)</SelectItem>
+            <SelectItem value="date_asc">En Eski</SelectItem>
+            <SelectItem value="date_desc">En Yeni</SelectItem>
+          </SelectContent>
+        </Select>
+      </AdminFilters>
 
       <div className="space-y-4">
         {viewMode === "grid" ? (
@@ -340,146 +272,114 @@ export function UsersPage() {
             ))}
           </div>
         ) : (
-          <div className="border border-border/50 rounded-xl bg-card/50 backdrop-blur-xl shadow-sm overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="w-12">
-                    <Checkbox
-                      checked={selectedUsers.length === paginatedUsers.length}
-                      onCheckedChange={(checked) => {
-                        setSelectedUsers(
-                          checked ? paginatedUsers.map((user) => user.id) : [],
-                        );
+          <AdminTable
+            data={paginatedUsers}
+            columns={[
+              {
+                header: "",
+                cell: (user) => (
+                  <Checkbox
+                    checked={selectedUsers.includes(user.id)}
+                    onCheckedChange={(checked) => {
+                      setSelectedUsers((prev) =>
+                        checked
+                          ? [...prev, user.id]
+                          : prev.filter((id) => id !== user.id),
+                      );
+                    }}
+                  />
+                ),
+              },
+              {
+                header: "Full Name",
+                cell: (user) => (
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 ring-2 ring-primary/20 flex items-center justify-center overflow-hidden">
+                        {user.avatar_url ? (
+                          <img
+                            src={user.avatar_url}
+                            alt={user.full_name || user.email}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-lg font-semibold text-primary">
+                            {(user.full_name || user.email)[0].toUpperCase()}
+                          </span>
+                        )}
+                      </div>
+                      <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-green-500 ring-2 ring-background" />
+                    </div>
+                    <div>
+                      <div className="font-medium">{user.full_name || "-"}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {user.email}
+                      </div>
+                    </div>
+                  </div>
+                ),
+              },
+              {
+                header: "Role",
+                cell: (user) => <RoleBadge role={user.user_type as UserRole} />,
+              },
+              {
+                header: "Registration Date",
+                cell: (user) => (
+                  <div className="space-y-1">
+                    <div className="text-sm">
+                      {user.created_at
+                        ? new Date(user.created_at).toLocaleDateString()
+                        : "-"}
+                    </div>
+                    <ActivityIndicator lastActive={user.last_active} />
+                  </div>
+                ),
+              },
+              {
+                header: "Actions",
+                cell: (user) => (
+                  <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedUser(user);
+                        setShowUserDialog(true);
                       }}
-                    />
-                  </TableHead>
-                  <TableHead>Full Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Registration Date</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={6}>
-                      <LoadingState
-                        title="Loading Users"
-                        description="Please wait while we fetch user data..."
-                      />
-                    </TableCell>
-                  </TableRow>
-                ) : paginatedUsers.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8">
-                      No users found
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  paginatedUsers.map((user) => (
-                    <TableRow key={user.id} className="table-row-hover">
-                      <TableCell>
-                        <Checkbox
-                          checked={selectedUsers.includes(user.id)}
-                          onCheckedChange={(checked) => {
-                            setSelectedUsers((prev) =>
-                              checked
-                                ? [...prev, user.id]
-                                : prev.filter((id) => id !== user.id),
-                            );
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <div className="relative">
-                            <div className="w-10 h-10 rounded-full bg-primary/10 ring-2 ring-primary/20 flex items-center justify-center overflow-hidden">
-                              {user.avatar_url ? (
-                                <img
-                                  src={user.avatar_url}
-                                  alt={user.full_name || user.email}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <span className="text-lg font-semibold text-primary">
-                                  {(user.full_name ||
-                                    user.email)[0].toUpperCase()}
-                                </span>
-                              )}
-                            </div>
-                            <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-green-500 ring-2 ring-background" />
-                          </div>
-                          <div>
-                            <div className="font-medium">
-                              {user.full_name || "-"}
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              {user.email}
-                            </div>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>{user.email}</TableCell>
-                      <TableCell>
-                        <RoleBadge role={user.user_type as UserRole} />
-                      </TableCell>
-                      <TableCell>
-                        <div className="space-y-1">
-                          <div className="text-sm">
-                            {user.created_at
-                              ? new Date(user.created_at).toLocaleDateString()
-                              : "-"}
-                          </div>
-                          <ActivityIndicator lastActive={user.last_active} />
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedUser(user);
-                              setShowUserDialog(true);
-                            }}
-                            className="admin-button"
-                          >
-                            <UserCog className="h-4 w-4 mr-2" />
-                            Edit
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedUser(user);
-                              setShowAssociationsDialog(true);
-                            }}
-                            className="admin-button"
-                          >
-                            <Link className="h-4 w-4 mr-2" />
-                            Relations
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() =>
-                              (window.location.href = `/admin/users/${user.id}/report`)
-                            }
-                            className="admin-button"
-                          >
-                            <BarChart2 className="h-4 w-4 mr-2" />
-                            Reports
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                      className="admin-button"
+                    >
+                      <UserCog className="h-4 w-4 mr-2" />
+                      Edit
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedUser(user);
+                        setShowAssociationsDialog(true);
+                      }}
+                      className="admin-button"
+                    >
+                      <Link className="h-4 w-4 mr-2" />
+                      Relations
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        (window.location.href = `/admin/users/${user.id}/report`)
+                      }
+                      className="admin-button"
+                    >
+                      <BarChart2 className="h-4 w-4 mr-2" />
+                      Reports
+                    </Button>
+                  </div>
+                ),
+              },
+            ]}
+          />
         )}
 
         <DataTablePagination
@@ -509,6 +409,12 @@ export function UsersPage() {
         open={showAssociationsDialog}
         onOpenChange={setShowAssociationsDialog}
         onSave={loadUsers}
+      />
+
+      <CreateInvitationDialog
+        open={showInviteDialog}
+        onOpenChange={setShowInviteDialog}
+        onInviteCreated={loadUsers}
       />
     </div>
   );

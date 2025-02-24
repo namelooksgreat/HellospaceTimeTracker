@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { Button } from "../ui/button";
@@ -8,8 +8,16 @@ import { UserPlus, Loader2 } from "lucide-react";
 import { handleError } from "@/lib/utils/error-handler";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { toast } from "sonner";
+import {
+  validateInvitation,
+  markInvitationAsUsed,
+} from "@/lib/api/invitations";
 
-export function RegisterForm() {
+interface RegisterFormProps {
+  inviteToken?: string | null;
+}
+
+export function RegisterForm({ inviteToken }: RegisterFormProps) {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
@@ -17,6 +25,38 @@ export function RegisterForm() {
     fullName: "",
   });
   const { language } = useLanguage();
+
+  // Validate invitation token if present
+  useEffect(() => {
+    const validateToken = async () => {
+      if (!inviteToken) return;
+
+      try {
+        setLoading(true);
+        const validation = await validateInvitation(inviteToken);
+
+        if (!validation.is_valid) {
+          toast.error(
+            language === "tr"
+              ? "Davet linki geçersiz veya süresi dolmuş"
+              : "Invalid or expired invitation link",
+          );
+          return;
+        }
+
+        // Pre-fill email if provided in invitation
+        if (validation.email) {
+          setFormData((prev) => ({ ...prev, email: validation.email || "" }));
+        }
+      } catch (error) {
+        handleError(error, "RegisterForm");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    validateToken();
+  }, [inviteToken, language]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,7 +73,19 @@ export function RegisterForm() {
         );
       }
 
-      // No need to check users table - auth will handle this
+      // If using invitation, validate again
+      let userRole = "user";
+      if (inviteToken) {
+        const validation = await validateInvitation(inviteToken);
+        if (!validation.is_valid) {
+          throw new Error(
+            language === "tr"
+              ? "Davet linki geçersiz veya süresi dolmuş"
+              : "Invalid or expired invitation link",
+          );
+        }
+        userRole = validation.role || "user";
+      }
 
       // Create auth user with metadata
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -42,7 +94,7 @@ export function RegisterForm() {
         options: {
           data: {
             full_name: formData.fullName,
-            user_type: "user",
+            user_type: userRole,
           },
         },
       });
@@ -56,8 +108,10 @@ export function RegisterForm() {
 
       if (!authData.user) throw new Error("User creation failed");
 
-      // User settings will be created by a database trigger instead
-      // This avoids RLS issues during registration
+      // If using invitation, mark it as used
+      if (inviteToken) {
+        await markInvitationAsUsed(inviteToken, authData.user.id);
+      }
 
       toast.success(
         language === "tr" ? "Kayıt başarılı!" : "Registration successful!",
@@ -111,11 +165,6 @@ export function RegisterForm() {
           }
           required
         />
-        <p className="text-xs text-muted-foreground">
-          {language === "tr"
-            ? "Bu isim profilinizde görüntülenecektir."
-            : "This will be displayed on your profile."}
-        </p>
       </div>
 
       <div className="space-y-2">
@@ -132,12 +181,8 @@ export function RegisterForm() {
               : "Enter your email address"
           }
           required
+          disabled={!!(inviteToken && formData.email !== "")}
         />
-        <p className="text-xs text-muted-foreground">
-          {language === "tr"
-            ? "Bu e-posta ile hesabınıza giriş yapacaksınız."
-            : "You'll use this email to log in to your account."}
-        </p>
       </div>
 
       <div className="space-y-2">
