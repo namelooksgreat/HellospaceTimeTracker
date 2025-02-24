@@ -25,16 +25,13 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog";
 import {
-  MobileDialog,
-  MobileDialogContent,
-  MobileDialogHeader,
-  MobileDialogFooter,
-  MobileDialogTitle,
-  MobileDialogDescription,
-} from "@/components/ui/mobile-dialog";
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useDialogStore } from "@/store/dialogStore";
 
@@ -123,25 +120,25 @@ export function SaveTimeEntryDialog({
       const hours = String(now.getHours()).padStart(2, "0");
       const minutes = String(now.getMinutes()).padStart(2, "0");
       const formattedDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
+      const savedDescription =
+        localStorage.getItem("timeEntry.lastDescription") || "";
 
       if (saveTimeEntryDialog.isManualEntry) {
-        // Manuel giriş için formu sıfırla
         setFormData({
           taskName: "",
           projectId: "",
           customerId: "",
-          description: "",
+          description: savedDescription,
           tags: [],
           startTime: formattedDateTime,
         });
         setDuration(0);
       } else {
-        // Durdur butonundan gelen veriler için mevcut değerleri koru
         setFormData({
           taskName: initialTaskName || "",
           projectId: initialProjectId || "",
           customerId: initialCustomerId || "",
-          description: "",
+          description: savedDescription,
           tags: [],
           startTime: formattedDateTime,
         });
@@ -166,10 +163,7 @@ export function SaveTimeEntryDialog({
   };
 
   const handleSave = () => {
-    // Ensure duration is a positive number
     const validDuration = Math.max(0, duration);
-
-    // Log the data being saved
     console.debug("Saving time entry:", {
       ...formData,
       duration: validDuration,
@@ -185,23 +179,23 @@ export function SaveTimeEntryDialog({
 
   const isMobile = useMediaQuery("(max-width: 640px)");
 
-  const DialogComponent = isMobile ? MobileDialog : Dialog;
-  const DialogContentComponent = isMobile ? MobileDialogContent : DialogContent;
-  const DialogHeaderComponent = isMobile ? MobileDialogHeader : DialogHeader;
-  const DialogTitleComponent = isMobile ? MobileDialogTitle : DialogTitle;
+  const DialogComponent = isMobile ? Sheet : Dialog;
+  const ContentComponent = isMobile ? SheetContent : DialogContent;
+  const HeaderComponent = isMobile ? SheetHeader : DialogHeader;
+  const TitleComponent = isMobile ? SheetTitle : DialogTitle;
 
   return (
     <DialogComponent open={open} onOpenChange={onOpenChange}>
-      <DialogContentComponent
+      <ContentComponent
         className="max-w-lg w-full p-0 gap-0 overflow-hidden rounded-2xl border-border/50 shadow-xl dark:shadow-2xl dark:shadow-primary/10"
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
-        <DialogHeaderComponent className="sticky top-0 z-10 p-4 sm:p-6 bg-gradient-to-b from-background via-background to-background/80 backdrop-blur-xl border-b border-border/50">
+        <HeaderComponent className="sticky top-0 z-10 p-4 sm:p-6 bg-gradient-to-b from-background via-background to-background/80 backdrop-blur-xl border-b border-border/50">
           <div className="flex items-center gap-2 text-primary">
             <Clock className="h-5 w-5" />
-            <DialogTitleComponent className="text-lg font-semibold tracking-tight">
+            <TitleComponent className="text-lg font-semibold tracking-tight">
               Save Time Entry
-            </DialogTitleComponent>
+            </TitleComponent>
           </div>
 
           <div className="mt-6">
@@ -315,7 +309,7 @@ export function SaveTimeEntryDialog({
               </div>
             </div>
           </div>
-        </DialogHeaderComponent>
+        </HeaderComponent>
 
         <ScrollArea className="max-h-[calc(100vh-20rem)] sm:max-h-[calc(100vh-22rem)] overflow-y-auto overscroll-none bg-gradient-to-b from-transparent via-background/50 to-background/50 backdrop-blur-sm">
           <div className="p-4 sm:p-6 space-y-6">
@@ -404,12 +398,17 @@ export function SaveTimeEntryDialog({
               <Label>Description</Label>
               <Textarea
                 value={formData.description}
-                onChange={(e) =>
+                onChange={(e) => {
+                  const newDescription = e.target.value;
+                  localStorage.setItem(
+                    "timeEntry.lastDescription",
+                    newDescription,
+                  );
                   setFormData((prev) => ({
                     ...prev,
-                    description: e.target.value,
-                  }))
-                }
+                    description: newDescription,
+                  }));
+                }}
                 placeholder="Add any additional notes..."
                 className="min-h-[100px]"
               />
@@ -435,7 +434,7 @@ export function SaveTimeEntryDialog({
             </Button>
           </div>
         </div>
-      </DialogContentComponent>
+      </ContentComponent>
     </DialogComponent>
   );
 }
