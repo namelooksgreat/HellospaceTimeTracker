@@ -1,4 +1,4 @@
-import React, { useState, Suspense, lazy, useCallback } from "react";
+import React, { useState, Suspense, lazy, useCallback, memo } from "react";
 import { supabase } from "@/lib/supabase";
 import { showSuccess } from "@/lib/utils/toast";
 import { toast } from "sonner";
@@ -35,8 +35,8 @@ import TimeEntryComponent from "./TimeEntry";
 
 // Lazy load components
 const TimeTracker = lazy(() => import("@/components/TimeTracker"));
-const ReportsPage = lazy(() => import("@/components/reports/ReportsPage"));
-const ProfilePage = lazy(() => import("@/components/profile/ProfilePage"));
+const ReportsPage = lazy(() => import("./reports/ReportsPage"));
+const ProfilePage = lazy(() => import("./profile/ProfilePage"));
 
 function Home() {
   usePerformanceTracking("Home");
@@ -253,4 +253,4 @@ function Home() {
   );
 }
 
-export default Home;
+export default memo(Home);

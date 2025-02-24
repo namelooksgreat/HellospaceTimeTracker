@@ -18,11 +18,29 @@ export default defineConfig(({ command, mode }) => {
       }),
       tempo(),
     ],
+    optimizeDeps: {
+      include: [
+        "react",
+        "react-dom",
+        "framer-motion",
+        "@/components/home",
+        "@/components/TimeTracker",
+        "@/lib/utils/common",
+        "@radix-ui/react-dialog",
+        "@radix-ui/react-select",
+        "@radix-ui/react-tabs",
+        "lucide-react",
+      ],
+      exclude: ["tempo-routes"],
+    },
     build: {
+      target: "esnext",
+      outDir: "dist",
+      assetsDir: "assets",
+      cssCodeSplit: true,
       sourcemap: false,
       minify: "terser",
       chunkSizeWarningLimit: 3000,
-      target: "esnext",
       terserOptions: {
         compress: {
           drop_console: false,
@@ -67,9 +85,6 @@ export default defineConfig(({ command, mode }) => {
     define: {
       "process.env.NODE_ENV": JSON.stringify(process.env.NODE_ENV),
       global: "globalThis",
-    },
-    optimizeDeps: {
-      include: ["framer-motion"],
     },
   };
 });

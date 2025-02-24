@@ -26,8 +26,12 @@ const CustomerReportPage = lazy(() =>
 );
 
 // Optimize code splitting with prefetch
-const Home = lazy(() => import("./components/home"));
-const TimeTracker = lazy(() => import("./components/TimeTracker"));
+const Home = lazy(() => import("@/components/home"));
+const TimeTracker = lazy(() =>
+  import("./components/TimeTracker").then((module) => ({
+    default: module.default,
+  })),
+);
 const ReportsPage = lazy(() => import("./components/reports/ReportsPage"));
 const ProfilePage = lazy(() => import("./components/profile/ProfilePage"));
 
@@ -112,7 +116,9 @@ export default function App() {
                   path="/"
                   element={
                     <ProtectedRoute>
-                      <Home />
+                      <Suspense fallback={<LoadingPage />}>
+                        <Home />
+                      </Suspense>
                     </ProtectedRoute>
                   }
                 />
