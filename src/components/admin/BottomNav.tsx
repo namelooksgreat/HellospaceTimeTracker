@@ -8,11 +8,13 @@ import {
   Clock,
   Settings,
   DollarSign,
+  Mail,
 } from "lucide-react";
 
 const menuItems = [
   { icon: BarChart, label: "Dashboard", href: "/admin" },
   { icon: Users, label: "Users", href: "/admin/users" },
+  { icon: Mail, label: "Invitations", href: "/admin/invitations" },
   { icon: Building2, label: "Customers", href: "/admin/customers" },
   { icon: FolderKanban, label: "Projects", href: "/admin/projects" },
   { icon: Clock, label: "Time Entries", href: "/admin/time-entries" },

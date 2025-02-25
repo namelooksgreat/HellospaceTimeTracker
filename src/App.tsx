@@ -7,25 +7,16 @@ import { LoadingPage } from "./components/ui/loading-spinner";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { LanguageProvider } from "./lib/i18n/LanguageContext";
 import { useAuth } from "./lib/auth";
+
+// Lazy load components
 const AuthPage = lazy(() => import("./components/auth/AuthPage"));
 const ResetPasswordForm = React.lazy(() =>
   import("./components/auth/ResetPasswordForm").then((mod) => ({
     default: mod.ResetPasswordForm,
   })),
 );
-// Admin page imports
-const UserReportPage = lazy(() =>
-  import("./components/admin/pages/UserReportPage").then((module) => ({
-    default: module.UserReportPage,
-  })),
-);
-const CustomerReportPage = lazy(() =>
-  import("./components/admin/pages/CustomerReportPage").then((module) => ({
-    default: module.CustomerReportPage,
-  })),
-);
 
-// Optimize code splitting with prefetch
+// Main pages
 const Home = lazy(() => import("@/components/home"));
 const TimeTracker = lazy(() =>
   import("./components/TimeTracker").then((module) => ({
@@ -49,6 +40,11 @@ const DashboardPage = lazy(() =>
 const UsersPage = lazy(() =>
   import("./components/admin/pages/UsersPage").then((module) => ({
     default: module.UsersPage,
+  })),
+);
+const InvitationsPage = lazy(() =>
+  import("./components/admin/pages/InvitationsPage").then((module) => ({
+    default: module.InvitationsPage,
   })),
 );
 const CustomersPage = lazy(() =>
@@ -76,10 +72,18 @@ const SettingsPage = lazy(() =>
     default: module.SettingsPage,
   })),
 );
+const UserReportPage = lazy(() =>
+  import("./components/admin/pages/UserReportPage").then((module) => ({
+    default: module.UserReportPage,
+  })),
+);
+const CustomerReportPage = lazy(() =>
+  import("./components/admin/pages/CustomerReportPage").then((module) => ({
+    default: module.CustomerReportPage,
+  })),
+);
 
 export default function App() {
-  // Ensure routes are properly handled
-  const basename = import.meta.env.BASE_URL;
   const { session, loading } = useAuth();
 
   if (loading) {
@@ -112,6 +116,10 @@ export default function App() {
                     element={<ResetPasswordForm />}
                   />
                 </Route>
+                <Route
+                  path="/auth"
+                  element={session ? <Navigate to="/" replace /> : <AuthPage />}
+                />
                 <Route
                   path="/"
                   element={
@@ -151,13 +159,10 @@ export default function App() {
                     </ProtectedRoute>
                   }
                 />
-                {/* Tempo routes */}
-                {import.meta.env.VITE_TEMPO === "true" && (
-                  <Route path="/tempobook/*" />
-                )}
+
                 {/* Admin routes */}
                 <Route
-                  path="/admin/*"
+                  path="admin"
                   element={
                     <ProtectedRoute requireAdmin>
                       <AdminLayout />
@@ -166,6 +171,7 @@ export default function App() {
                 >
                   <Route index element={<DashboardPage />} />
                   <Route path="users" element={<UsersPage />} />
+                  <Route path="invitations" element={<InvitationsPage />} />
                   <Route
                     path="users/:userId/report"
                     element={<UserReportPage />}
@@ -180,8 +186,13 @@ export default function App() {
                   <Route path="payments" element={<CustomerPaymentsPage />} />
                   <Route path="settings" element={<SettingsPage />} />
                 </Route>
-                {/* Catch-all route */}
 
+                {/* Tempo routes */}
+                {import.meta.env.VITE_TEMPO === "true" && (
+                  <Route path="/tempobook/*" />
+                )}
+
+                {/* Catch-all route */}
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </div>

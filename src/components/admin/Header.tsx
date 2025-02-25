@@ -17,21 +17,16 @@ export function Header() {
       <div className="container max-w-7xl mx-auto px-4">
         <div className="flex h-16 items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-primary text-primary-foreground grid place-items-center">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="w-5 h-5"
-              >
-                <path d="M12 2v10M12 16v6M12 12l8.5-8.5M12 12l-8.5-8.5" />
-              </svg>
-            </div>
-            <div className="font-semibold text-lg">Hellospace</div>
+            <img
+              src="/logo-admin-black.png"
+              alt="Admin Logo"
+              className="h-8 w-auto block dark:hidden"
+            />
+            <img
+              src="/logo-admin-white.png"
+              alt="Admin Logo"
+              className="h-8 w-auto hidden dark:block"
+            />
           </div>
 
           <div className="flex items-center gap-2">

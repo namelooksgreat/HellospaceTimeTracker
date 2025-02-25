@@ -1,7 +1,6 @@
 import { supabase } from "../supabase";
 import { Invitation, InvitationValidation } from "@/types/invitations";
 import { handleError } from "../utils/error-handler";
-import { sendInvitationEmail } from "../services/emailService";
 
 export async function createInvitation(
   email: string,
@@ -49,9 +48,9 @@ export async function createInvitation(
       .map((b) => b.toString(16).padStart(2, "0"))
       .join("");
 
-    // Set expiration to 48 hours from now
+    // Set expiration to 7 days from now
     const expires_at = new Date();
-    expires_at.setHours(expires_at.getHours() + 48);
+    expires_at.setDate(expires_at.getDate() + 7);
 
     // Create invitation
     const { data, error } = await supabase
@@ -69,10 +68,6 @@ export async function createInvitation(
 
     if (error) throw error;
 
-    // Send invitation email
-    const inviteUrl = `${window.location.origin}/auth?token=${token}`;
-    await sendInvitationEmail(email, inviteUrl, role);
-
     return data;
   } catch (error) {
     handleError(error, "createInvitation");
@@ -84,12 +79,38 @@ export async function validateInvitation(
   token: string,
 ): Promise<InvitationValidation> {
   try {
-    const { data, error } = await supabase.rpc("check_invitation_token", {
-      p_token: token,
-    });
+    // Get invitation details directly
+    const { data: invitation, error: inviteError } = await supabase
+      .from("invitations")
+      .select("*")
+      .eq("token", token)
+      .single();
 
-    if (error) throw error;
-    return data as InvitationValidation;
+    if (inviteError) {
+      console.error("Invitation validation error:", inviteError);
+      return { is_valid: false, email: null, role: null, metadata: null };
+    }
+
+    if (!invitation) {
+      return { is_valid: false, email: null, role: null, metadata: null };
+    }
+
+    // Check if invitation is used
+    if (invitation.used_at) {
+      return { is_valid: false, email: null, role: null, metadata: null };
+    }
+
+    // Check if invitation is expired
+    if (new Date(invitation.expires_at) < new Date()) {
+      return { is_valid: false, email: null, role: null, metadata: null };
+    }
+
+    return {
+      is_valid: true,
+      email: invitation.email,
+      role: invitation.role,
+      metadata: invitation.metadata,
+    };
   } catch (error) {
     handleError(error, "validateInvitation");
     throw error;
@@ -127,6 +148,25 @@ export async function listInvitations(): Promise<Invitation[]> {
     return data;
   } catch (error) {
     handleError(error, "listInvitations");
+    throw error;
+  }
+}
+
+export async function deleteInvitation(id: string): Promise<void> {
+  try {
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) throw new Error("Oturum açmanız gerekiyor");
+
+    // Check if user is admin
+    if (userData.user.user_metadata?.user_type !== "admin") {
+      throw new Error("Bu işlem için yetkiniz yok");
+    }
+
+    const { error } = await supabase.from("invitations").delete().eq("id", id);
+
+    if (error) throw error;
+  } catch (error) {
+    handleError(error, "deleteInvitation");
     throw error;
   }
 }

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Clock } from "lucide-react";
+import { format } from "date-fns";
 import { supabase } from "@/lib/supabase";
 import { handleError } from "@/lib/utils/error-handler";
 import { toast } from "sonner";
@@ -234,24 +235,37 @@ export function EditTimeEntryDialog({
                   <Label className="text-sm text-muted-foreground mb-2">
                     Started at
                   </Label>
-                  <DateTimePicker
-                    date={
-                      formData.startTime
-                        ? new Date(formData.startTime)
-                        : new Date()
-                    }
-                    setDate={(date) => {
-                      setFormData((prev) => ({
-                        ...prev,
-                        startTime: date.toISOString(),
-                      }));
-                    }}
-                    defaultDate={
-                      formData.startTime
-                        ? new Date(formData.startTime)
-                        : undefined
-                    }
-                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <DateTimePicker
+                      date={new Date(formData.startTime)}
+                      setDate={(date) => {
+                        const currentDate = new Date(formData.startTime);
+                        date.setHours(currentDate.getHours());
+                        date.setMinutes(currentDate.getMinutes());
+                        setFormData((prev) => ({
+                          ...prev,
+                          startTime: date.toISOString(),
+                        }));
+                      }}
+                    />
+                    <Input
+                      type="time"
+                      value={format(new Date(formData.startTime), "HH:mm")}
+                      onChange={(e) => {
+                        const [hours, minutes] = e.target.value
+                          .split(":")
+                          .map(Number);
+                        const date = new Date(formData.startTime);
+                        date.setHours(hours);
+                        date.setMinutes(minutes);
+                        setFormData((prev) => ({
+                          ...prev,
+                          startTime: date.toISOString(),
+                        }));
+                      }}
+                      className="h-10"
+                    />
+                  </div>
                 </div>
               </div>
             </div>

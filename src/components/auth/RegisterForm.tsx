@@ -87,7 +87,7 @@ export function RegisterForm({ inviteToken }: RegisterFormProps) {
         userRole = validation.role || "user";
       }
 
-      // Create auth user with metadata
+      // Create user with admin client to bypass email verification
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -96,6 +96,7 @@ export function RegisterForm({ inviteToken }: RegisterFormProps) {
             full_name: formData.fullName,
             user_type: userRole,
           },
+          emailRedirectTo: undefined,
         },
       });
 
@@ -113,13 +114,19 @@ export function RegisterForm({ inviteToken }: RegisterFormProps) {
         await markInvitationAsUsed(inviteToken, authData.user.id);
       }
 
+      // Auto sign in after registration
+      await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password,
+      });
+
       toast.success(
         language === "tr" ? "Kayıt başarılı!" : "Registration successful!",
         {
           description:
             language === "tr"
-              ? "Hesabınız başarıyla oluşturuldu."
-              : "Your account has been created successfully.",
+              ? "Hesabınız oluşturuldu. Giriş yapabilirsiniz."
+              : "Your account has been created. You can now log in.",
         },
       );
 
