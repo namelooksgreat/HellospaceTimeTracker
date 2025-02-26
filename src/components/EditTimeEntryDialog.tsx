@@ -125,6 +125,7 @@ export function EditTimeEntryDialog({
       onSave({
         ...formData,
         duration: validDuration,
+        startTime: formData.startTime,
       });
       toast.success("Time entry updated successfully");
       setEditTimeEntryDialog(false, null);

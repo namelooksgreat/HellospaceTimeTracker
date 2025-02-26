@@ -89,6 +89,7 @@ function Home() {
       duration: number;
       hourlyRate?: number;
       currency?: string;
+      startTime?: string;
     }) => {
       if (!selectedEntry) return;
 
@@ -101,6 +102,7 @@ function Home() {
             project_id: data.projectId || null,
             description: data.description,
             duration: data.duration,
+            start_time: data.startTime,
           })
           .eq("id", selectedEntry.id);
 
