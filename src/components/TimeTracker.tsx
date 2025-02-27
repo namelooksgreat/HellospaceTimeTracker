@@ -162,6 +162,11 @@ function TimeTracker({
           setProjectId("");
           setCustomerId("");
           resetTimerData();
+        } else {
+          // Manuel giriş başarılı olduğunda, localStorage'daki verileri temizleme
+          // Bir sonraki manuel girişte yeni veriler girilmesi için
+          // localStorage.removeItem("timeEntry.manualEntry");
+          // Yorum satırı olarak bırakıldı, böylece veriler hatırlanacak
         }
       } catch (error) {
         handleError(error, "TimeTracker");

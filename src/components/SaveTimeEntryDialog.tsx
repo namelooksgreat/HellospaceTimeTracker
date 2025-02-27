@@ -123,16 +123,33 @@ export function SaveTimeEntryDialog({
       const savedDescription =
         localStorage.getItem("timeEntry.lastDescription") || "";
 
+      // Manuel giriş için kaydedilmiş verileri al
+      const savedManualEntry = localStorage.getItem("timeEntry.manualEntry");
+      const savedData = savedManualEntry ? JSON.parse(savedManualEntry) : null;
+
       if (saveTimeEntryDialog.isManualEntry) {
-        setFormData({
-          taskName: "",
-          projectId: "",
-          customerId: "",
-          description: savedDescription,
-          tags: [],
-          startTime: formattedDateTime,
-        });
-        setDuration(0);
+        if (savedData) {
+          // Kaydedilmiş manuel giriş verilerini kullan
+          setFormData({
+            taskName: savedData.taskName || "",
+            projectId: savedData.projectId || "",
+            customerId: savedData.customerId || "",
+            description: savedData.description || savedDescription,
+            tags: savedData.tags || [],
+            startTime: formattedDateTime, // Tarih her zaman güncel olsun
+          });
+          setDuration(savedData.duration || 0);
+        } else {
+          setFormData({
+            taskName: "",
+            projectId: "",
+            customerId: "",
+            description: savedDescription,
+            tags: [],
+            startTime: formattedDateTime,
+          });
+          setDuration(0);
+        }
       } else {
         setFormData({
           taskName: initialTaskName || "",
@@ -164,17 +181,20 @@ export function SaveTimeEntryDialog({
 
   const handleSave = () => {
     const validDuration = Math.max(0, duration);
-    console.debug("Saving time entry:", {
+    const saveData = {
       ...formData,
       duration: validDuration,
       startTime: formData.startTime,
-    });
+    };
 
-    onSave({
-      ...formData,
-      duration: validDuration,
-      startTime: formData.startTime,
-    });
+    console.debug("Saving time entry:", saveData);
+
+    // Manuel giriş verilerini localStorage'a kaydet
+    if (saveTimeEntryDialog.isManualEntry) {
+      localStorage.setItem("timeEntry.manualEntry", JSON.stringify(saveData));
+    }
+
+    onSave(saveData);
   };
 
   const isMobile = useMediaQuery("(max-width: 640px)");

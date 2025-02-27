@@ -59,14 +59,17 @@ export const getProjects = async (): Promise<Project[]> => {
     const { data: userData, error: userError } = await supabase.auth.getUser();
     if (userError) throw userError;
 
+    // Kullanıcıya atanmış projeleri getir
     const { data, error } = await supabase
       .from("projects")
       .select(
         `
         *,
-        customer:customers!left(id, name, customer_rates(hourly_rate, currency))
+        customer:customers!left(id, name, customer_rates(hourly_rate, currency)),
+        user_projects!inner(user_id)
       `,
       )
+      .eq("user_projects.user_id", userData.user.id)
       .order("name");
 
     if (error) throw error;
