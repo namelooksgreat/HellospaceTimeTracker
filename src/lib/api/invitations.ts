@@ -79,41 +79,34 @@ export async function validateInvitation(
   token: string,
 ): Promise<InvitationValidation> {
   try {
-    // Get invitation details directly
-    const { data: invitation, error: inviteError } = await supabase
-      .from("invitations")
-      .select("*")
-      .eq("token", token)
-      .single();
+    // Doğrudan RPC fonksiyonu kullan
+    const { data, error } = await supabase.rpc("check_invitation_token", {
+      p_token: token,
+    });
 
-    if (inviteError) {
-      console.error("Invitation validation error:", inviteError);
+    if (error) {
+      console.error("RPC invitation validation error:", error);
       return { is_valid: false, email: null, role: null, metadata: null };
     }
 
-    if (!invitation) {
+    if (!data || data.length === 0) {
+      console.log("No invitation found with token:", token);
       return { is_valid: false, email: null, role: null, metadata: null };
     }
 
-    // Check if invitation is used
-    if (invitation.used_at) {
-      return { is_valid: false, email: null, role: null, metadata: null };
-    }
-
-    // Check if invitation is expired
-    if (new Date(invitation.expires_at) < new Date()) {
-      return { is_valid: false, email: null, role: null, metadata: null };
-    }
+    const invitation = data[0];
+    console.log("Valid invitation found for email:", invitation.email);
 
     return {
-      is_valid: true,
+      is_valid: invitation.is_valid,
       email: invitation.email,
       role: invitation.role,
       metadata: invitation.metadata,
     };
   } catch (error) {
+    console.error("Error in validateInvitation:", error);
     handleError(error, "validateInvitation");
-    throw error;
+    return { is_valid: false, email: null, role: null, metadata: null };
   }
 }
 
@@ -131,6 +124,10 @@ export async function markInvitationAsUsed(
       .eq("token", token);
 
     if (error) throw error;
+
+    console.log(
+      `Davet kullanıldı olarak işaretlendi. Token: ${token}, Kullanıcı: ${userId}`,
+    );
   } catch (error) {
     handleError(error, "markInvitationAsUsed");
     throw error;
@@ -162,9 +159,13 @@ export async function deleteInvitation(id: string): Promise<void> {
       throw new Error("Bu işlem için yetkiniz yok");
     }
 
+    // Perform the delete operation
     const { error } = await supabase.from("invitations").delete().eq("id", id);
 
-    if (error) throw error;
+    if (error) {
+      console.error("Davetiye silme hatası:", error);
+      throw error;
+    }
   } catch (error) {
     handleError(error, "deleteInvitation");
     throw error;

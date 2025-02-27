@@ -15,9 +15,10 @@ import {
 
 interface RegisterFormProps {
   inviteToken?: string | null;
+  inviteEmail?: string | null;
 }
 
-export function RegisterForm({ inviteToken }: RegisterFormProps) {
+export function RegisterForm({ inviteToken, inviteEmail }: RegisterFormProps) {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
@@ -33,7 +34,19 @@ export function RegisterForm({ inviteToken }: RegisterFormProps) {
 
       try {
         setLoading(true);
+        console.log("Validating invitation token:", inviteToken);
+
+        // Pre-fill email from URL parameter first if available
+        if (inviteEmail) {
+          console.log("Using email from URL parameter:", inviteEmail);
+          setFormData((prev) => ({
+            ...prev,
+            email: inviteEmail,
+          }));
+        }
+
         const validation = await validateInvitation(inviteToken);
+        console.log("Validation result:", validation);
 
         if (!validation.is_valid) {
           toast.error(
@@ -44,11 +57,16 @@ export function RegisterForm({ inviteToken }: RegisterFormProps) {
           return;
         }
 
-        // Pre-fill email if provided in invitation
-        if (validation.email) {
-          setFormData((prev) => ({ ...prev, email: validation.email || "" }));
+        // If email wasn't set from URL, use the one from validation
+        if (!inviteEmail && validation.email) {
+          console.log("Using email from validation:", validation.email);
+          setFormData((prev) => ({
+            ...prev,
+            email: validation.email || "",
+          }));
         }
       } catch (error) {
+        console.error("Error validating invitation:", error);
         handleError(error, "RegisterForm");
       } finally {
         setLoading(false);
@@ -56,7 +74,7 @@ export function RegisterForm({ inviteToken }: RegisterFormProps) {
     };
 
     validateToken();
-  }, [inviteToken, language]);
+  }, [inviteToken, language, inviteEmail]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,7 +105,7 @@ export function RegisterForm({ inviteToken }: RegisterFormProps) {
         userRole = validation.role || "user";
       }
 
-      // Create user with admin client to bypass email verification
+      // Doğrudan Supabase Auth API ile kullanıcı oluştur
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -95,10 +113,43 @@ export function RegisterForm({ inviteToken }: RegisterFormProps) {
           data: {
             full_name: formData.fullName,
             user_type: userRole,
+            from_invitation: inviteToken ? "true" : "false", // Davet ile kayıt olduğunu belirt
           },
-          emailRedirectTo: undefined,
         },
       });
+
+      // Hata durumunda daha detaylı bilgi göster
+      if (authError) {
+        console.log("Kayıt hatası detayları:", authError);
+      }
+
+      // Kullanıcı oluşturuldu
+      if (!authError && authData?.user) {
+        console.log("Kullanıcı oluşturuldu", authData.user);
+
+        // Kullanıcıyı doğrulanmış olarak işaretle
+        const { error: confirmError } = await supabase.auth.updateUser({
+          data: { email_confirmed: true },
+        });
+
+        if (confirmError) {
+          console.error("Kullanıcı doğrulama hatası:", confirmError);
+        }
+
+        // Kullanıcı tablosuna ekle
+        const { error: insertError } = await supabase.from("users").insert({
+          id: authData.user.id,
+          email: formData.email,
+          full_name: formData.fullName,
+          user_type: userRole,
+          is_active: true,
+          created_at: new Date().toISOString(),
+        });
+
+        if (insertError) {
+          console.error("Kullanıcı tablosuna ekleme hatası:", insertError);
+        }
+      }
 
       if (authError) {
         if (authError.message.includes("already registered")) {
@@ -107,18 +158,42 @@ export function RegisterForm({ inviteToken }: RegisterFormProps) {
         throw authError;
       }
 
-      if (!authData.user) throw new Error("User creation failed");
+      if (!authData?.user?.id) throw new Error("User creation failed");
 
       // If using invitation, mark it as used
       if (inviteToken) {
-        await markInvitationAsUsed(inviteToken, authData.user.id);
+        try {
+          await markInvitationAsUsed(inviteToken, authData.user.id);
+          console.log(
+            `Davet başarıyla kullanıldı olarak işaretlendi. Token: ${inviteToken}`,
+          );
+        } catch (markError) {
+          console.error(
+            "Davet kullanıldı olarak işaretlenirken hata:",
+            markError,
+          );
+          // Continue with registration even if marking invitation fails
+        }
       }
 
-      // Auto sign in after registration
-      await supabase.auth.signInWithPassword({
-        email: formData.email,
-        password: formData.password,
-      });
+      // Otomatik giriş yap
+      try {
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: formData.email,
+          password: formData.password,
+        });
+
+        // Kullanıcı oturumunu yenile
+        await supabase.auth.refreshSession();
+
+        if (signInError) {
+          console.error("Otomatik giriş hatası:", signInError);
+          // Hata olsa bile devam et
+        }
+      } catch (signInError) {
+        console.error("Otomatik giriş sırasında hata:", signInError);
+        // Giriş hatası olsa bile kayıt başarılı sayılır
+      }
 
       toast.success(
         language === "tr" ? "Kayıt başarılı!" : "Registration successful!",
@@ -144,11 +219,11 @@ export function RegisterForm({ inviteToken }: RegisterFormProps) {
             : "This email is already registered",
         );
       } else {
+        console.error("Registration error:", error);
         toast.error(
-          error.message ||
-            (language === "tr"
-              ? "Kayıt sırasında bir hata oluştu"
-              : "An error occurred during registration"),
+          language === "tr"
+            ? "Kayıt sırasında bir hata oluştu: " + error.message
+            : "An error occurred during registration: " + error.message,
         );
       }
     } finally {
@@ -188,7 +263,7 @@ export function RegisterForm({ inviteToken }: RegisterFormProps) {
               : "Enter your email address"
           }
           required
-          disabled={!!(inviteToken && formData.email !== "")}
+          disabled={!!(inviteEmail || (inviteToken && formData.email !== ""))}
         />
       </div>
 

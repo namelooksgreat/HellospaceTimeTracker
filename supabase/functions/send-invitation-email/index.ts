@@ -18,28 +18,32 @@ serve(async (req) => {
     const { email, inviteUrl, role } = await req.json();
 
     // Create admin client with service role key
-    const adminAuthClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_KEY") ?? "",
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-        },
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_KEY") ?? "";
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error("Missing Supabase environment variables:", {
+        hasUrl: !!supabaseUrl,
+        hasServiceKey: !!supabaseServiceKey,
+      });
+      throw new Error("Supabase configuration is missing");
+    }
+
+    const adminAuthClient = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
       },
+    });
+
+    // E-posta gönderimi yapmadan sadece davet oluştur
+    console.log("Davet linki oluşturuldu:", inviteUrl);
+    console.log(
+      "E-posta gönderimi atlanıyor, kullanıcı davet linkini manuel olarak alacak",
     );
 
-    // Send invitation email using Supabase Auth API
-    const { error } = await adminAuthClient.auth.admin.inviteUserByEmail(
-      email,
-      {
-        data: {
-          role: role,
-          invite_url: inviteUrl,
-        },
-        redirectTo: inviteUrl,
-      },
-    );
+    // Başarılı yanıt döndür, e-posta gönderimi yapılmadı
+    const error = null;
 
     if (error) throw error;
 

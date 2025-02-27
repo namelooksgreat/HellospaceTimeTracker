@@ -44,10 +44,14 @@ export function CreateInvitationDialog({
 
     setLoading(true);
     try {
+      // Davet oluştur
       const invitation = await createInvitation(formData.email, formData.role);
-      const inviteUrl = `${window.location.origin}/auth?token=${invitation.token}`;
+      // Davet linkini oluştur ve e-posta adresini URL'ye ekle
+      const inviteUrl = `${window.location.origin}/auth?token=${invitation.token}&email=${encodeURIComponent(formData.email)}`;
 
-      // Copy to clipboard
+      // Tam davet URL'si oluşturuldu
+
+      // Davet linkini panoya kopyala
       await navigator.clipboard.writeText(inviteUrl);
 
       toast.success("Davet linki oluşturuldu", {

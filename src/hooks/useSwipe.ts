@@ -16,7 +16,7 @@ export function useSwipe({
 
   useEffect(() => {
     const handleTouchStart = (e: TouchEvent) => {
-      e.preventDefault(); // Prevent scrolling
+      // Remove preventDefault to avoid passive listener warning
       e.stopPropagation();
       setTouchEnd(null);
       setTouchStart(e.targetTouches[0].clientX);

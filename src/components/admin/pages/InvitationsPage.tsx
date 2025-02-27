@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { handleError } from "@/lib/utils/error-handler";
 import { showSuccess } from "@/lib/utils/toast";
+import { supabase } from "@/lib/supabase";
 import {
   createInvitation,
   listInvitations,
@@ -30,22 +31,26 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { CreateInvitationDialog } from "../dialogs/CreateInvitationDialog";
 
 export function InvitationsPage() {
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [formData, setFormData] = useState({
-    email: "",
-    role: "user" as Invitation["role"],
-  });
 
   const loadInvitations = async () => {
     try {
       setLoading(true);
+      console.log("Davetiye listesi yükleniyor...");
       const data = await listInvitations();
+      console.log(
+        "Davetiye listesi yüklendi:",
+        data.length,
+        "davetiye bulundu",
+      );
       setInvitations(data);
     } catch (error) {
+      console.error("Davetiye listesi yükleme hatası:", error);
       handleError(error, "InvitationsPage");
     } finally {
       setLoading(false);
@@ -55,24 +60,6 @@ export function InvitationsPage() {
   useEffect(() => {
     loadInvitations();
   }, []);
-
-  const handleCreateInvitation = async () => {
-    try {
-      const invitation = await createInvitation(formData.email, formData.role);
-      const inviteUrl = `${window.location.origin}/auth?token=${invitation.token}`;
-
-      // Copy to clipboard
-      await navigator.clipboard.writeText(inviteUrl);
-
-      showSuccess("Davet linki oluşturuldu");
-
-      await loadInvitations();
-      setShowCreateDialog(false);
-      setFormData({ email: "", role: "user" });
-    } catch (error) {
-      handleError(error, "InvitationsPage");
-    }
-  };
 
   return (
     <div className="space-y-8">
@@ -110,7 +97,7 @@ export function InvitationsPage() {
                 }`}
               >
                 {invitation.used_at
-                  ? "Kullanıldı"
+                  ? `Kullanıldı (${format(new Date(invitation.used_at), "d MMM yyyy HH:mm", { locale: tr })})`
                   : new Date(invitation.expires_at) < new Date()
                     ? "Süresi Doldu"
                     : "Aktif"}
@@ -139,7 +126,7 @@ export function InvitationsPage() {
                   variant="ghost"
                   size="sm"
                   onClick={async () => {
-                    const inviteUrl = `${window.location.origin}/auth?token=${invitation.token}`;
+                    const inviteUrl = `${window.location.origin}/auth?token=${invitation.token}&email=${encodeURIComponent(invitation.email)}`;
                     await navigator.clipboard.writeText(inviteUrl);
                     showSuccess("Davet linki kopyalandı");
                   }}
@@ -152,10 +139,24 @@ export function InvitationsPage() {
                   size="sm"
                   onClick={async () => {
                     try {
-                      await deleteInvitation(invitation.id);
+                      // RPC fonksiyonu çağır
+                      const { error } = await supabase.rpc(
+                        "delete_invitation",
+                        {
+                          invitation_id: invitation.id,
+                        },
+                      );
+
+                      if (error) {
+                        console.error("RPC silme hatası:", error);
+                        throw error;
+                      }
+
                       showSuccess("Davet başarıyla silindi");
-                      await loadInvitations();
+                      // Listeyi yenile
+                      loadInvitations();
                     } catch (error) {
+                      console.error("Davetiye silme hatası:", error);
                       handleError(error, "InvitationsPage");
                     }
                   }}
@@ -171,58 +172,11 @@ export function InvitationsPage() {
         loading={loading}
       />
 
-      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Yeni Davet Oluştur</DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Email</Label>
-              <Input
-                type="email"
-                value={formData.email}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, email: e.target.value }))
-                }
-                placeholder="Davet edilecek email adresi"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Rol</Label>
-              <Select
-                value={formData.role}
-                onValueChange={(value: Invitation["role"]) =>
-                  setFormData((prev) => ({ ...prev, role: value }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Rol seçin" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="developer">Developer</SelectItem>
-                  <SelectItem value="designer">Designer</SelectItem>
-                  <SelectItem value="user">User</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex justify-end gap-2 pt-4">
-              <Button
-                variant="outline"
-                onClick={() => setShowCreateDialog(false)}
-              >
-                İptal
-              </Button>
-              <Button onClick={handleCreateInvitation}>Davet Oluştur</Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <CreateInvitationDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        onInviteCreated={loadInvitations}
+      />
     </div>
   );
 }

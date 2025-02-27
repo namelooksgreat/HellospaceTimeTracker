@@ -120,6 +120,35 @@ export type Database = {
           },
         ]
       }
+      customer_users: {
+        Row: {
+          created_at: string | null
+          customer_id: string | null
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          customer_id?: string | null
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          customer_id?: string | null
+          id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_users_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           created_at: string
@@ -171,6 +200,77 @@ export type Database = {
         }
         Relationships: []
       }
+      invitations: {
+        Row: {
+          created_at: string | null
+          created_by: string
+          email: string
+          expires_at: string
+          id: string
+          metadata: Json | null
+          role: string
+          token: string
+          used_at: string | null
+          used_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by: string
+          email: string
+          expires_at: string
+          id?: string
+          metadata?: Json | null
+          role?: string
+          token: string
+          used_at?: string | null
+          used_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          metadata?: Json | null
+          role?: string
+          token?: string
+          used_at?: string | null
+          used_by?: string | null
+        }
+        Relationships: []
+      }
+      project_members: {
+        Row: {
+          created_at: string
+          id: string
+          project_id: string | null
+          role: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          project_id?: string | null
+          role: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          project_id?: string | null
+          role?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_members_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           color: string
@@ -179,6 +279,7 @@ export type Database = {
           icon: string | null
           id: string
           name: string
+          status: string
           user_id: string
         }
         Insert: {
@@ -188,6 +289,7 @@ export type Database = {
           icon?: string | null
           id?: string
           name: string
+          status?: string
           user_id: string
         }
         Update: {
@@ -197,6 +299,7 @@ export type Database = {
           icon?: string | null
           id?: string
           name?: string
+          status?: string
           user_id?: string
         }
         Relationships: [
@@ -429,6 +532,7 @@ export type Database = {
       }
       users: {
         Row: {
+          avatar_url: string | null
           created_at: string | null
           email: string
           full_name: string | null
@@ -437,6 +541,7 @@ export type Database = {
           user_type: string
         }
         Insert: {
+          avatar_url?: string | null
           created_at?: string | null
           email: string
           full_name?: string | null
@@ -445,6 +550,7 @@ export type Database = {
           user_type?: string
         }
         Update: {
+          avatar_url?: string | null
           created_at?: string | null
           email?: string
           full_name?: string | null
@@ -464,6 +570,21 @@ export type Database = {
           user_id: string
           new_password: string
         }
+        Returns: undefined
+      }
+      check_invitation_token: {
+        Args: {
+          p_token: string
+        }
+        Returns: {
+          is_valid: boolean
+          email: string
+          role: string
+          metadata: Json
+        }[]
+      }
+      create_bug_reports_bucket: {
+        Args: Record<PropertyKey, never>
         Returns: undefined
       }
       deactivate_user: {
@@ -509,7 +630,7 @@ export type Database = {
         | "designer"
         | "product_manager"
         | "project_manager"
-      user_type: "admin" | "customer" | "developer"
+      user_type: "admin" | "customer" | "developer" | "designer"
     }
     CompositeTypes: {
       [_ in never]: never

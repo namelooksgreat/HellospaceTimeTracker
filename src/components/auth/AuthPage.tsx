@@ -3,7 +3,7 @@ import { ClientOnly } from "../ClientOnly";
 import { Button } from "../ui/button";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 
 const LoginForm = React.lazy(() =>
   import("./LoginForm").then((mod) => ({ default: mod.LoginForm })),
@@ -14,8 +14,10 @@ const RegisterForm = React.lazy(() =>
 const OnboardingPage = React.lazy(() => import("../onboarding/OnboardingPage"));
 
 export default function AuthPage() {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const inviteToken = searchParams.get("token");
+  const inviteEmail = searchParams.get("email");
   const [showOnboarding, setShowOnboarding] = useState(() => {
     const hasSeenOnboarding = localStorage.getItem("hasSeenOnboarding");
     return !hasSeenOnboarding;
@@ -26,7 +28,37 @@ export default function AuthPage() {
     if (hasSeenOnboarding) {
       setShowOnboarding(false);
     }
-  }, []);
+
+    // Handle URL routing for invitation links
+    if (inviteToken) {
+      console.log("Invitation token detected in URL:", inviteToken);
+      console.log("Email from URL:", inviteEmail);
+
+      // Make sure we're showing the register form
+      setMode("register");
+
+      // Fix the URL to avoid 401 errors with the token in the URL
+      // Store token and email in sessionStorage instead
+      if (inviteToken) {
+        sessionStorage.setItem("inviteToken", inviteToken);
+        if (inviteEmail) {
+          sessionStorage.setItem("inviteEmail", inviteEmail);
+        }
+
+        // Navigate to clean URL without query parameters
+        navigate("/auth", { replace: true });
+      }
+    } else {
+      // Check if we have stored invitation data
+      const storedToken = sessionStorage.getItem("inviteToken");
+      const storedEmail = sessionStorage.getItem("inviteEmail");
+
+      if (storedToken) {
+        console.log("Using stored invitation token from session storage");
+        setMode("register");
+      }
+    }
+  }, [inviteToken, inviteEmail, navigate]);
 
   // If there's an invite token, always show register form
   const [mode, setMode] = useState<"login" | "register">(
@@ -135,34 +167,7 @@ export default function AuthPage() {
                 <div className="absolute inset-0 bg-grid-white/[0.02]" />
 
                 <div className="relative space-y-6">
-                  {!inviteToken && (
-                    <div className="flex p-1 gap-1 bg-muted/50 rounded-xl">
-                      <Button
-                        variant="ghost"
-                        className={cn(
-                          "flex-1 font-medium rounded-lg transition-all duration-300",
-                          mode === "login"
-                            ? "bg-background text-foreground shadow-sm border border-border/50"
-                            : "text-muted-foreground hover:text-foreground hover:bg-background/50",
-                        )}
-                        onClick={() => setMode("login")}
-                      >
-                        Giriş Yap
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        className={cn(
-                          "flex-1 font-medium rounded-lg transition-all duration-300",
-                          mode === "register"
-                            ? "bg-background text-foreground shadow-sm border border-border/50"
-                            : "text-muted-foreground hover:text-foreground hover:bg-background/50",
-                        )}
-                        onClick={() => setMode("register")}
-                      >
-                        Kayıt Ol
-                      </Button>
-                    </div>
-                  )}
+                  {/* Kayıt ol seçeneği kaldırıldı, sadece giriş yapma seçeneği var */}
 
                   <AnimatePresence mode="wait">
                     <motion.div
@@ -176,10 +181,20 @@ export default function AuthPage() {
                       }}
                     >
                       <Suspense fallback={null}>
-                        {mode === "login" ? (
-                          <LoginForm />
+                        {inviteToken ||
+                        sessionStorage.getItem("inviteToken") ? (
+                          <RegisterForm
+                            inviteToken={
+                              inviteToken ||
+                              sessionStorage.getItem("inviteToken")
+                            }
+                            inviteEmail={
+                              inviteEmail ||
+                              sessionStorage.getItem("inviteEmail")
+                            }
+                          />
                         ) : (
-                          <RegisterForm inviteToken={inviteToken} />
+                          <LoginForm />
                         )}
                       </Suspense>
                     </motion.div>
@@ -187,7 +202,7 @@ export default function AuthPage() {
                 </div>
               </motion.div>
 
-              {!inviteToken && (
+              {!inviteToken && !sessionStorage.getItem("inviteToken") && (
                 <div className="space-y-2 text-center">
                   <motion.p
                     className="text-sm text-muted-foreground"
@@ -199,27 +214,7 @@ export default function AuthPage() {
                       ease: [0.23, 1, 0.32, 1],
                     }}
                   >
-                    {mode === "login" ? (
-                      <>
-                        Henüz hesabınız yok mu?{" "}
-                        <button
-                          onClick={() => setMode("register")}
-                          className="text-primary hover:underline font-medium"
-                        >
-                          Kayıt olun
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        Zaten hesabınız var mı?{" "}
-                        <button
-                          onClick={() => setMode("login")}
-                          className="text-primary hover:underline font-medium"
-                        >
-                          Giriş yapın
-                        </button>
-                      </>
-                    )}
+                    Hesap oluşturmak için yöneticinizle iletişime geçin.
                   </motion.p>
                   <button
                     onClick={() => {
