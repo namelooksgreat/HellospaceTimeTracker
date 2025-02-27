@@ -185,6 +185,7 @@ export function EditTimeEntryDialog({
                           hours * 3600 + minutes * 60 + seconds;
                         setDuration(newDuration);
                       }}
+                      onClick={(e) => e.currentTarget.select()}
                       className="h-16 w-full text-center font-mono text-3xl font-bold bg-background/50 hover:bg-accent/50 transition-all duration-150 rounded-lg border-border/50 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 shadow-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground">
@@ -205,6 +206,7 @@ export function EditTimeEntryDialog({
                           hours * 3600 + minutes * 60 + seconds;
                         setDuration(newDuration);
                       }}
+                      onClick={(e) => e.currentTarget.select()}
                       className="h-16 w-full text-center font-mono text-3xl font-bold bg-background/50 hover:bg-accent/50 transition-all duration-150 rounded-lg border-border/50 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 shadow-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground">
@@ -225,6 +227,7 @@ export function EditTimeEntryDialog({
                           hours * 3600 + minutes * 60 + seconds;
                         setDuration(newDuration);
                       }}
+                      onClick={(e) => e.currentTarget.select()}
                       className="h-16 w-full text-center font-mono text-3xl font-bold bg-background/50 hover:bg-accent/50 transition-all duration-150 rounded-lg border-border/50 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 shadow-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground">
