@@ -242,6 +242,18 @@ export function SaveTimeEntryDialog({
                         const newDuration =
                           hours * 3600 + minutes * 60 + seconds;
                         setDuration(newDuration);
+
+                        // Manuel giriş modunda ise, değişiklikleri anında localStorage'a kaydet
+                        if (saveTimeEntryDialog.isManualEntry) {
+                          const currentData = {
+                            ...formData,
+                            duration: newDuration,
+                          };
+                          localStorage.setItem(
+                            "timeEntry.manualEntry",
+                            JSON.stringify(currentData),
+                          );
+                        }
                       }}
                       className="h-16 w-full text-center font-mono text-3xl font-bold bg-background/50 hover:bg-accent/50 transition-all duration-150 rounded-lg border-border/50 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 shadow-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
@@ -262,6 +274,18 @@ export function SaveTimeEntryDialog({
                         const newDuration =
                           hours * 3600 + minutes * 60 + seconds;
                         setDuration(newDuration);
+
+                        // Manuel giriş modunda ise, değişiklikleri anında localStorage'a kaydet
+                        if (saveTimeEntryDialog.isManualEntry) {
+                          const currentData = {
+                            ...formData,
+                            duration: newDuration,
+                          };
+                          localStorage.setItem(
+                            "timeEntry.manualEntry",
+                            JSON.stringify(currentData),
+                          );
+                        }
                       }}
                       className="h-16 w-full text-center font-mono text-3xl font-bold bg-background/50 hover:bg-accent/50 transition-all duration-150 rounded-lg border-border/50 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 shadow-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
@@ -282,6 +306,18 @@ export function SaveTimeEntryDialog({
                         const newDuration =
                           hours * 3600 + minutes * 60 + seconds;
                         setDuration(newDuration);
+
+                        // Manuel giriş modunda ise, değişiklikleri anında localStorage'a kaydet
+                        if (saveTimeEntryDialog.isManualEntry) {
+                          const currentData = {
+                            ...formData,
+                            duration: newDuration,
+                          };
+                          localStorage.setItem(
+                            "timeEntry.manualEntry",
+                            JSON.stringify(currentData),
+                          );
+                        }
                       }}
                       className="h-16 w-full text-center font-mono text-3xl font-bold bg-background/50 hover:bg-accent/50 transition-all duration-150 rounded-lg border-border/50 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 shadow-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
@@ -337,9 +373,23 @@ export function SaveTimeEntryDialog({
               <Label>Task Name</Label>
               <Input
                 value={formData.taskName}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, taskName: e.target.value }))
-                }
+                onChange={(e) => {
+                  const newTaskName = e.target.value;
+                  setFormData((prev) => ({ ...prev, taskName: newTaskName }));
+
+                  // Manuel giriş modunda ise, değişiklikleri anında localStorage'a kaydet
+                  if (saveTimeEntryDialog.isManualEntry) {
+                    const currentData = {
+                      ...formData,
+                      taskName: newTaskName,
+                      duration: duration,
+                    };
+                    localStorage.setItem(
+                      "timeEntry.manualEntry",
+                      JSON.stringify(currentData),
+                    );
+                  }
+                }}
                 placeholder="What did you work on?"
                 required
               />
@@ -350,13 +400,27 @@ export function SaveTimeEntryDialog({
                 <Label>Customer</Label>
                 <Select
                   value={formData.customerId}
-                  onValueChange={(value) =>
+                  onValueChange={(value) => {
                     setFormData((prev) => ({
                       ...prev,
                       customerId: value,
                       projectId: "",
-                    }))
-                  }
+                    }));
+
+                    // Manuel giriş modunda ise, değişiklikleri anında localStorage'a kaydet
+                    if (saveTimeEntryDialog.isManualEntry) {
+                      const currentData = {
+                        ...formData,
+                        customerId: value,
+                        projectId: "",
+                        duration: duration,
+                      };
+                      localStorage.setItem(
+                        "timeEntry.manualEntry",
+                        JSON.stringify(currentData),
+                      );
+                    }
+                  }}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select customer" />
@@ -378,9 +442,22 @@ export function SaveTimeEntryDialog({
                 <Label>Project</Label>
                 <Select
                   value={formData.projectId}
-                  onValueChange={(value) =>
-                    setFormData((prev) => ({ ...prev, projectId: value }))
-                  }
+                  onValueChange={(value) => {
+                    setFormData((prev) => ({ ...prev, projectId: value }));
+
+                    // Manuel giriş modunda ise, değişiklikleri anında localStorage'a kaydet
+                    if (saveTimeEntryDialog.isManualEntry) {
+                      const currentData = {
+                        ...formData,
+                        projectId: value,
+                        duration: duration,
+                      };
+                      localStorage.setItem(
+                        "timeEntry.manualEntry",
+                        JSON.stringify(currentData),
+                      );
+                    }
+                  }}
                   disabled={!formData.customerId}
                 >
                   <SelectTrigger>
@@ -428,6 +505,19 @@ export function SaveTimeEntryDialog({
                     ...prev,
                     description: newDescription,
                   }));
+
+                  // Manuel giriş modunda ise, değişiklikleri anında localStorage'a kaydet
+                  if (saveTimeEntryDialog.isManualEntry) {
+                    const currentData = {
+                      ...formData,
+                      description: newDescription,
+                      duration: duration,
+                    };
+                    localStorage.setItem(
+                      "timeEntry.manualEntry",
+                      JSON.stringify(currentData),
+                    );
+                  }
                 }}
                 placeholder="Add any additional notes..."
                 className="min-h-[100px]"
