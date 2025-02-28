@@ -143,6 +143,20 @@ function Home() {
     [selectedEntry, fetchTimeEntriesData],
   );
 
+  useEffect(() => {
+    // Initial fetch
+    fetchTimeEntriesData();
+
+    // Set up a polling interval as a fallback for realtime
+    const intervalId = setInterval(() => {
+      fetchTimeEntriesData();
+    }, 5000); // Poll every 5 seconds for more responsive updates
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [fetchTimeEntriesData]);
+
   if (!session?.user) {
     return <Navigate to="/auth" replace />;
   }

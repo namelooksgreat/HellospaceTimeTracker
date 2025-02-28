@@ -98,31 +98,26 @@ export default function ReportsPage({
     }
   }, []); // Empty dependency array since we don't use any external variables
 
-  // Set up real-time subscription to time_entries table
+  // Set up polling for real-time updates
   useEffect(() => {
-    // Only set up the subscription if we have a valid session
-    if (!session?.user?.id) return;
+    // Initial fetch
+    if (session?.user?.id) {
+      fetchTimeEntriesData();
+    }
 
-    // Create a channel for real-time updates
-    const channel = supabase
-      .channel(`time_entries_changes_${session.user.id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "time_entries",
-          filter: `user_id=eq.${session.user.id}`,
-        },
-        () => {
-          fetchTimeEntriesData();
-        },
-      )
-      .subscribe();
+    // Set up a polling interval as a fallback for realtime
+    let intervalId: number | undefined;
 
-    // Cleanup subscription on component unmount
+    if (session?.user?.id) {
+      intervalId = window.setInterval(() => {
+        fetchTimeEntriesData();
+      }, 5000); // Poll every 5 seconds for more responsive updates
+    }
+
     return () => {
-      supabase.removeChannel(channel);
+      if (intervalId !== undefined) {
+        window.clearInterval(intervalId);
+      }
     };
   }, [session?.user?.id, fetchTimeEntriesData]);
 

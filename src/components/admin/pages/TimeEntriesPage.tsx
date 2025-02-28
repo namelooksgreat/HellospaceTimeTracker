@@ -99,30 +99,20 @@ export function TimeEntriesPage() {
   };
 
   useEffect(() => {
+    // Initial load
     loadData();
 
-    // Set up real-time subscription to time_entries table
-    if (!user?.id) return;
+    // Set up polling for real-time updates
+    let intervalId: number | undefined;
 
-    // Create a channel for real-time updates
-    const channel = supabase
-      .channel(`admin_time_entries_changes`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "time_entries",
-        },
-        () => {
-          loadData();
-        },
-      )
-      .subscribe();
+    intervalId = window.setInterval(() => {
+      loadData();
+    }, 5000); // Poll every 5 seconds for more responsive updates
 
-    // Cleanup subscription on component unmount
     return () => {
-      supabase.removeChannel(channel);
+      if (intervalId !== undefined) {
+        window.clearInterval(intervalId);
+      }
     };
   }, [user?.id]);
 
