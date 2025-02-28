@@ -80,7 +80,7 @@ export function DailyReport({
 
       <AlertDialog
         open={!!entryToDelete}
-        onOpenChange={() => setEntryToDelete(null)}
+        onOpenChange={(open) => !open && setEntryToDelete(null)}
       >
         <AlertDialogContent>
           <AlertDialogHeader>

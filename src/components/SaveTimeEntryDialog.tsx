@@ -127,13 +127,21 @@ export function SaveTimeEntryDialog({
         localStorage.getItem("timeEntry.lastDescription") || "";
 
       if (saveTimeEntryDialog.isManualEntry) {
-        // Manuel giriş için her zaman boş form göster
+        // Kaydedilmiş etiketleri al
+        const savedTagsStr = localStorage.getItem("timeEntry.savedTags");
+        const savedTags = savedTagsStr ? JSON.parse(savedTagsStr) : [];
+
+        // Seçili etiketleri hatırla
+        const selectedTagsStr = localStorage.getItem("timeEntry.selectedTags");
+        const selectedTags = selectedTagsStr ? JSON.parse(selectedTagsStr) : [];
+
+        // Manuel giriş için her zaman boş form göster ama etiketleri koru
         setFormData({
           taskName: "",
           projectId: "",
           customerId: "",
-          description: savedDescription,
-          tags: [],
+          description: "", // Description alanını da sıfırla
+          tags: selectedTags.length > 0 ? selectedTags : savedTags,
           startTime: formattedDateTime,
         });
         setDuration(0);
@@ -179,8 +187,17 @@ export function SaveTimeEntryDialog({
 
       // Manuel giriş verilerini localStorage'a kaydet
       if (saveTimeEntryDialog.isManualEntry) {
-        localStorage.setItem("timeEntry.manualEntry", JSON.stringify(saveData));
+        // Etiketleri tut ama form kaydedildiğinde diğer verileri temizle
+        const savedTags = formData.tags;
+        localStorage.removeItem("timeEntry.manualEntry");
+        localStorage.setItem("timeEntry.savedTags", JSON.stringify(savedTags));
       }
+
+      // Her durumda description alanını sıfırla
+      localStorage.setItem("timeEntry.lastDescription", "");
+
+      // Etiketleri temizleme
+      localStorage.removeItem("timeEntry.selectedTags");
 
       onSave(saveData);
     } catch (error) {
@@ -489,6 +506,12 @@ export function SaveTimeEntryDialog({
                     selectedTags={formData.tags}
                     onTagsChange={(tags) => {
                       setFormData((prev) => ({ ...prev, tags }));
+
+                      // Seçili etiketleri localStorage'a kaydet
+                      localStorage.setItem(
+                        "timeEntry.selectedTags",
+                        JSON.stringify(tags),
+                      );
 
                       // Manuel giriş modunda ise, değişiklikleri anında localStorage'a kaydet
                       if (saveTimeEntryDialog.isManualEntry) {

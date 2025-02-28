@@ -16,7 +16,6 @@ import { toast } from "sonner";
 import { handleError } from "@/lib/utils/error-handler";
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -322,12 +321,13 @@ export function TimeEntriesPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
+            <Button
               onClick={handleDeleteEntry}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              type="button"
             >
               Delete
-            </AlertDialogAction>
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

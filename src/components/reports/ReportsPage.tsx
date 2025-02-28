@@ -17,6 +17,7 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import { formatDuration } from "@/lib/utils/time";
+import { toast } from "sonner";
 
 import {
   Select,
@@ -41,6 +42,16 @@ interface ReportsPageProps {
 
 import { EditTimeEntryDialog } from "../EditTimeEntryDialog";
 import { useDialogStore } from "@/store/dialogStore";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
 
 export default function ReportsPage({
   entries,
@@ -52,6 +63,7 @@ export default function ReportsPage({
   const [selectedEntry, setSelectedEntry] = useState<TimeEntry | null>(null);
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>(entries);
   const { session } = useAuth();
+  const [entryToDelete, setEntryToDelete] = useState<string | null>(null);
 
   // Update local state when entries prop changes
   useEffect(() => {
@@ -144,6 +156,24 @@ export default function ReportsPage({
       // The real-time subscription will trigger a refresh automatically
     } catch (error) {
       console.error("Error updating time entry:", error);
+    }
+  };
+
+  const handleDeleteTimeEntry = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from("time_entries")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+
+      // Refresh data after deletion
+      await fetchTimeEntriesData();
+      toast.success("Time entry deleted successfully");
+    } catch (error) {
+      console.error("Error deleting time entry:", error);
+      toast.error("Failed to delete time entry");
     }
   };
 
@@ -415,11 +445,7 @@ export default function ReportsPage({
             createdAt: entry.created_at,
             projectColor: entry.project?.color || "#94A3B8",
           }))}
-          onDeleteEntry={(id) => {
-            if (onDeleteEntry) {
-              onDeleteEntry(id);
-            }
-          }}
+          onDeleteEntry={handleDeleteTimeEntry}
           onEditEntry={(id) => {
             const entry = timeEntries.find((e) => e.id === id);
             if (entry) {
@@ -435,6 +461,34 @@ export default function ReportsPage({
           customers={customers}
           onSave={handleEditEntry}
         />
+
+        <AlertDialog
+          open={!!entryToDelete}
+          onOpenChange={(open) => !open && setEntryToDelete(null)}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Time Entry</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this time entry? This action
+                cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  if (entryToDelete) {
+                    handleDeleteTimeEntry(entryToDelete);
+                  }
+                }}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </>
     </div>
   );

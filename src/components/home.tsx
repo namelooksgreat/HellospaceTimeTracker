@@ -17,7 +17,6 @@ import { ErrorBoundary } from "./ErrorBoundary";
 import { useNavigationStore } from "@/store/navigationStore";
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -25,6 +24,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "./ui/alert-dialog";
+import { Button } from "./ui/button";
 import type { Project, Customer, TimeEntry as TimeEntryType } from "@/types";
 import TimeEntryComponent from "./TimeEntry";
 
@@ -285,12 +285,13 @@ function Home() {
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
+                <Button
                   onClick={handleConfirmDelete}
                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  type="button"
                 >
                   Delete
-                </AlertDialogAction>
+                </Button>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>

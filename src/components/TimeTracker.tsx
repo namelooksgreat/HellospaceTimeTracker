@@ -436,12 +436,14 @@ function TimeTracker({
 
             <Button
               onClick={() => {
+                // Manuel giriş için dialog açılırken description alanını sıfırla
+                localStorage.setItem("timeEntry.lastDescription", "");
                 setSaveTimeEntryDialog(
                   true,
                   {
-                    taskName: taskName,
-                    projectId: selectedProject,
-                    customerId: selectedCustomer,
+                    taskName: "",
+                    projectId: "",
+                    customerId: "",
                   },
                   true,
                 );
