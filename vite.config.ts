@@ -31,7 +31,20 @@ export default defineConfig(({ command, mode }) => {
         "@radix-ui/react-tabs",
         "lucide-react",
       ],
-      exclude: ["tempo-routes"],
+      exclude: [
+        "tempo-routes",
+        "puppeteer",
+        "http",
+        "https",
+        "url",
+        "proxy-agent",
+      ],
+      esbuildOptions: {
+        // Node.js global to browser globalThis
+        define: {
+          global: "globalThis",
+        },
+      },
     },
     build: {
       target: "esnext",
@@ -55,7 +68,14 @@ export default defineConfig(({ command, mode }) => {
         include: [/framer-motion/, /node_modules/],
       },
       rollupOptions: {
-        external: ["tempo-routes"],
+        external: [
+          "tempo-routes",
+          "puppeteer",
+          "http",
+          "https",
+          "url",
+          "proxy-agent",
+        ],
         output: {
           paths: {
             "tempo-routes": "/tempo-routes",

@@ -1,9 +1,10 @@
-import React, { useCallback } from "react";
+import { useCallback } from "react";
 import { useTimerStore } from "@/store/timerStore";
 import { useTimeEntryStore } from "@/store/timeEntryStore";
 import { useTimerDataStore } from "@/store/timerDataStore";
 import { useDialogStore } from "@/store/dialogStore";
 import { createTimeEntry } from "@/lib/api/timeEntries";
+import { supabase } from "@/lib/supabase";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -140,33 +141,63 @@ function TimeTracker({
           });
         }
 
-        const entry = {
-          task_name: data.taskName,
-          project_id: data.projectId || null,
-          duration: data.duration,
-          start_time: new Date(data.startTime).toISOString(),
-          description: data.description || undefined,
-        };
+        try {
+          // Create the time entry first
+          const { data: userData } = await supabase.auth.getUser();
+          const { data: newEntry, error: entryError } = await supabase
+            .from("time_entries")
+            .insert({
+              task_name: data.taskName,
+              project_id: data.projectId || null,
+              duration: data.duration,
+              start_time: new Date(data.startTime).toISOString(),
+              description: data.description || null,
+              user_id: userData.user?.id,
+            })
+            .select()
+            .single();
 
-        await createTimeEntry(entry);
-        toast.success(t("timeEntry.save"), {
-          description: `${data.taskName} - ${formatDuration(data.duration)}`,
-        });
-        onTimeEntrySaved?.();
-        timerReset();
-        setSaveTimeEntryDialog(false);
+          if (entryError) throw entryError;
 
-        // Only reset form data if it's not a manual entry
-        if (!saveTimeEntryDialog.isManualEntry) {
-          setTaskName("");
-          setProjectId("");
-          setCustomerId("");
-          resetTimerData();
-        } else {
-          // Manuel giriş başarılı olduğunda, localStorage'daki verileri temizleme
-          // Bir sonraki manuel girişte yeni veriler girilmesi için
-          // localStorage.removeItem("timeEntry.manualEntry");
-          // Yorum satırı olarak bırakıldı, böylece veriler hatırlanacak
+          // Then add tags if any
+          if (data.tags && data.tags.length > 0 && newEntry) {
+            const tagEntries = data.tags.map((tagId) => ({
+              time_entry_id: newEntry.id,
+              tag_id: tagId,
+              created_at: new Date().toISOString(),
+            }));
+
+            const { error: tagError } = await supabase
+              .from("time_entry_tags")
+              .insert(tagEntries);
+
+            if (tagError) {
+              console.warn("Error adding tags to time entry:", tagError);
+              // Continue even if tag insertion fails
+            }
+          }
+          toast.success(t("timeEntry.save"), {
+            description: `${data.taskName} - ${formatDuration(data.duration)}`,
+          });
+          onTimeEntrySaved?.();
+          timerReset();
+          setSaveTimeEntryDialog(false);
+
+          // Only reset form data if it's not a manual entry
+          if (!saveTimeEntryDialog.isManualEntry) {
+            setTaskName("");
+            setProjectId("");
+            setCustomerId("");
+            resetTimerData();
+          } else {
+            // Manuel giriş başarılı olduğunda, localStorage'daki verileri temizleme
+            // Bir sonraki manuel girişte yeni veriler girilmesi için
+            // localStorage.removeItem("timeEntry.manualEntry");
+            // Yorum satırı olarak bırakıldı, böylece veriler hatırlanacak
+          }
+        } catch (error) {
+          handleError(error, "TimeTracker");
+          setSaveTimeEntryDialog(false);
         }
       } catch (error) {
         handleError(error, "TimeTracker");

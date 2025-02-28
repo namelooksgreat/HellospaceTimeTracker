@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTimeEntryStore } from "@/store/timeEntryStore";
 import { Building2, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import {
 import { format } from "date-fns";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { TagSelector } from "./TagSelector";
 import {
   Select,
   SelectContent,
@@ -34,6 +35,7 @@ import {
 } from "@/components/ui/sheet";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useDialogStore } from "@/store/dialogStore";
+import { supabase } from "@/lib/supabase";
 
 interface SaveTimeEntryDialogProps {
   open: boolean;
@@ -69,10 +71,11 @@ export function SaveTimeEntryDialog({
   customerId: initialCustomerId,
   projects,
   customers,
+  availableTags = [],
   duration: initialDuration,
   onSave,
 }: SaveTimeEntryDialogProps) {
-  const initialRender = React.useRef(true);
+  const initialRender = useRef(true);
   const { saveTimeEntryDialog } = useDialogStore();
 
   useEffect(() => {
@@ -123,33 +126,17 @@ export function SaveTimeEntryDialog({
       const savedDescription =
         localStorage.getItem("timeEntry.lastDescription") || "";
 
-      // Manuel giriş için kaydedilmiş verileri al
-      const savedManualEntry = localStorage.getItem("timeEntry.manualEntry");
-      const savedData = savedManualEntry ? JSON.parse(savedManualEntry) : null;
-
       if (saveTimeEntryDialog.isManualEntry) {
-        if (savedData) {
-          // Kaydedilmiş manuel giriş verilerini kullan
-          setFormData({
-            taskName: savedData.taskName || "",
-            projectId: savedData.projectId || "",
-            customerId: savedData.customerId || "",
-            description: savedData.description || savedDescription,
-            tags: savedData.tags || [],
-            startTime: formattedDateTime, // Tarih her zaman güncel olsun
-          });
-          setDuration(savedData.duration || 0);
-        } else {
-          setFormData({
-            taskName: "",
-            projectId: "",
-            customerId: "",
-            description: savedDescription,
-            tags: [],
-            startTime: formattedDateTime,
-          });
-          setDuration(0);
-        }
+        // Manuel giriş için her zaman boş form göster
+        setFormData({
+          taskName: "",
+          projectId: "",
+          customerId: "",
+          description: savedDescription,
+          tags: [],
+          startTime: formattedDateTime,
+        });
+        setDuration(0);
       } else {
         setFormData({
           taskName: initialTaskName || "",
@@ -180,21 +167,25 @@ export function SaveTimeEntryDialog({
   };
 
   const handleSave = () => {
-    const validDuration = Math.max(0, duration);
-    const saveData = {
-      ...formData,
-      duration: validDuration,
-      startTime: formData.startTime,
-    };
+    try {
+      const validDuration = Math.max(0, duration);
+      const saveData = {
+        ...formData,
+        duration: validDuration,
+        startTime: formData.startTime,
+      };
 
-    console.debug("Saving time entry:", saveData);
+      console.debug("Saving time entry:", saveData);
 
-    // Manuel giriş verilerini localStorage'a kaydet
-    if (saveTimeEntryDialog.isManualEntry) {
-      localStorage.setItem("timeEntry.manualEntry", JSON.stringify(saveData));
+      // Manuel giriş verilerini localStorage'a kaydet
+      if (saveTimeEntryDialog.isManualEntry) {
+        localStorage.setItem("timeEntry.manualEntry", JSON.stringify(saveData));
+      }
+
+      onSave(saveData);
+    } catch (error) {
+      console.error("Error saving time entry:", error);
     }
-
-    onSave(saveData);
   };
 
   const isMobile = useMediaQuery("(max-width: 640px)");
@@ -491,6 +482,30 @@ export function SaveTimeEntryDialog({
                       ))}
                   </SelectContent>
                 </Select>
+
+                {formData.projectId && (
+                  <TagSelector
+                    projectId={formData.projectId}
+                    selectedTags={formData.tags}
+                    onTagsChange={(tags) => {
+                      setFormData((prev) => ({ ...prev, tags }));
+
+                      // Manuel giriş modunda ise, değişiklikleri anında localStorage'a kaydet
+                      if (saveTimeEntryDialog.isManualEntry) {
+                        const currentData = {
+                          ...formData,
+                          tags,
+                          duration: duration,
+                        };
+                        localStorage.setItem(
+                          "timeEntry.manualEntry",
+                          JSON.stringify(currentData),
+                        );
+                      }
+                    }}
+                    className="mt-2"
+                  />
+                )}
               </div>
             </div>
 

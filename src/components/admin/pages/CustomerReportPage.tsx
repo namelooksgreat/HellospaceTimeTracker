@@ -14,14 +14,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Clock, DollarSign, FileSpreadsheet, FileText } from "lucide-react";
+import {
+  Clock,
+  DollarSign,
+  FileSpreadsheet,
+  FileText,
+  Calendar,
+} from "lucide-react";
 import { formatDuration, formatCurrency } from "@/lib/utils/common";
-import { exportToPDF, exportToExcel } from "@/lib/utils/export";
+import { exportToExcel, exportToPDF } from "@/lib/utils/export";
 import type { ExportData } from "@/types/export";
 import { TimeEntry as TimeEntryType } from "@/types";
 import { LoadingState } from "@/components/ui/loading-state";
+import { generateHTMLPreview } from "@/lib/utils/html-preview";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
+import { DateRange } from "react-day-picker";
 
-type TimeRange = "daily" | "weekly" | "monthly" | "yearly";
+type TimeRange = "daily" | "weekly" | "monthly" | "yearly" | "custom";
 
 interface CustomerReport {
   totalDuration: number;
@@ -33,12 +42,14 @@ interface CustomerReport {
 export function CustomerReportPage() {
   const { customerId } = useParams<{ customerId: string }>();
   const [timeRange, setTimeRange] = useState<TimeRange>("monthly");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [report, setReport] = useState<CustomerReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [customerData, setCustomerData] = useState<{ name: string } | null>(
     null,
   );
   const [timeEntries, setTimeEntries] = useState<TimeEntryType[]>([]);
+  const [showPreview, setShowPreview] = useState(false);
 
   useEffect(() => {
     const fetchCustomerData = async () => {
@@ -67,20 +78,30 @@ export function CustomerReportPage() {
         const now = new Date();
         let startDate = new Date();
 
-        switch (timeRange) {
-          case "daily":
-            startDate.setHours(0, 0, 0, 0);
-            break;
-          case "weekly":
-            startDate.setDate(now.getDate() - now.getDay());
-            startDate.setHours(0, 0, 0, 0);
-            break;
-          case "monthly":
-            startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-            break;
-          case "yearly":
-            startDate = new Date(now.getFullYear(), 0, 1);
-            break;
+        if (timeRange === "custom" && dateRange?.from) {
+          startDate = dateRange.from;
+          // If dateRange.to is not set, use dateRange.from as the end date
+          now.setTime(
+            dateRange.to ? dateRange.to.getTime() : dateRange.from.getTime(),
+          );
+          // Set time to end of day
+          now.setHours(23, 59, 59, 999);
+        } else {
+          switch (timeRange) {
+            case "daily":
+              startDate.setHours(0, 0, 0, 0);
+              break;
+            case "weekly":
+              startDate.setDate(now.getDate() - now.getDay());
+              startDate.setHours(0, 0, 0, 0);
+              break;
+            case "monthly":
+              startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+              break;
+            case "yearly":
+              startDate = new Date(now.getFullYear(), 0, 1);
+              break;
+          }
         }
 
         const { data: projectsData, error: projectsError } = await supabase
@@ -120,6 +141,24 @@ export function CustomerReportPage() {
 
         if (entriesError) throw entriesError;
 
+        // Fetch user data separately to avoid join issues
+        const userIds = entries?.map((entry) => entry.user_id) || [];
+        const { data: usersData, error: usersError } = await supabase
+          .from("users")
+          .select("id, email, full_name")
+          .in("id", userIds);
+
+        if (usersError) throw usersError;
+
+        // Create a map of user data for quick lookup
+        const userMap = (usersData || []).reduce(
+          (map, user) => {
+            map[user.id] = user;
+            return map;
+          },
+          {} as Record<string, any>,
+        );
+
         const transformedEntries =
           entries?.map((entry) => ({
             ...entry,
@@ -131,6 +170,12 @@ export function CustomerReportPage() {
                   customer: entry.project.customer,
                 }
               : undefined,
+            user_email: userMap[entry.user_id]?.email || entry.user_id || "-",
+            user_name:
+              userMap[entry.user_id]?.full_name ||
+              userMap[entry.user_id]?.email ||
+              entry.user_id ||
+              "-",
           })) || [];
 
         setTimeEntries(transformedEntries);
@@ -157,33 +202,68 @@ export function CustomerReportPage() {
     };
 
     fetchCustomerData();
-  }, [customerId, timeRange]);
+  }, [customerId, timeRange, dateRange]);
 
-  const handleExportPDF = () => {
-    const periodText = {
-      daily: "Bugun",
-      weekly: "Bu Hafta",
-      monthly: "Bu Ay",
-      yearly: "Bu Yil",
-    }[timeRange];
+  const getReportData = () => {
+    let periodText;
+    if (timeRange === "custom" && dateRange?.from) {
+      const fromDate = dateRange.from.toLocaleDateString("tr-TR");
+      const toDate = dateRange.to
+        ? dateRange.to.toLocaleDateString("tr-TR")
+        : fromDate;
+      periodText = `${fromDate} - ${toDate}`;
+    } else {
+      periodText = {
+        daily: "Bugün",
+        weekly: "Bu Hafta",
+        monthly: "Bu Ay",
+        yearly: "Bu Yıl",
+        custom: "Özel Aralık",
+      }[timeRange];
+    }
 
-    exportToPDF({
-      // @ts-expect-error - types are correct, TS is wrong
-      customerName: customerData?.name || "Musteri",
+    return {
+      customerName: customerData?.name || "Müşteri",
       timeRange: periodText,
       totalDuration: report?.totalDuration || 0,
       totalEarnings: report?.totalEarnings || 0,
       currency: report?.currency || "TRY",
       hourlyRate: report?.hourlyRate || 0,
       entries: timeEntries,
-    });
+    };
+  };
+
+  const handleExportPDF = () => {
+    try {
+      // Use the exportToPDF function directly from export.ts
+      exportToPDF(getReportData());
+      toast.success("PDF raporu başarıyla oluşturuldu");
+    } catch (error) {
+      toast.error("PDF oluşturulurken bir hata oluştu");
+      console.error("PDF export error:", error);
+    }
+  };
+
+  const handlePreviewReport = () => {
+    // Generate HTML content directly and open in new window
+    const htmlContent = generateHTMLPreview(getReportData());
+    const newWindow = window.open("", "_blank");
+    if (newWindow) {
+      newWindow.document.write(htmlContent);
+      newWindow.document.close();
+      toast.success("Rapor yeni pencerede açıldı");
+    } else {
+      toast.error(
+        "Yeni pencere açılamadı. Lütfen popup engelleyiciyi kontrol edin.",
+      );
+    }
   };
 
   if (loading) {
     return (
       <LoadingState
-        title="Yukleniyor"
-        description="Musteri raporu hazirlaniyor..."
+        title="Yükleniyor"
+        description="Müşteri raporu hazırlanıyor..."
       />
     );
   }
@@ -192,110 +272,152 @@ export function CustomerReportPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleExportPDF}>
+          <Button variant="outline" size="sm" onClick={handlePreviewReport}>
             <FileText className="h-4 w-4 mr-2" />
-            PDF Indir
+            Raporu Görüntüle
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={() => {
-              const periodText = {
-                daily: "Bugun",
-                weekly: "Bu Hafta",
-                monthly: "Bu Ay",
-                yearly: "Bu Yil",
-              }[timeRange];
-
-              exportToExcel({
-                // @ts-expect-error - types are correct, TS is wrong
-                customerName: customerData?.name || "Musteri",
-                timeRange: periodText,
-                totalDuration: report?.totalDuration || 0,
-                totalEarnings: report?.totalEarnings || 0,
-                currency: report?.currency || "TRY",
-                hourlyRate: report?.hourlyRate || 0,
-                entries: timeEntries,
-              });
+              try {
+                const exportData = {
+                  customerName: customerData?.name || "Müşteri",
+                  timeRange:
+                    timeRange === "custom" && dateRange?.from
+                      ? `${dateRange.from.toLocaleDateString("tr-TR")} - ${dateRange.to ? dateRange.to.toLocaleDateString("tr-TR") : dateRange.from.toLocaleDateString("tr-TR")}`
+                      : {
+                          daily: "Bugün",
+                          weekly: "Bu Hafta",
+                          monthly: "Bu Ay",
+                          yearly: "Bu Yıl",
+                          custom: "Özel Aralık",
+                        }[timeRange],
+                  totalDuration: report?.totalDuration || 0,
+                  totalEarnings: report?.totalEarnings || 0,
+                  currency: report?.currency || "TRY",
+                  hourlyRate: report?.hourlyRate || 0,
+                  entries: timeEntries,
+                };
+                // Add userName field for compatibility with ExportData type
+                exportToExcel({
+                  ...exportData,
+                  userName: exportData.customerName,
+                });
+                toast.success("Excel raporu başarıyla oluşturuldu");
+              } catch (error) {
+                toast.error("Excel oluşturulurken bir hata oluştu");
+                console.error("Excel export error:", error);
+              }
             }}
           >
             <FileSpreadsheet className="h-4 w-4 mr-2" />
-            Excel Indir
+            Excel İndir
           </Button>
         </div>
 
         <div className="space-y-1">
           <h2 className="text-2xl font-semibold tracking-tight">
-            {customerData?.name || "Musteri"} Raporu
+            {customerData?.name || "Müşteri"} Raporu
           </h2>
           <p className="text-sm text-muted-foreground">
-            Detayli zaman ve kazanc raporu
+            Detaylı zaman ve kazanç raporu
           </p>
         </div>
 
-        <Select
-          value={timeRange}
-          onValueChange={(value: TimeRange) => setTimeRange(value)}
-        >
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Zaman araligi sec" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="daily">Bugun</SelectItem>
-            <SelectItem value="weekly">Bu Hafta</SelectItem>
-            <SelectItem value="monthly">Bu Ay</SelectItem>
-            <SelectItem value="yearly">Bu Yil</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2">
+          <Select
+            value={timeRange}
+            onValueChange={(value: TimeRange) => {
+              setTimeRange(value);
+              if (value !== "custom") {
+                setDateRange(undefined);
+              }
+            }}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Zaman aralığı seç" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="daily">Bugün</SelectItem>
+              <SelectItem value="weekly">Bu Hafta</SelectItem>
+              <SelectItem value="monthly">Bu Ay</SelectItem>
+              <SelectItem value="yearly">Bu Yıl</SelectItem>
+              <SelectItem value="custom">Özel Aralık</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {timeRange === "custom" && (
+            <DateRangePicker date={dateRange} onDateChange={setDateRange} />
+          )}
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardContent className="p-6">
+        <Card className="relative overflow-hidden bg-gradient-to-br from-card/50 to-card/30 dark:from-card/20 dark:to-card/10 border border-border/50 rounded-xl transition-all duration-300 hover:shadow-lg hover:border-border/80 group">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-50" />
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,transparent_0%,transparent_49%,rgb(var(--primary))_50%,transparent_51%,transparent_100%)] opacity-[0.03] bg-[length:8px_100%]" />
+          <div className="absolute inset-0 bg-grid-white/[0.02]" />
+          <CardContent className="relative z-10 p-6">
             <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              <h3 className="text-sm font-medium">Toplam Sure</h3>
+              <div className="p-2 rounded-lg bg-primary/10 text-primary ring-1 ring-primary/20">
+                <Clock className="h-4 w-4" />
+              </div>
+              <h3 className="text-sm font-medium">Toplam Süre</h3>
             </div>
             <div className="mt-4">
-              <div className="text-2xl font-bold">
+              <div className="text-2xl sm:text-3xl font-mono font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500">
                 {formatDuration(report?.totalDuration || 0)}
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                {timeRange === "daily"
-                  ? "Bugun"
-                  : timeRange === "weekly"
-                    ? "Bu hafta"
-                    : timeRange === "monthly"
-                      ? "Bu ay"
-                      : "Bu yil"}{" "}
-                icin toplam
+                {timeRange === "custom" && dateRange?.from
+                  ? `${dateRange.from.toLocaleDateString("tr-TR")} - ${dateRange.to ? dateRange.to.toLocaleDateString("tr-TR") : dateRange.from.toLocaleDateString("tr-TR")}`
+                  : timeRange === "daily"
+                    ? "Bugün"
+                    : timeRange === "weekly"
+                      ? "Bu hafta"
+                      : timeRange === "monthly"
+                        ? "Bu ay"
+                        : "Bu yıl"}{" "}
+                için toplam
               </p>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-6">
+        <Card className="relative overflow-hidden bg-gradient-to-br from-card/50 to-card/30 dark:from-card/20 dark:to-card/10 border border-border/50 rounded-xl transition-all duration-300 hover:shadow-lg hover:border-border/80 group">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-50" />
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,transparent_0%,transparent_49%,rgb(var(--primary))_50%,transparent_51%,transparent_100%)] opacity-[0.03] bg-[length:8px_100%]" />
+          <div className="absolute inset-0 bg-grid-white/[0.02]" />
+          <CardContent className="relative z-10 p-6">
             <div className="flex items-center gap-2">
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-              <h3 className="text-sm font-medium">Toplam Kazanc</h3>
+              <div className="p-2 rounded-lg bg-primary/10 text-primary ring-1 ring-primary/20">
+                <DollarSign className="h-4 w-4" />
+              </div>
+              <h3 className="text-sm font-medium">Toplam Tutar</h3>
             </div>
             <div className="mt-4">
-              <div className="text-2xl font-bold">
+              <div className="text-2xl sm:text-3xl font-mono font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500">
                 {formatCurrency(report?.totalEarnings || 0, report?.currency)}
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                {report?.hourlyRate} {report?.currency}/saat uzerinden
+                {report?.hourlyRate} {report?.currency}/saat üzerinden
               </p>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold">Zaman Kayitlari</h3>
+      <Card className="relative overflow-hidden bg-gradient-to-br from-card/50 to-card/30 dark:from-card/20 dark:to-card/10 border border-border/50 rounded-xl transition-all duration-300 hover:shadow-lg hover:border-border/80 group">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-50" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,transparent_0%,transparent_49%,rgb(var(--primary))_50%,transparent_51%,transparent_100%)] opacity-[0.03] bg-[length:8px_100%]" />
+        <div className="absolute inset-0 bg-grid-white/[0.02]" />
+        <CardContent className="relative z-10 p-6">
+          <div className="flex items-center gap-2 mb-6">
+            <div className="p-2 rounded-lg bg-primary/10 text-primary ring-1 ring-primary/20">
+              <Clock className="h-5 w-5" />
+            </div>
+            <h3 className="text-lg font-semibold">Zaman Kayıtları</h3>
           </div>
           <ScrollArea className="h-[400px] pr-4 -mr-4">
             <div className="space-y-3">
@@ -314,10 +436,10 @@ export function CustomerReportPage() {
                 <div className="flex flex-col items-center justify-center h-[300px] text-muted-foreground">
                   <Clock className="h-12 w-12 mb-4 text-muted-foreground/50" />
                   <p className="text-center mb-1">
-                    Bu donem icin kayit bulunamadi
+                    Bu dönem için kayıt bulunamadı
                   </p>
                   <p className="text-sm text-muted-foreground/80">
-                    Farkli bir zaman araligi secmeyi deneyin
+                    Farklı bir zaman aralığı seçmeyi deneyin
                   </p>
                 </div>
               )}
@@ -325,6 +447,8 @@ export function CustomerReportPage() {
           </ScrollArea>
         </CardContent>
       </Card>
+
+      {/* No Report Preview Dialog needed anymore */}
     </div>
   );
 }

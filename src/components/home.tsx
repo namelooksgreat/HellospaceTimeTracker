@@ -1,11 +1,4 @@
-import React, {
-  useState,
-  Suspense,
-  lazy,
-  useCallback,
-  memo,
-  useEffect,
-} from "react";
+import { useState, Suspense, lazy, useCallback, memo, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { showSuccess } from "@/lib/utils/toast";
 import { toast } from "sonner";
@@ -32,12 +25,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "./ui/alert-dialog";
-import {
-  getProjects,
-  getTimeEntries,
-  deleteTimeEntry,
-  getCustomers,
-} from "@/lib/api";
 import type { Project, Customer, TimeEntry as TimeEntryType } from "@/types";
 import TimeEntryComponent from "./TimeEntry";
 
@@ -51,8 +38,13 @@ function Home() {
   const { session } = useAuth();
   const { activeTab, setActiveTab } = useNavigationStore();
 
-  const { projects, customers, timeEntries, loading, fetchTimeEntriesData } =
-    useHomeData(session);
+  const {
+    projects = [],
+    customers = [],
+    timeEntries = [],
+    loading = false,
+    fetchTimeEntriesData,
+  } = useHomeData(session) || {};
 
   const [entryToDelete, setEntryToDelete] = useState<string | null>(null);
 
@@ -72,7 +64,9 @@ function Home() {
       if (error) throw error;
 
       // Refresh data after deletion
-      await fetchTimeEntriesData();
+      if (fetchTimeEntriesData) {
+        await fetchTimeEntriesData();
+      }
       toast.success("Time entry deleted successfully");
       setEntryToDelete(null);
     } catch (error) {
@@ -96,6 +90,7 @@ function Home() {
       hourlyRate?: number;
       currency?: string;
       startTime?: string;
+      tags?: string[];
     }) => {
       if (!selectedEntry) return;
 
@@ -113,6 +108,32 @@ function Home() {
           .eq("id", selectedEntry.id);
 
         if (entryError) throw entryError;
+
+        // Handle tags if provided
+        if (data.tags && Array.isArray(data.tags)) {
+          // First delete existing tags
+          const { error: deleteTagsError } = await supabase
+            .from("time_entry_tags")
+            .delete()
+            .eq("time_entry_id", selectedEntry.id);
+
+          if (deleteTagsError) throw deleteTagsError;
+
+          // Then insert new tags if any
+          if (data.tags.length > 0) {
+            const tagEntries = data.tags.map((tagId) => ({
+              time_entry_id: selectedEntry.id,
+              tag_id: tagId,
+              created_at: new Date().toISOString(),
+            }));
+
+            const { error: insertTagsError } = await supabase
+              .from("time_entry_tags")
+              .insert(tagEntries);
+
+            if (insertTagsError) throw insertTagsError;
+          }
+        }
 
         // Update customer rate if user is admin and rate data is provided
         if (
@@ -135,26 +156,30 @@ function Home() {
 
         showSuccess("Time entry updated successfully");
         setEditTimeEntryDialog(false, null);
-        await fetchTimeEntriesData();
+        if (fetchTimeEntriesData) {
+          await fetchTimeEntriesData();
+        }
       } catch (error) {
         handleError(error, "Home");
       }
     },
-    [selectedEntry, fetchTimeEntriesData],
+    [selectedEntry, fetchTimeEntriesData, session?.user?.user_metadata?.role],
   );
 
   useEffect(() => {
     // Initial fetch
-    fetchTimeEntriesData();
-
-    // Set up a polling interval as a fallback for realtime
-    const intervalId = setInterval(() => {
+    if (fetchTimeEntriesData) {
       fetchTimeEntriesData();
-    }, 5000); // Poll every 5 seconds for more responsive updates
 
-    return () => {
-      if (intervalId) clearInterval(intervalId);
-    };
+      // Set up a polling interval as a fallback for realtime
+      const intervalId = setInterval(() => {
+        fetchTimeEntriesData();
+      }, 5000); // Poll every 5 seconds for more responsive updates
+
+      return () => {
+        if (intervalId) clearInterval(intervalId);
+      };
+    }
   }, [fetchTimeEntriesData]);
 
   if (!session?.user) {

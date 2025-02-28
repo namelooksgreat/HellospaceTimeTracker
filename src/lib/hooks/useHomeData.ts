@@ -7,7 +7,13 @@ import { useTimerStore } from "@/store/timerStore";
 import { useTimerDataStore } from "@/store/timerDataStore";
 import type { Project, Customer, TimeEntry } from "@/types";
 
-export function useHomeData(session: Session | null) {
+export function useHomeData(session: Session | null): {
+  projects: Project[];
+  customers: Customer[];
+  timeEntries: TimeEntry[];
+  loading: boolean;
+  fetchTimeEntriesData: () => Promise<void>;
+} {
   const [projects, setProjects] = useState<Project[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);

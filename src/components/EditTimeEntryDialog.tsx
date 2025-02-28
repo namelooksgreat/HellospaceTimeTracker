@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { DateTimePicker } from "@/components/ui/date-time-picker";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { TagSelector } from "./TagSelector";
 import {
   Select,
   SelectContent,
@@ -54,6 +55,7 @@ interface EditTimeEntryDialogProps {
     hourlyRate?: number;
     currency?: string;
     startTime?: string;
+    tags?: string[];
   }) => void;
 }
 
@@ -66,12 +68,20 @@ export function EditTimeEntryDialog({
   const [entry, setEntry] = useState<TimeEntry | null>(null);
   const { duration, setDuration } = useTimeEntryStore();
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    taskName: string;
+    projectId: string;
+    customerId: string;
+    description: string;
+    startTime: string;
+    tags: string[];
+  }>({
     taskName: "",
     projectId: "",
     customerId: "",
     description: "",
     startTime: new Date().toISOString(),
+    tags: [],
   });
 
   useEffect(() => {
@@ -96,12 +106,23 @@ export function EditTimeEntryDialog({
         }
 
         setEntry(data);
+        // Fetch time entry tags if any
+        const { data: tagData, error: tagError } = await supabase
+          .from("time_entry_tags")
+          .select("tag_id")
+          .eq("time_entry_id", data.id);
+
+        if (tagError) {
+          console.warn("Error fetching time entry tags:", tagError);
+        }
+
         setFormData({
           taskName: data.task_name || "",
           projectId: data.project?.id || "",
           customerId: data.project?.customer?.id || "",
           description: data.description || "",
           startTime: data.start_time,
+          tags: tagData ? tagData.map((t) => t.tag_id) : [],
         });
         setDuration(data.duration);
       }
@@ -126,6 +147,7 @@ export function EditTimeEntryDialog({
         ...formData,
         duration: validDuration,
         startTime: formData.startTime,
+        tags: formData.tags,
       });
       toast.success("Time entry updated successfully");
       setEditTimeEntryDialog(false, null);
@@ -321,7 +343,11 @@ export function EditTimeEntryDialog({
                 <Select
                   value={formData.projectId}
                   onValueChange={(value) =>
-                    setFormData((prev) => ({ ...prev, projectId: value }))
+                    setFormData((prev) => ({
+                      ...prev,
+                      projectId: value,
+                      tags: [],
+                    }))
                   }
                   disabled={!formData.customerId}
                 >
@@ -353,6 +379,17 @@ export function EditTimeEntryDialog({
                       ))}
                   </SelectContent>
                 </Select>
+
+                {formData.projectId && (
+                  <TagSelector
+                    projectId={formData.projectId}
+                    selectedTags={formData.tags}
+                    onTagsChange={(tags) => {
+                      setFormData((prev) => ({ ...prev, tags }));
+                    }}
+                    className="mt-2"
+                  />
+                )}
               </div>
             </div>
 

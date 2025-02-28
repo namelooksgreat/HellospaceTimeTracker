@@ -5,9 +5,10 @@ import { AdminFilters } from "../components/AdminFilters";
 import { AdminTable } from "../components/AdminTable";
 import { AdminCard } from "../components/AdminCard";
 import { Button } from "@/components/ui/button";
-import { Plus, FolderKanban, Clock, Users, Trash2 } from "lucide-react";
+import { Plus, FolderKanban, Clock, Users, Trash2, Tag } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ProjectDialog } from "../dialogs/ProjectDialog";
+import { ProjectTagsDialog } from "../dialogs/ProjectTagsDialog";
 import { useAdminUI } from "@/hooks/useAdminUI";
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
 import { ErrorState } from "@/components/ui/error-state";
@@ -44,6 +45,11 @@ export function ProjectsPage() {
   const [viewMode, setViewMode] = useState<"table" | "grid">("table");
   const [sortBy, setSortBy] = useState("name_asc");
   const [customerFilter, setCustomerFilter] = useState("all");
+  const [projectTagsDialog, setProjectTagsDialog] = useState<{
+    open: boolean;
+    projectId: string;
+    projectName: string;
+  }>({ open: false, projectId: "", projectName: "" });
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -317,6 +323,21 @@ export function ProjectsPage() {
                 >
                   Edit
                 </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() =>
+                    setProjectTagsDialog({
+                      open: true,
+                      projectId: project.id,
+                      projectName: project.name,
+                    })
+                  }
+                  className="admin-button"
+                >
+                  <Tag className="h-4 w-4 mr-2" />
+                  Etiketler
+                </Button>
               </div>
             ),
           },
@@ -340,6 +361,15 @@ export function ProjectsPage() {
           if (!open) setSelectedProject(null);
         }}
         onSave={loadProjects}
+      />
+
+      <ProjectTagsDialog
+        open={projectTagsDialog.open}
+        onOpenChange={(open) =>
+          setProjectTagsDialog({ ...projectTagsDialog, open })
+        }
+        projectId={projectTagsDialog.projectId}
+        projectName={projectTagsDialog.projectName}
       />
     </div>
   );
