@@ -85,17 +85,14 @@ export async function validateInvitation(
     });
 
     if (error) {
-      console.error("RPC invitation validation error:", error);
       return { is_valid: false, email: null, role: null, metadata: null };
     }
 
     if (!data || data.length === 0) {
-      console.log("No invitation found with token:", token);
       return { is_valid: false, email: null, role: null, metadata: null };
     }
 
     const invitation = data[0];
-    console.log("Valid invitation found for email:", invitation.email);
 
     return {
       is_valid: invitation.is_valid,
@@ -104,7 +101,6 @@ export async function validateInvitation(
       metadata: invitation.metadata,
     };
   } catch (error) {
-    console.error("Error in validateInvitation:", error);
     handleError(error, "validateInvitation");
     return { is_valid: false, email: null, role: null, metadata: null };
   }
@@ -125,9 +121,10 @@ export async function markInvitationAsUsed(
 
     if (error) throw error;
 
-    console.log(
-      `Davet kullanıldı olarak işaretlendi. Token: ${token}, Kullanıcı: ${userId}`,
-    );
+    // Use secure logging to avoid exposing sensitive information
+    import("../utils/secure-logging").then(({ secureLogger }) => {
+      secureLogger.info("Davet başarıyla kullanıldı olarak işaretlendi.");
+    });
   } catch (error) {
     handleError(error, "markInvitationAsUsed");
     throw error;
@@ -163,7 +160,6 @@ export async function deleteInvitation(id: string): Promise<void> {
     const { error } = await supabase.from("invitations").delete().eq("id", id);
 
     if (error) {
-      console.error("Davetiye silme hatası:", error);
       throw error;
     }
   } catch (error) {

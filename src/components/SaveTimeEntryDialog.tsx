@@ -183,7 +183,10 @@ export function SaveTimeEntryDialog({
         startTime: formData.startTime,
       };
 
-      console.debug("Saving time entry:", saveData);
+      // Use secure logging
+      import("@/lib/utils/secure-logging").then(({ secureLogger }) => {
+        secureLogger.debug("Saving time entry");
+      });
 
       // Manuel giriş verilerini localStorage'a kaydet
       if (saveTimeEntryDialog.isManualEntry) {

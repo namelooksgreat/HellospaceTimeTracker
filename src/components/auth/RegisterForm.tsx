@@ -34,11 +34,9 @@ export function RegisterForm({ inviteToken, inviteEmail }: RegisterFormProps) {
 
       try {
         setLoading(true);
-        console.log("Validating invitation token:", inviteToken);
 
         // Pre-fill email from URL parameter first if available
         if (inviteEmail) {
-          console.log("Using email from URL parameter:", inviteEmail);
           setFormData((prev) => ({
             ...prev,
             email: inviteEmail,
@@ -46,7 +44,7 @@ export function RegisterForm({ inviteToken, inviteEmail }: RegisterFormProps) {
         }
 
         const validation = await validateInvitation(inviteToken);
-        console.log("Validation result:", validation);
+        // Avoid logging sensitive validation results
 
         if (!validation.is_valid) {
           toast.error(
@@ -59,14 +57,12 @@ export function RegisterForm({ inviteToken, inviteEmail }: RegisterFormProps) {
 
         // If email wasn't set from URL, use the one from validation
         if (!inviteEmail && validation.email) {
-          console.log("Using email from validation:", validation.email);
           setFormData((prev) => ({
             ...prev,
             email: validation.email || "",
           }));
         }
       } catch (error) {
-        console.error("Error validating invitation:", error);
         handleError(error, "RegisterForm");
       } finally {
         setLoading(false);
@@ -118,15 +114,13 @@ export function RegisterForm({ inviteToken, inviteEmail }: RegisterFormProps) {
         },
       });
 
-      // Hata durumunda daha detaylı bilgi göster
+      // Handle auth errors securely
       if (authError) {
-        console.log("Kayıt hatası detayları:", authError);
+        throw authError;
       }
 
       // Kullanıcı oluşturuldu
       if (!authError && authData?.user) {
-        console.log("Kullanıcı oluşturuldu", authData.user);
-
         // Kullanıcıyı doğrulanmış olarak işaretle
         const { error: confirmError } = await supabase.auth.updateUser({
           data: { email_confirmed: true },
@@ -152,7 +146,9 @@ export function RegisterForm({ inviteToken, inviteEmail }: RegisterFormProps) {
       }
 
       if (authError) {
-        if (authError.message.includes("already registered")) {
+        // Check if the error contains the 'already registered' message
+        const errorStr = String(authError);
+        if (errorStr.includes("already registered")) {
           throw new Error("User already registered");
         }
         throw authError;
@@ -164,9 +160,6 @@ export function RegisterForm({ inviteToken, inviteEmail }: RegisterFormProps) {
       if (inviteToken) {
         try {
           await markInvitationAsUsed(inviteToken, authData.user.id);
-          console.log(
-            `Davet başarıyla kullanıldı olarak işaretlendi. Token: ${inviteToken}`,
-          );
         } catch (markError) {
           console.error(
             "Davet kullanıldı olarak işaretlenirken hata:",
@@ -219,12 +212,8 @@ export function RegisterForm({ inviteToken, inviteEmail }: RegisterFormProps) {
             : "This email is already registered",
         );
       } else {
-        console.error("Registration error:", error);
-        toast.error(
-          language === "tr"
-            ? "Kayıt sırasında bir hata oluştu: " + error.message
-            : "An error occurred during registration: " + error.message,
-        );
+        // Use secure error handling
+        handleError(error, "RegisterForm");
       }
     } finally {
       setLoading(false);

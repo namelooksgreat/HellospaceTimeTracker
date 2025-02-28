@@ -31,9 +31,6 @@ export default function AuthPage() {
 
     // Handle URL routing for invitation links
     if (inviteToken) {
-      console.log("Invitation token detected in URL:", inviteToken);
-      console.log("Email from URL:", inviteEmail);
-
       // Make sure we're showing the register form
       setMode("register");
 
@@ -54,7 +51,6 @@ export default function AuthPage() {
       const storedEmail = sessionStorage.getItem("inviteEmail");
 
       if (storedToken) {
-        console.log("Using stored invitation token from session storage");
         setMode("register");
       }
     }
