@@ -5,14 +5,24 @@ import { cn } from "@/lib/utils";
 import { useTimerStore } from "@/store/timerStore";
 import { useClient } from "@/lib/utils/use-client";
 
+import { useNavigationStore } from "@/store/navigationStore";
+
 type TabType = "timer" | "reports" | "profile";
 
 interface BottomNavProps {
-  activeTab: TabType;
-  onTabChange: (tab: TabType) => void;
+  activeTab?: TabType;
+  onTabChange?: (tab: TabType) => void;
 }
 
-function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
+function BottomNav({
+  activeTab: propActiveTab,
+  onTabChange: propOnTabChange,
+}: BottomNavProps) {
+  const { activeTab: storeActiveTab, setActiveTab } = useNavigationStore();
+
+  // Use props if provided, otherwise use store values
+  const activeTab = propActiveTab || storeActiveTab;
+  const onTabChange = propOnTabChange || setActiveTab;
   const { user } = useAuth();
   const { state: timerState } = useTimerStore();
   const tabs: Array<{

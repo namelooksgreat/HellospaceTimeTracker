@@ -1,4 +1,11 @@
-import React, { useState, Suspense, lazy, useCallback, memo } from "react";
+import React, {
+  useState,
+  Suspense,
+  lazy,
+  useCallback,
+  memo,
+  useEffect,
+} from "react";
 import { supabase } from "@/lib/supabase";
 import { showSuccess } from "@/lib/utils/toast";
 import { toast } from "sonner";
@@ -14,6 +21,7 @@ import { TimeEntrySkeleton } from "./skeletons/TimeEntrySkeleton";
 import { usePerformanceTracking } from "@/hooks/usePerformanceTracking";
 import { handleError } from "@/lib/utils/error-handler";
 import { ErrorBoundary } from "./ErrorBoundary";
+import { useNavigationStore } from "@/store/navigationStore";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,9 +49,7 @@ const ProfilePage = lazy(() => import("./profile/ProfilePage"));
 function Home() {
   usePerformanceTracking("Home");
   const { session } = useAuth();
-  const [activeTab, setActiveTab] = useState<"timer" | "reports" | "profile">(
-    "timer",
-  );
+  const { activeTab, setActiveTab } = useNavigationStore();
 
   const { projects, customers, timeEntries, loading, fetchTimeEntriesData } =
     useHomeData(session);
