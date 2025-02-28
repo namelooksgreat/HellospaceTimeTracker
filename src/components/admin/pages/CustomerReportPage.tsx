@@ -141,6 +141,48 @@ export function CustomerReportPage() {
 
         if (entriesError) throw entriesError;
 
+        // Fetch tags for time entries
+        const timeEntryIds = entries?.map((entry) => entry.id) || [];
+        const { data: tagData, error: tagError } = await supabase
+          .from("time_entry_tags")
+          .select(
+            `
+            time_entry_id,
+            tag_id,
+            project_tags!inner(id, name, color)
+          `,
+          )
+          .in("time_entry_id", timeEntryIds);
+
+        if (tagError) {
+          console.warn("Error fetching time entry tags:", tagError);
+        }
+
+        // Group tags by time entry ID
+        const tagsByEntryId: Record<
+          string,
+          Array<{ id: string; name: string; color: string }>
+        > = (tagData || []).reduce(
+          (
+            acc: Record<
+              string,
+              Array<{ id: string; name: string; color: string }>
+            >,
+            tag: any,
+          ) => {
+            if (!acc[tag.time_entry_id]) {
+              acc[tag.time_entry_id] = [];
+            }
+            acc[tag.time_entry_id].push({
+              id: tag.tag_id,
+              name: tag.project_tags.name,
+              color: tag.project_tags.color,
+            });
+            return acc;
+          },
+          {},
+        );
+
         // Fetch user data separately to avoid join issues
         const userIds = entries?.map((entry) => entry.user_id) || [];
         const { data: usersData, error: usersError } = await supabase
@@ -176,6 +218,7 @@ export function CustomerReportPage() {
               userMap[entry.user_id]?.email ||
               entry.user_id ||
               "-",
+            tags: tagsByEntryId[entry.id] || [],
           })) || [];
 
         setTimeEntries(transformedEntries);
@@ -430,6 +473,7 @@ export function CustomerReportPage() {
                     duration={entry.duration}
                     startTime={entry.start_time}
                     projectColor={entry.project?.color || "#94A3B8"}
+                    tags={entry.tags}
                   />
                 ))
               ) : (

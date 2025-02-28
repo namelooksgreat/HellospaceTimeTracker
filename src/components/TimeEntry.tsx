@@ -1,8 +1,9 @@
 import { memo } from "react";
 import { Card } from "./ui/card";
+import { Badge } from "./ui/badge";
 import { cn } from "@/lib/utils";
 import { Button } from "./ui/button";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, Tag as TagIcon } from "lucide-react";
 import { formatDate, formatStartTime } from "@/lib/utils/time";
 
 interface TimeEntryProps {
@@ -12,6 +13,7 @@ interface TimeEntryProps {
   duration: number;
   startTime: string;
   projectColor?: string;
+  tags?: Array<{ id: string; name: string; color: string }>;
   onEdit?: () => void;
   onDelete?: () => void;
 }
@@ -24,6 +26,7 @@ function TimeEntryComponent({
   duration,
   startTime,
   projectColor,
+  tags = [],
   onEdit,
   onDelete,
 }: TimeEntryProps) {
@@ -61,6 +64,24 @@ function TimeEntryComponent({
                 {projectName && (
                   <div className="text-sm text-muted-foreground truncate mt-0.5">
                     {projectName}
+                  </div>
+                )}
+                {tags && tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-1.5">
+                    {tags.map((tag) => (
+                      <Badge
+                        key={tag.id}
+                        variant="outline"
+                        className="px-2 py-0 h-5 text-xs flex items-center gap-1 bg-primary/5"
+                        style={{ borderColor: tag.color }}
+                      >
+                        <span
+                          className="w-2 h-2 rounded-full"
+                          style={{ backgroundColor: tag.color }}
+                        />
+                        {tag.name}
+                      </Badge>
+                    ))}
                   </div>
                 )}
               </div>

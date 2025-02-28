@@ -22,6 +22,7 @@ export function useHomeData(session: Session | null): {
   const fetchTimeEntriesData = useCallback(async () => {
     if (!session) return;
     try {
+      // Fetch time entries with project and customer data
       const { data, error } = await supabase
         .from("time_entries")
         .select(
@@ -35,7 +36,56 @@ export function useHomeData(session: Session | null): {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setTimeEntries(data || []);
+
+      // Fetch tags for each time entry
+      const timeEntryIds = data?.map((entry) => entry.id) || [];
+      const { data: tagData, error: tagError } = await supabase
+        .from("time_entry_tags")
+        .select(
+          `
+          time_entry_id,
+          tag_id,
+          project_tags!inner(id, name, color)
+        `,
+        )
+        .in("time_entry_id", timeEntryIds);
+
+      if (tagError) {
+        console.warn("Error fetching time entry tags:", tagError);
+      }
+
+      // Group tags by time entry ID
+      const tagsByEntryId: Record<
+        string,
+        Array<{ id: string; name: string; color: string }>
+      > = (tagData || []).reduce(
+        (
+          acc: Record<
+            string,
+            Array<{ id: string; name: string; color: string }>
+          >,
+          tag: any,
+        ) => {
+          if (!acc[tag.time_entry_id]) {
+            acc[tag.time_entry_id] = [];
+          }
+          acc[tag.time_entry_id].push({
+            id: tag.tag_id,
+            name: tag.project_tags.name,
+            color: tag.project_tags.color,
+          });
+          return acc;
+        },
+        {},
+      );
+
+      // Add tags to time entries
+      const entriesWithTags = (data || []).map((entry) => ({
+        ...entry,
+        tags: tagsByEntryId[entry.id] || [],
+      }));
+
+      setTimeEntries(entriesWithTags);
 
       // Update timer data store with latest values
       try {
@@ -91,9 +141,57 @@ export function useHomeData(session: Session | null): {
 
         if (error) throw error;
 
+        // Fetch tags for time entries
+        const timeEntryIds = timeEntriesData?.map((entry) => entry.id) || [];
+        const { data: tagData, error: tagError } = await supabase
+          .from("time_entry_tags")
+          .select(
+            `
+            time_entry_id,
+            tag_id,
+            project_tags!inner(id, name, color)
+          `,
+          )
+          .in("time_entry_id", timeEntryIds);
+
+        if (tagError) {
+          console.warn("Error fetching time entry tags:", tagError);
+        }
+
+        // Group tags by time entry ID
+        const tagsByEntryId: Record<
+          string,
+          Array<{ id: string; name: string; color: string }>
+        > = (tagData || []).reduce(
+          (
+            acc: Record<
+              string,
+              Array<{ id: string; name: string; color: string }>
+            >,
+            tag: any,
+          ) => {
+            if (!acc[tag.time_entry_id]) {
+              acc[tag.time_entry_id] = [];
+            }
+            acc[tag.time_entry_id].push({
+              id: tag.tag_id,
+              name: tag.project_tags.name,
+              color: tag.project_tags.color,
+            });
+            return acc;
+          },
+          {},
+        );
+
+        // Add tags to time entries
+        const entriesWithTags = (timeEntriesData || []).map((entry) => ({
+          ...entry,
+          tags: tagsByEntryId[entry.id] || [],
+        }));
+
         setProjects(projectsData || []);
         setCustomers(customersData || []);
-        setTimeEntries(timeEntriesData || []);
+        setTimeEntries(entriesWithTags);
       } catch (error) {
         handleError(error, "useHomeData");
         setProjects([]);

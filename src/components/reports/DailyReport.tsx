@@ -21,6 +21,7 @@ interface TimeEntryDisplay {
   startTime: string;
   createdAt: string;
   projectColor: string;
+  tags?: Array<{ id: string; name: string; color: string }>;
 }
 
 interface DailyReportProps {
@@ -61,6 +62,7 @@ export function DailyReport({
                   duration={entry.duration}
                   startTime={entry.startTime}
                   projectColor={entry.projectColor}
+                  tags={entry.tags}
                   onDelete={() => setEntryToDelete(entry)}
                   onEdit={() => onEditEntry?.(entry.id)}
                 />

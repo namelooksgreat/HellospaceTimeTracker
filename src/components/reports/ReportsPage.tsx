@@ -72,6 +72,7 @@ export default function ReportsPage({
 
   const fetchTimeEntriesData = useCallback(async () => {
     try {
+      // Fetch time entries with project and customer data
       const { data, error } = await supabase
         .from("time_entries")
         .select(
@@ -85,6 +86,48 @@ export default function ReportsPage({
         .order("created_at", { ascending: false });
 
       if (error) throw error;
+
+      // Fetch tags for each time entry
+      const timeEntryIds = data?.map((entry) => entry.id) || [];
+      const { data: tagData, error: tagError } = await supabase
+        .from("time_entry_tags")
+        .select(
+          `
+          time_entry_id,
+          tag_id,
+          project_tags!inner(id, name, color)
+        `,
+        )
+        .in("time_entry_id", timeEntryIds);
+
+      if (tagError) {
+        console.error("Error fetching time entry tags:", tagError);
+      }
+
+      // Group tags by time entry ID
+      const tagsByEntryId: Record<
+        string,
+        Array<{ id: string; name: string; color: string }>
+      > = (tagData || []).reduce(
+        (
+          acc: Record<
+            string,
+            Array<{ id: string; name: string; color: string }>
+          >,
+          tag: any,
+        ) => {
+          if (!acc[tag.time_entry_id]) {
+            acc[tag.time_entry_id] = [];
+          }
+          acc[tag.time_entry_id].push({
+            id: tag.tag_id,
+            name: tag.project_tags.name,
+            color: tag.project_tags.color,
+          });
+          return acc;
+        },
+        {},
+      );
 
       const transformedEntries = (data || []).map((entry) => ({
         ...entry,
@@ -102,6 +145,7 @@ export default function ReportsPage({
                 : undefined,
             }
           : undefined,
+        tags: tagsByEntryId[entry.id] || [],
       }));
 
       setTimeEntries(transformedEntries);
@@ -444,6 +488,7 @@ export default function ReportsPage({
             startTime: entry.start_time,
             createdAt: entry.created_at,
             projectColor: entry.project?.color || "#94A3B8",
+            tags: entry.tags || [],
           }))}
           onDeleteEntry={handleDeleteTimeEntry}
           onEditEntry={(id) => {

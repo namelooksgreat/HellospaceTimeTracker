@@ -14,6 +14,7 @@ import { formatDuration } from "@/lib/utils/time";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import { handleError } from "@/lib/utils/error-handler";
+import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -64,6 +65,48 @@ export function TimeEntriesPage() {
 
         if (error) throw error;
 
+        // Fetch tags for time entries
+        const timeEntryIds = entriesData?.map((entry) => entry.id) || [];
+        const { data: tagData, error: tagError } = await supabase
+          .from("time_entry_tags")
+          .select(
+            `
+            time_entry_id,
+            tag_id,
+            project_tags!inner(id, name, color)
+          `,
+          )
+          .in("time_entry_id", timeEntryIds);
+
+        if (tagError) {
+          console.warn("Error fetching time entry tags:", tagError);
+        }
+
+        // Group tags by time entry ID
+        const tagsByEntryId: Record<
+          string,
+          Array<{ id: string; name: string; color: string }>
+        > = (tagData || []).reduce(
+          (
+            acc: Record<
+              string,
+              Array<{ id: string; name: string; color: string }>
+            >,
+            tag: any,
+          ) => {
+            if (!acc[tag.time_entry_id]) {
+              acc[tag.time_entry_id] = [];
+            }
+            acc[tag.time_entry_id].push({
+              id: tag.tag_id,
+              name: tag.project_tags.name,
+              color: tag.project_tags.color,
+            });
+            return acc;
+          },
+          {},
+        );
+
         const transformedEntries = (entriesData || []).map((entry) => ({
           ...entry,
           project: entry.project
@@ -80,6 +123,7 @@ export function TimeEntriesPage() {
                   : undefined,
               }
             : undefined,
+          tags: tagsByEntryId[entry.id] || [],
         }));
 
         setEntries(transformedEntries);
@@ -260,6 +304,24 @@ export function TimeEntriesPage() {
                 {entry.project && (
                   <div className="text-sm text-muted-foreground">
                     {entry.project.name}
+                  </div>
+                )}
+                {entry.tags && entry.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {entry.tags.map((tag) => (
+                      <Badge
+                        key={tag.id}
+                        variant="outline"
+                        className="px-2 py-0 h-5 text-xs flex items-center gap-1 bg-primary/5"
+                        style={{ borderColor: tag.color }}
+                      >
+                        <span
+                          className="w-2 h-2 rounded-full"
+                          style={{ backgroundColor: tag.color }}
+                        />
+                        {tag.name}
+                      </Badge>
+                    ))}
                   </div>
                 )}
               </div>

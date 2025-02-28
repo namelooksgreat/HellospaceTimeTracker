@@ -60,6 +60,7 @@ export interface TimeEntry {
     };
   };
   created_at: string;
+  tags?: Array<{ id: string; name: string; color: string }>;
 }
 
 export interface TimeEntryDisplay {
