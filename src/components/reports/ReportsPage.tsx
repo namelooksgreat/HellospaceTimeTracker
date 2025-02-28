@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Card, CardContent } from "../ui/card";
 import { AdvancedFilters } from "./AdvancedFilters";
 import { DailyReport } from "./DailyReport";
@@ -50,6 +50,81 @@ export default function ReportsPage({
 }: ReportsPageProps) {
   const { editTimeEntryDialog, setEditTimeEntryDialog } = useDialogStore();
   const [selectedEntry, setSelectedEntry] = useState<TimeEntry | null>(null);
+  const [timeEntries, setTimeEntries] = useState<TimeEntry[]>(entries);
+  const { session } = useAuth();
+
+  // Update local state when entries prop changes
+  useEffect(() => {
+    setTimeEntries(entries);
+  }, [entries]);
+
+  const fetchTimeEntriesData = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from("time_entries")
+        .select(
+          `
+          *,
+          project:projects!left(id, name, color, customer:customers!left(
+            id, name, customer_rates(hourly_rate, currency)
+          ))
+        `,
+        )
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      const transformedEntries = (data || []).map((entry) => ({
+        ...entry,
+        project: entry.project
+          ? {
+              id: entry.project.id,
+              name: entry.project.name,
+              color: entry.project.color,
+              customer: entry.project.customer
+                ? {
+                    id: entry.project.customer.id,
+                    name: entry.project.customer.name,
+                    customer_rates: entry.project.customer.customer_rates,
+                  }
+                : undefined,
+            }
+          : undefined,
+      }));
+
+      setTimeEntries(transformedEntries);
+    } catch (error) {
+      console.error("Error fetching time entries:", error);
+    }
+  }, []); // Empty dependency array since we don't use any external variables
+
+  // Set up real-time subscription to time_entries table
+  useEffect(() => {
+    // Only set up the subscription if we have a valid session
+    if (!session?.user?.id) return;
+
+    // Create a channel for real-time updates
+    const channel = supabase
+      .channel(`time_entries_changes_${session.user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "time_entries",
+          filter: `user_id=eq.${session.user.id}`,
+        },
+        () => {
+          fetchTimeEntriesData();
+        },
+      )
+      .subscribe();
+
+    // Cleanup subscription on component unmount
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [session?.user?.id, fetchTimeEntriesData]);
 
   const handleEditEntry = async (data: any) => {
     try {
@@ -66,12 +141,17 @@ export default function ReportsPage({
         .eq("id", selectedEntry.id);
 
       if (error) throw error;
+
+      // Close the dialog
       setEditTimeEntryDialog(false, null);
+
+      // No need to manually update state or fetch data
+      // The real-time subscription will trigger a refresh automatically
     } catch (error) {
       console.error("Error updating time entry:", error);
     }
   };
-  const { session } = useAuth();
+
   const [showFilters, setShowFilters] = useState(false);
 
   const [timeRange, setTimeRange] = useState<
@@ -173,7 +253,7 @@ export default function ReportsPage({
         break;
     }
 
-    return entries.filter((entry) => {
+    return timeEntries.filter((entry) => {
       const searchMatch =
         entry.task_name.toLowerCase().includes(filters.search.toLowerCase()) ||
         entry.project?.name
@@ -201,17 +281,19 @@ export default function ReportsPage({
 
       return searchMatch && projectMatch && customerMatch && dateMatch;
     });
-  }, [entries, filters, timeRange]);
+  }, [timeEntries, filters, timeRange]);
 
-  const totalDuration = filteredEntries.reduce(
-    (sum, entry) => sum + entry.duration,
-    0,
-  );
+  // Recalculate totals whenever filteredEntries changes
+  const totalDuration = useMemo(() => {
+    return filteredEntries.reduce((sum, entry) => sum + entry.duration, 0);
+  }, [filteredEntries]);
 
-  const totalEarnings = filteredEntries.reduce((sum, entry) => {
-    const hourlyRate = userSettings?.default_rate || 0;
-    return sum + (entry.duration / 3600) * hourlyRate;
-  }, 0);
+  const totalEarnings = useMemo(() => {
+    return filteredEntries.reduce((sum, entry) => {
+      const hourlyRate = userSettings?.default_rate || 0;
+      return sum + (entry.duration / 3600) * hourlyRate;
+    }, 0);
+  }, [filteredEntries, userSettings?.default_rate]);
 
   return (
     <div className="space-y-6">
@@ -344,7 +426,7 @@ export default function ReportsPage({
             }
           }}
           onEditEntry={(id) => {
-            const entry = entries.find((e) => e.id === id);
+            const entry = timeEntries.find((e) => e.id === id);
             if (entry) {
               setSelectedEntry(entry);
               setEditTimeEntryDialog(true, id);

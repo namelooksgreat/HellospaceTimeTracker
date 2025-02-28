@@ -11,6 +11,19 @@ import { DataTablePagination } from "@/components/ui/data-table-pagination";
 import { ErrorState } from "@/components/ui/error-state";
 import { TimeEntry } from "@/types";
 import { formatDuration } from "@/lib/utils/time";
+import { useAuth } from "@/lib/auth";
+import { toast } from "sonner";
+import { handleError } from "@/lib/utils/error-handler";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
@@ -26,12 +39,14 @@ export function TimeEntriesPage() {
   const [selectedEntries, setSelectedEntries] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState("date_desc");
   const [userFilter, setUserFilter] = useState("all");
+  const [entryToDelete, setEntryToDelete] = useState<string | null>(null);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
   const { isLoading, error, handleAsync, clearError } = useAdminUI();
+  const { user } = useAuth();
 
   const loadData = async () => {
     await handleAsync(
@@ -85,18 +100,42 @@ export function TimeEntriesPage() {
 
   useEffect(() => {
     loadData();
-  }, []);
+
+    // Set up real-time subscription to time_entries table
+    if (!user?.id) return;
+
+    // Create a channel for real-time updates
+    const channel = supabase
+      .channel(`admin_time_entries_changes`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "time_entries",
+        },
+        () => {
+          loadData();
+        },
+      )
+      .subscribe();
+
+    // Cleanup subscription on component unmount
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
 
   const filterAndSortEntries = (
     data: TimeEntry[],
     query: string,
     sort: string,
-    user: string,
+    userFilter: string,
   ) => {
     let filtered = data.filter(
       (entry) =>
         entry.task_name.toLowerCase().includes(query.toLowerCase()) &&
-        (user === "all" || entry.user_id === user),
+        (userFilter === "all" || entry.user_id === userFilter),
     );
 
     filtered.sort((a, b) => {
@@ -129,6 +168,28 @@ export function TimeEntriesPage() {
     (currentPage - 1) * pageSize,
     currentPage * pageSize,
   );
+
+  const handleDeleteEntry = async () => {
+    if (!entryToDelete) return;
+
+    try {
+      // Admin users can delete any entry
+      const isAdmin = user?.email?.includes("admin") || false;
+
+      const { error } = await supabase
+        .from("time_entries")
+        .delete()
+        .eq("id", entryToDelete);
+
+      if (error) throw error;
+
+      toast.success("Time entry deleted successfully");
+      loadData();
+      setEntryToDelete(null);
+    } catch (error) {
+      handleError(error, "TimeEntriesPage");
+    }
+  };
 
   if (error) {
     return (
@@ -234,6 +295,14 @@ export function TimeEntriesPage() {
                 <Button variant="ghost" size="sm" onClick={() => {}}>
                   Edit
                 </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setEntryToDelete(entry.id)}
+                  className="text-destructive hover:text-destructive"
+                >
+                  Delete
+                </Button>
               </div>
             ),
           },
@@ -248,6 +317,30 @@ export function TimeEntriesPage() {
         onPageChange={setCurrentPage}
         onPageSizeChange={setPageSize}
       />
+
+      <AlertDialog
+        open={!!entryToDelete}
+        onOpenChange={(open) => !open && setEntryToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Time Entry</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this time entry? This action
+              cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteEntry}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
