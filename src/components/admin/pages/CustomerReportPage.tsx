@@ -473,7 +473,7 @@ export function CustomerReportPage() {
                     duration={entry.duration}
                     startTime={entry.start_time}
                     projectColor={entry.project?.color || "#94A3B8"}
-                    tags={entry.tags}
+                    tags={entry.tags || []}
                   />
                 ))
               ) : (

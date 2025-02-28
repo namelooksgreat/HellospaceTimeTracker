@@ -28,8 +28,17 @@ export function ReportPreview({
 
   useEffect(() => {
     if (open && data) {
+      // Make sure entries have tags property
+      const dataWithTags = {
+        ...data,
+        entries: data.entries.map((entry) => ({
+          ...entry,
+          tags: entry.tags || [],
+        })),
+      };
+
       // Generate HTML preview when dialog opens
-      const html = generateHTMLPreview(data);
+      const html = generateHTMLPreview(dataWithTags);
       setHtmlContent(html);
     }
   }, [open, data]);

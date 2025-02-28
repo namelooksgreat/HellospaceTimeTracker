@@ -7,7 +7,7 @@ import { formatDuration, formatCurrency } from "./common";
 
 // Reusable CSS styles for the report
 const reportStyles = `
-  /* Modern typography using system fonts */
+  /* Base variables */
   :root {
     --primary: hsl(210, 100%, 50%);
     --primary-foreground: hsl(0, 0%, 100%);
@@ -20,6 +20,7 @@ const reportStyles = `
     --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   }
   
+  /* Reset and base styles */
   * {
     margin: 0;
     padding: 0;
@@ -33,7 +34,14 @@ const reportStyles = `
     background-color: var(--background);
   }
   
-  /* Header styles */
+  /* Layout components */
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1.5rem;
+  }
+  
+  /* Header */
   .header {
     background: linear-gradient(135deg, hsl(210, 100%, 50%), hsl(210, 100%, 40%));
     color: var(--primary-foreground);
@@ -58,15 +66,6 @@ const reportStyles = `
     opacity: 0.3;
   }
   
-  .header h1 {
-    margin: 0;
-    font-size: 1.75rem;
-    font-weight: 800;
-    letter-spacing: -0.025em;
-    position: relative;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.1);
-  }
-  
   .header .tagline {
     font-size: 0.875rem;
     opacity: 0.9;
@@ -83,19 +82,11 @@ const reportStyles = `
     backdrop-filter: blur(4px);
   }
   
-  /* Content container */
-  .container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 1.5rem;
-  }
-  
-  /* Report title */
+  /* Typography */
   .report-title {
     margin: 1.5rem 0 0.5rem 0;
     font-size: 2rem;
     font-weight: 800;
-    color: hsl(222, 47%, 11%);
     letter-spacing: -0.025em;
     background: linear-gradient(to right, hsl(210, 100%, 50%), hsl(250, 100%, 60%));
     -webkit-background-clip: text;
@@ -112,6 +103,11 @@ const reportStyles = `
     padding: 0.25rem 0.75rem;
     background-color: hsl(210, 50%, 95%);
     border-radius: 1rem;
+  }
+  
+  .highlight {
+    color: var(--primary);
+    font-weight: 700;
   }
   
   /* Card component */
@@ -159,7 +155,7 @@ const reportStyles = `
     padding: 1.5rem;
   }
   
-  /* Summary grid */
+  /* Summary section */
   .summary-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -167,7 +163,6 @@ const reportStyles = `
   }
   
   .summary-item {
-    margin-bottom: 1rem;
     padding: 1rem;
     background-color: hsl(210, 50%, 98%);
     border-radius: 0.5rem;
@@ -257,6 +252,35 @@ const reportStyles = `
     background-color: hsl(210, 50%, 95%);
   }
   
+  .text-center { text-align: center; }
+  .text-right { text-align: right; }
+  
+  /* Tag styles */
+  .entry-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin-top: 0.5rem;
+  }
+  
+  .entry-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.7rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 1rem;
+    border: 1px solid;
+    font-weight: 500;
+  }
+  
+  .tag-dot {
+    display: inline-block;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+  }
+  
   /* User group styling */
   .user-group-header {
     background: linear-gradient(to right, hsl(210, 50%, 95%), hsl(210, 50%, 98%));
@@ -294,14 +318,6 @@ const reportStyles = `
     padding: 0.35rem 0.75rem;
     border-radius: 1rem;
     box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-  }
-  
-  .text-center {
-    text-align: center;
-  }
-  
-  .text-right {
-    text-align: right;
   }
   
   /* Empty state */
@@ -342,11 +358,7 @@ const reportStyles = `
     font-weight: 500;
   }
   
-  .highlight {
-    color: var(--primary);
-    font-weight: 700;
-  }
-  
+  /* Print styles */
   @media print {
     .card, .table-container {
       box-shadow: none !important;
@@ -409,9 +421,26 @@ export const generateHTMLPreview = (data: ExportData): string => {
       // Create rows for this user's entries
       const userEntriesHTML = userEntries
         .map((entry) => {
+          // Generate tags HTML if available
+          const tagsHTML =
+            entry.tags && entry.tags.length > 0
+              ? `<div class="entry-tags">${entry.tags
+                  .map(
+                    (tag) =>
+                      `<span class="entry-tag" style="background-color: ${tag.color}20; border-color: ${tag.color}; color: ${tag.color}">
+                    <span class="tag-dot" style="background-color: ${tag.color}"></span>
+                    ${tag.name}
+                  </span>`,
+                  )
+                  .join("")}</div>`
+              : "";
+
           return `
       <tr>
-        <td>${entry.task_name}</td>
+        <td>
+          <div>${entry.task_name}</div>
+          ${tagsHTML}
+        </td>
         <td>${entry.project?.name || "-"}</td>
         <td class="text-center">${new Date(entry.start_time).toLocaleDateString("tr-TR")}</td>
         <td class="text-right">${formatDuration(entry.duration)}</td>
@@ -449,7 +478,7 @@ export const generateHTMLPreview = (data: ExportData): string => {
     <body>
       <div class="header">
         <div>
-          <img src="/logo-admin-white.png" alt="Hellospace Tracker" class="h-8 w-auto" style="height: 32px; width: auto;"/>
+          <img src="/logo-admin-white.png" alt="Hellospace Tracker" style="height: 32px; width: auto;"/>
           <div class="tagline">Time Tracking</div>
         </div>
         <div class="date">${new Date().toLocaleDateString("tr-TR", { year: "numeric", month: "long", day: "numeric" })}</div>
@@ -514,8 +543,7 @@ export const generateHTMLPreview = (data: ExportData): string => {
                         <div class="empty-state-description">Farklı bir zaman aralığı seçmeyi deneyin</div>
                       </div>
                     </td>
-                  </tr>
-                  `
+                  </tr>`
                   }
                 </tbody>
               </table>

@@ -20,8 +20,17 @@ export function ShareableReportLink({ data }: ShareableReportLinkProps) {
     try {
       setLoading(true);
 
+      // Ensure all entries have tags property
+      const dataWithTags = {
+        ...data,
+        entries: data.entries.map((entry) => ({
+          ...entry,
+          tags: entry.tags || [],
+        })),
+      };
+
       // Generate HTML content
-      const htmlContent = generateHTMLPreview(data);
+      const htmlContent = generateHTMLPreview(dataWithTags);
 
       // Create a unique ID for the report
       const reportId = `report_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;

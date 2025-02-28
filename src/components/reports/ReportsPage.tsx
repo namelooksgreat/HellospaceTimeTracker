@@ -181,23 +181,51 @@ export default function ReportsPage({
     try {
       if (!selectedEntry) return;
 
-      const { error } = await supabase
+      // Update time entry
+      const { error: entryError } = await supabase
         .from("time_entries")
         .update({
           task_name: data.taskName,
           project_id: data.projectId || null,
           description: data.description,
           duration: data.duration,
+          start_time: data.startTime,
         })
         .eq("id", selectedEntry.id);
 
-      if (error) throw error;
+      if (entryError) throw entryError;
+
+      // Handle tags if provided
+      if (data.tags && Array.isArray(data.tags)) {
+        // First delete existing tags
+        const { error: deleteTagsError } = await supabase
+          .from("time_entry_tags")
+          .delete()
+          .eq("time_entry_id", selectedEntry.id);
+
+        if (deleteTagsError) throw deleteTagsError;
+
+        // Then insert new tags if any
+        if (data.tags.length > 0) {
+          const tagEntries = data.tags.map((tagId: string) => ({
+            time_entry_id: selectedEntry.id,
+            tag_id: tagId,
+            created_at: new Date().toISOString(),
+          }));
+
+          const { error: insertTagsError } = await supabase
+            .from("time_entry_tags")
+            .insert(tagEntries);
+
+          if (insertTagsError) throw insertTagsError;
+        }
+      }
 
       // Close the dialog
       setEditTimeEntryDialog(false, null);
 
-      // No need to manually update state or fetch data
-      // The real-time subscription will trigger a refresh automatically
+      // Refresh data after update
+      await fetchTimeEntriesData();
     } catch (error) {
       console.error("Error updating time entry:", error);
     }

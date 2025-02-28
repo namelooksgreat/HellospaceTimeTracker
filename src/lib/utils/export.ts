@@ -20,16 +20,33 @@ export const exportToPDF = (data: ExportData) => {
   // Handle both userName and customerName for backward compatibility
   const name = data.customerName || data.userName || "";
 
+  // Ensure all entries have tags property
+  const entriesWithTags = data.entries.map((entry) => ({
+    ...entry,
+    tags: entry.tags || [],
+  }));
+
   // Use the implementation from export-pdf.ts
   return exportToPDFImpl({
     ...data,
     customerName: name,
+    entries: entriesWithTags,
   });
 };
 
 export const exportToExcel = async (data: ExportData): Promise<void> => {
   try {
     console.log("Starting Excel export with data:", data);
+
+    // Ensure all entries have tags property
+    const dataWithTags = {
+      ...data,
+      entries: data.entries.map((entry) => ({
+        ...entry,
+        tags: entry.tags || [],
+      })),
+    };
+
     const workbook = new ExcelJS.Workbook();
 
     // Get the name (either userName or customerName)
@@ -193,10 +210,17 @@ export const exportToExcel = async (data: ExportData): Promise<void> => {
 
       // Add user entries
       userEntries.forEach((entry) => {
+        // Create task name with tags if available
+        let taskDisplay = entry.task_name;
+        if (entry.tags && entry.tags.length > 0) {
+          const tagNames = entry.tags.map((tag) => tag.name).join(", ");
+          taskDisplay = `${entry.task_name} [${tagNames}]`;
+        }
+
         const entryRow = entriesSheet.addRow({
           user: "", // Leave blank as we have the user header
           date: new Date(entry.start_time).toLocaleDateString("tr-TR"),
-          task: entry.task_name,
+          task: taskDisplay,
           project: entry.project?.name || "-",
           duration: formatDuration(entry.duration),
         });

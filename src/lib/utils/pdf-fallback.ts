@@ -38,11 +38,20 @@ const PDF_COLORS = {
  * @param data The data to export
  */
 export const generatePDFWithJsPDF = (data: ExportData): void => {
+  // Ensure all entries have tags property
+  const dataWithTags = {
+    ...data,
+    entries: data.entries.map((entry) => ({
+      ...entry,
+      tags: entry.tags || [],
+    })),
+  };
+
   // Optimize by pre-converting strings that will be used multiple times
   const customerName = convertTurkishCharacters(
-    data.customerName || data.userName || "Musteri",
+    dataWithTags.customerName || dataWithTags.userName || "Musteri",
   );
-  const timeRange = convertTurkishCharacters(data.timeRange);
+  const timeRange = convertTurkishCharacters(dataWithTags.timeRange);
 
   // Create jsPDF instance
   const doc = new jsPDF({
