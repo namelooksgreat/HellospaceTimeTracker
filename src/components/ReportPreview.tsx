@@ -66,10 +66,24 @@ export function ReportPreview({
       <DialogContent className="max-w-4xl w-full max-h-[90vh] p-0 gap-0 rounded-xl border-border/50 shadow-xl">
         <DialogHeader className="sticky top-0 z-10 p-4 bg-background/95 backdrop-blur-xl border-b border-border/50">
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-xl font-semibold flex items-center gap-2">
-              <FileText className="h-5 w-5 text-primary" />
-              Rapor Önizleme
-            </DialogTitle>
+            <div className="flex items-center gap-4">
+              <div className="flex-shrink-0">
+                <img
+                  src="/hellospace-tracker-black.png"
+                  alt="Hellospace Tracker"
+                  className="h-8 w-auto block dark:hidden"
+                />
+                <img
+                  src="/hellospace-tracker-white.png"
+                  alt="Hellospace Tracker"
+                  className="h-8 w-auto hidden dark:block"
+                />
+              </div>
+              <DialogTitle className="text-xl font-semibold flex items-center gap-2">
+                <FileText className="h-5 w-5 text-primary" />
+                Rapor Önizleme
+              </DialogTitle>
+            </div>
             <Button
               variant="ghost"
               size="icon"

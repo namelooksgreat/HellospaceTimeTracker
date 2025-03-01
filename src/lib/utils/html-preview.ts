@@ -478,7 +478,7 @@ export const generateHTMLPreview = (data: ExportData): string => {
     <body>
       <div class="header">
         <div>
-          <img src="/logo-admin-white.png" alt="Hellospace Tracker" style="height: 32px; width: auto;"/>
+          <img src="/hellospace-tracker-white.png" alt="Hellospace Tracker" style="height: 32px; width: auto;"/>
           <div class="tagline">Time Tracking</div>
         </div>
         <div class="date">${new Date().toLocaleDateString("tr-TR", { year: "numeric", month: "long", day: "numeric" })}</div>

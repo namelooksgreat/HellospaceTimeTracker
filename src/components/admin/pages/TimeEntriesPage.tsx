@@ -712,61 +712,152 @@ export function TimeEntriesPage() {
       </AlertDialog>
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Zaman Kaydını Düzenle</DialogTitle>
+        <DialogContent className="sm:max-w-lg p-0 gap-0 overflow-hidden rounded-xl border-border/50 shadow-xl">
+          <DialogHeader className="sticky top-0 z-10 p-4 sm:p-6 bg-gradient-to-b from-background via-background to-background/80 backdrop-blur-xl border-b border-border/50">
+            <div className="flex items-center gap-2 text-primary">
+              <Edit className="h-5 w-5" />
+              <DialogTitle className="text-lg font-semibold tracking-tight">
+                Zaman Kaydını Düzenle
+              </DialogTitle>
+            </div>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            {selectedEntry && (
-              <>
-                <div className="grid grid-cols-4 items-center gap-4">
+
+          {selectedEntry && (
+            <div className="p-4 sm:p-6 space-y-6 max-h-[calc(80vh-10rem)] overflow-y-auto">
+              <div className="bg-muted/30 p-4 rounded-lg border border-border/50 space-y-4">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <User className="h-4 w-4" />
+                  <span>
+                    {selectedEntry.user?.full_name || "Bilinmeyen Kullanıcı"}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Calendar className="h-4 w-4" />
+                  <span>
+                    {new Date(selectedEntry.start_time).toLocaleString(
+                      "tr-TR",
+                      {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      },
+                    )}
+                  </span>
+                </div>
+
+                {selectedEntry.project && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <FolderKanban className="h-4 w-4" />
+                    <div className="flex items-center gap-1">
+                      <div
+                        className="w-2 h-2 rounded-full"
+                        style={{ backgroundColor: selectedEntry.project.color }}
+                      />
+                      <span>{selectedEntry.project.name}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
                   <label
                     htmlFor="task-name"
-                    className="text-right font-medium text-sm"
+                    className="text-sm font-medium flex items-center gap-1.5"
                   >
-                    Görev
+                    <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                    Görev Adı
                   </label>
                   <Input
                     id="task-name"
                     defaultValue={selectedEntry.task_name}
-                    className="col-span-3"
+                    className="w-full bg-background/50 hover:bg-accent/50 transition-all duration-150"
+                    placeholder="Görev adını girin"
                   />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
+
+                <div className="space-y-2">
                   <label
                     htmlFor="description"
-                    className="text-right font-medium text-sm"
+                    className="text-sm font-medium flex items-center gap-1.5"
                   >
-                    Açıklama
+                    <span>Açıklama</span>
                   </label>
                   <Textarea
                     id="description"
                     defaultValue={selectedEntry.description || ""}
-                    className="col-span-3"
+                    className="min-h-[100px] bg-background/50 hover:bg-accent/50 transition-all duration-150"
+                    placeholder="Görev açıklamasını girin"
                   />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
+
+                <div className="space-y-2">
                   <label
                     htmlFor="duration"
-                    className="text-right font-medium text-sm"
+                    className="text-sm font-medium flex items-center gap-1.5"
                   >
-                    Süre (sn)
+                    <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                    Süre
                   </label>
-                  <Input
-                    id="duration"
-                    type="number"
-                    defaultValue={selectedEntry.duration}
-                    className="col-span-3"
-                  />
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="relative">
+                      <Input
+                        id="duration-hours"
+                        type="number"
+                        min="0"
+                        defaultValue={Math.floor(selectedEntry.duration / 3600)}
+                        className="pr-8 bg-background/50 hover:bg-accent/50 transition-all duration-150"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                        saat
+                      </span>
+                    </div>
+                    <div className="relative">
+                      <Input
+                        id="duration-minutes"
+                        type="number"
+                        min="0"
+                        max="59"
+                        defaultValue={Math.floor(
+                          (selectedEntry.duration % 3600) / 60,
+                        )}
+                        className="pr-8 bg-background/50 hover:bg-accent/50 transition-all duration-150"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                        dk
+                      </span>
+                    </div>
+                    <div className="relative">
+                      <Input
+                        id="duration-seconds"
+                        type="number"
+                        min="0"
+                        max="59"
+                        defaultValue={selectedEntry.duration % 60}
+                        className="pr-8 bg-background/50 hover:bg-accent/50 transition-all duration-150"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                        sn
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Toplam süre: {formatDuration(selectedEntry.duration)}
+                  </p>
                 </div>
-              </>
-            )}
-          </div>
-          <DialogFooter>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="sticky bottom-0 p-4 bg-gradient-to-t from-background via-background to-background/80 backdrop-blur-xl border-t border-border/50 flex-row gap-2">
             <Button
               type="button"
               variant="outline"
               onClick={() => setIsEditDialogOpen(false)}
+              className="flex-1 h-10 rounded-lg border-border/50 hover:bg-accent/50 transition-all duration-200"
             >
               İptal
             </Button>
@@ -782,16 +873,27 @@ export function TimeEntriesPage() {
                   const descriptionInput = document.getElementById(
                     "description",
                   ) as HTMLTextAreaElement;
-                  const durationInput = document.getElementById(
-                    "duration",
+                  const hoursInput = document.getElementById(
+                    "duration-hours",
                   ) as HTMLInputElement;
+                  const minutesInput = document.getElementById(
+                    "duration-minutes",
+                  ) as HTMLInputElement;
+                  const secondsInput = document.getElementById(
+                    "duration-seconds",
+                  ) as HTMLInputElement;
+
+                  const hours = parseInt(hoursInput.value) || 0;
+                  const minutes = parseInt(minutesInput.value) || 0;
+                  const seconds = parseInt(secondsInput.value) || 0;
+                  const totalDuration = hours * 3600 + minutes * 60 + seconds;
 
                   const { error } = await supabase
                     .from("time_entries")
                     .update({
                       task_name: taskNameInput.value,
                       description: descriptionInput.value,
-                      duration: parseInt(durationInput.value),
+                      duration: totalDuration,
                     })
                     .eq("id", selectedEntry.id);
 
@@ -804,6 +906,7 @@ export function TimeEntriesPage() {
                   handleError(error, "TimeEntriesPage");
                 }
               }}
+              className="flex-1 h-10 rounded-lg bg-primary hover:bg-primary/90 text-white transition-all duration-200"
             >
               Değişiklikleri Kaydet
             </Button>
