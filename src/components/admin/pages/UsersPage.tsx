@@ -24,13 +24,16 @@ import {
   UserCog,
   Trash2,
   Mail,
+  CreditCard,
 } from "lucide-react";
 import { getUsers, deleteUser, createUser, User } from "@/lib/api/users";
 import { UserDialog } from "../dialogs/UserDialog";
 import { UserAssociationsDialog } from "../dialogs/UserAssociationsDialog";
 import { CreateInvitationDialog } from "../dialogs/CreateInvitationDialog";
+import { BankInfoDialog } from "../dialogs/BankInfoDialog";
 import { handleError } from "@/lib/utils/error-handler";
 import { showSuccess, showError } from "@/lib/utils/toast";
+import { toast } from "sonner";
 import { LoadingState } from "@/components/ui/loading-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
@@ -57,6 +60,7 @@ export function UsersPage() {
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [showBulkRoleDialog, setShowBulkRoleDialog] = useState(false);
   const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
+  const [showBankInfoDialog, setShowBankInfoDialog] = useState(false);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -375,6 +379,18 @@ export function UsersPage() {
                       <BarChart2 className="h-4 w-4 mr-2" />
                       Reports
                     </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedUser(user);
+                        setShowBankInfoDialog(true);
+                      }}
+                      className="admin-button"
+                    >
+                      <CreditCard className="h-4 w-4 mr-2" />
+                      Banka
+                    </Button>
                   </div>
                 ),
               },
@@ -416,6 +432,17 @@ export function UsersPage() {
         onOpenChange={setShowInviteDialog}
         onInviteCreated={loadUsers}
       />
+
+      {selectedUser && (
+        <BankInfoDialog
+          userId={selectedUser.id}
+          userName={selectedUser.full_name || ""}
+          userEmail={selectedUser.email}
+          open={showBankInfoDialog}
+          onOpenChange={setShowBankInfoDialog}
+          onDelete={loadUsers}
+        />
+      )}
     </div>
   );
 }

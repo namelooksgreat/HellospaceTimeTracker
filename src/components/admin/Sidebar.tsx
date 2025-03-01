@@ -14,6 +14,8 @@ interface SidebarProps {
   onNavigation?: () => void;
 }
 
+import { CreditCard } from "lucide-react";
+
 const menuItems = [
   { icon: BarChart, label: "Dashboard", href: "/admin" },
   { icon: Users, label: "Users", href: "/admin/users" },
@@ -21,6 +23,7 @@ const menuItems = [
   { icon: FolderKanban, label: "Projects", href: "/admin/projects" },
   { icon: Tag, label: "Project Tags", href: "/admin/project-tags" },
   { icon: Clock, label: "Time Entries", href: "/admin/time-entries" },
+  { icon: CreditCard, label: "Banka Bilgileri", href: "/admin/bank-info" },
   { icon: Settings, label: "Settings", href: "/admin/settings" },
 ];
 

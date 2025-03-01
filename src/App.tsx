@@ -67,6 +67,11 @@ const TimeEntriesPage = lazy(() =>
     default: module.TimeEntriesPage,
   })),
 );
+const UserBankInfoPage = lazy(() =>
+  import("./components/admin/pages/UserBankInfoPage").then((module) => ({
+    default: module.UserBankInfoPage,
+  })),
+);
 const CustomerPaymentsPage = lazy(() =>
   import("./components/admin/pages/CustomerPaymentsPage").then((module) => ({
     default: module.CustomerPaymentsPage,
@@ -189,6 +194,7 @@ export default function App() {
                   <Route path="projects" element={<ProjectsPage />} />
                   <Route path="project-tags" element={<ProjectTagsPage />} />
                   <Route path="time-entries" element={<TimeEntriesPage />} />
+                  <Route path="bank-info" element={<UserBankInfoPage />} />
                   <Route path="payments" element={<CustomerPaymentsPage />} />
                   <Route path="settings" element={<SettingsPage />} />
                 </Route>
