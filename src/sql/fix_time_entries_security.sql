@@ -1,22 +1,21 @@
--- Drop existing time entries policies
-DROP POLICY IF EXISTS "Users can manage their own time entries" ON time_entries;
-DROP POLICY IF EXISTS "Admins and developers can manage time entries" ON time_entries;
+-- Fix time entries security policy to allow admin access
 
--- Create strict policy for regular users to only see their own time entries
-CREATE POLICY "Users can only see and manage their own time entries"
-ON time_entries FOR ALL
-USING (user_id = auth.uid());
+-- First, drop the existing policies for time_entries
+DROP POLICY IF EXISTS admin_time_entries_policy ON public.time_entries;
+DROP POLICY IF EXISTS user_time_entries_policy ON public.time_entries;
 
--- Create admin/developer policy using JWT metadata to avoid recursion
-CREATE POLICY "Admins and developers can manage all time entries"
-ON time_entries FOR ALL
-USING (
-  ((auth.jwt() ->> 'user_metadata')::jsonb ->> 'user_type') IN ('admin', 'developer')
-);
+-- Create a new policy for admin users to see all time entries
+CREATE POLICY admin_time_entries_policy ON public.time_entries
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.users 
+      WHERE id = auth.uid() AND user_type = 'admin'
+    )
+  );
 
--- Verify the policies are working correctly
-COMMENT ON POLICY "Users can only see and manage their own time entries" ON time_entries 
-IS 'Ensures users can only access their own time entries by user_id';
+-- Create a policy for regular users to see only their own time entries
+CREATE POLICY user_time_entries_policy ON public.time_entries
+  USING (auth.uid() = user_id);
 
-COMMENT ON POLICY "Admins and developers can manage all time entries" ON time_entries 
-IS 'Allows admins and developers to access all time entries using JWT metadata';
+-- Ensure RLS is enabled
+ALTER TABLE public.time_entries ENABLE ROW LEVEL SECURITY;

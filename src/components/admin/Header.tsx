@@ -18,12 +18,12 @@ export function Header() {
         <div className="flex h-16 items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <img
-              src="/logo-admin-black.png"
+              src="/hellospace-tracker-black.png"
               alt="Admin Logo"
               className="h-8 w-auto block dark:hidden"
             />
             <img
-              src="/logo-admin-white.png"
+              src="/hellospace-tracker-white.png"
               alt="Admin Logo"
               className="h-8 w-auto hidden dark:block"
             />

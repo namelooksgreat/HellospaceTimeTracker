@@ -20,6 +20,7 @@ interface AdminTableProps<T> {
   loadingMessage?: string;
   emptyMessage?: string;
   className?: string;
+  emptyState?: React.ReactNode;
 }
 
 export function AdminTable<T extends { id: string }>({
@@ -29,6 +30,7 @@ export function AdminTable<T extends { id: string }>({
   loadingMessage = "Loading...",
   emptyMessage = "No items found",
   className,
+  emptyState,
 }: AdminTableProps<T>) {
   return (
     <div
@@ -55,7 +57,7 @@ export function AdminTable<T extends { id: string }>({
           ) : data.length === 0 ? (
             <TableRow>
               <TableCell colSpan={columns.length} className="text-center py-8">
-                {emptyMessage}
+                {emptyState || emptyMessage}
               </TableCell>
             </TableRow>
           ) : (

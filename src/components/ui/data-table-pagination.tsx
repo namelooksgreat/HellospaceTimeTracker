@@ -1,4 +1,5 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Button } from "./button";
 import {
   Select,
@@ -14,6 +15,7 @@ interface DataTablePaginationProps {
   totalItems: number;
   onPageChange: (page: number) => void;
   onPageSizeChange: (size: number) => void;
+  className?: string;
 }
 
 export function DataTablePagination({
@@ -22,13 +24,14 @@ export function DataTablePagination({
   totalItems,
   onPageChange,
   onPageSizeChange,
+  className,
 }: DataTablePaginationProps) {
   const totalPages = Math.ceil(totalItems / pageSize);
   const startItem = (currentPage - 1) * pageSize + 1;
   const endItem = Math.min(currentPage * pageSize, totalItems);
 
   return (
-    <div className="flex items-center justify-between px-2">
+    <div className={cn("flex items-center justify-between px-2", className)}>
       <div className="flex-1 text-sm text-muted-foreground">
         {totalItems > 0 ? (
           <p className="text-sm font-medium">

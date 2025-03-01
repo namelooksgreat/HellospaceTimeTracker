@@ -5,6 +5,14 @@ import { AdminFilters } from "../components/AdminFilters";
 import { AdminTable } from "../components/AdminTable";
 import { AdminCard } from "../components/AdminCard";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Plus,
   Building2,
@@ -12,6 +20,9 @@ import {
   Users,
   Trash2,
   BarChart2,
+  Search,
+  Edit,
+  MoreHorizontal,
 } from "lucide-react";
 import { CustomerDialog } from "../dialogs/CustomerDialog";
 import { useAdminUI } from "@/hooks/useAdminUI";
@@ -156,13 +167,14 @@ export function CustomersPage() {
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in-50 duration-500">
+    <div className="space-y-6 animate-in fade-in-50 duration-300">
       <div className="grid gap-4 md:grid-cols-3">
         <AdminCard
           icon={<Building2 className="h-5 w-5 text-primary" />}
           title="Total Customers"
           value={customers.length}
           description={`${customers.filter((c) => c.balance && c.balance > 0).length} active`}
+          className="bg-card hover:bg-card/90 shadow-sm hover:shadow transition-all duration-200"
         />
 
         <AdminCard
@@ -174,6 +186,7 @@ export function CustomersPage() {
             label: "collection rate",
             isPositive: true,
           }}
+          className="bg-card hover:bg-card/90 shadow-sm hover:shadow transition-all duration-200"
         />
 
         <AdminCard
@@ -181,6 +194,7 @@ export function CustomersPage() {
           title="Total Projects"
           value={customers.reduce((sum, c) => sum + (c.project_count || 0), 0)}
           description="Across all customers"
+          className="bg-card hover:bg-card/90 shadow-sm hover:shadow transition-all duration-200"
         />
       </div>
 
@@ -192,52 +206,79 @@ export function CustomersPage() {
           onChange: setViewMode,
         }}
         actions={
-          <Button onClick={() => setShowCustomerDialog(true)}>
+          <Button onClick={() => setShowCustomerDialog(true)} className="h-9">
             <Plus className="mr-2 h-4 w-4" /> New Customer
           </Button>
         }
       />
 
-      <AdminFilters
-        searchProps={{
-          value: searchQuery,
-          onChange: setSearchQuery,
-          placeholder: "Search customers...",
-        }}
-        selectedCount={selectedCustomers.length}
-        bulkActions={
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {}}
-            className="h-8 text-destructive hover:text-destructive"
-          >
-            <Trash2 className="h-4 w-4 mr-2" />
-            Delete
-          </Button>
-        }
-      >
-        <Select value={sortBy} onValueChange={setSortBy}>
-          <SelectTrigger className="w-full sm:w-[180px]">
-            <SelectValue placeholder="Sort by" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="name_asc">Name (A-Z)</SelectItem>
-            <SelectItem value="name_desc">Name (Z-A)</SelectItem>
-            <SelectItem value="balance_asc">Balance (Low-High)</SelectItem>
-            <SelectItem value="balance_desc">Balance (High-Low)</SelectItem>
-          </SelectContent>
-        </Select>
-      </AdminFilters>
+      <div className="flex flex-col sm:flex-row gap-4 items-start">
+        <div className="relative w-full sm:w-auto sm:flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder="Search customers..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="name_asc">Name (A-Z)</SelectItem>
+              <SelectItem value="name_desc">Name (Z-A)</SelectItem>
+              <SelectItem value="balance_asc">Balance (Low-High)</SelectItem>
+              <SelectItem value="balance_desc">Balance (High-Low)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {selectedCustomers.length > 0 && (
+        <div className="flex items-center justify-between p-3 bg-muted/50 border rounded-lg">
+          <span className="flex items-center gap-1.5 font-medium text-primary">
+            <Building2 className="h-4 w-4" /> {selectedCustomers.length}{" "}
+            customer(s) selected
+          </span>
+          <div className="flex gap-2">
+            <Button variant="destructive" size="sm" onClick={() => {}}>
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
+            </Button>
+          </div>
+        </div>
+      )}
 
       <AdminTable
         data={paginatedCustomers}
+        className="border rounded-lg overflow-hidden shadow-sm"
         columns={[
+          {
+            header: "",
+            cell: (customer) => (
+              <Checkbox
+                checked={selectedCustomers.includes(customer.id)}
+                onCheckedChange={(checked) => {
+                  setSelectedCustomers((prev) =>
+                    checked
+                      ? [...prev, customer.id]
+                      : prev.filter((id) => id !== customer.id),
+                  );
+                }}
+                className="data-[state=checked]:bg-primary data-[state=checked]:border-primary focus-visible:ring-primary/30"
+              />
+            ),
+          },
           {
             header: "Customer",
             cell: (customer) => (
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-primary/10 ring-2 ring-primary/20 flex items-center justify-center overflow-hidden">
+                <div className="w-10 h-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center overflow-hidden shadow-sm">
                   {customer.logo_url ? (
                     <img
                       src={customer.logo_url}
@@ -262,43 +303,62 @@ export function CustomersPage() {
           {
             header: "Balance",
             cell: (customer) => (
-              <div className="font-mono">
+              <div className="font-mono bg-muted/50 px-2 py-1 rounded-md inline-block">
                 {formatCurrency(customer.balance || 0)}
               </div>
             ),
           },
           {
             header: "Projects",
-            cell: (customer) => customer.project_count,
+            cell: (customer) => (
+              <div className="text-center font-medium">
+                {customer.project_count}
+              </div>
+            ),
           },
           {
             header: "Users",
-            cell: (customer) => customer.user_count,
+            cell: (customer) => (
+              <div className="text-center font-medium">
+                {customer.user_count}
+              </div>
+            ),
           },
           {
             header: "Actions",
             cell: (customer) => (
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2">
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
                   onClick={() => {
                     setSelectedCustomer(customer);
                     setShowCustomerDialog(true);
                   }}
+                  className="h-8 px-2 bg-primary/5 hover:bg-primary/10 border-primary/20"
                 >
+                  <Edit className="h-4 w-4 mr-1.5 text-primary" />
                   Edit
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() =>
-                    (window.location.href = `/admin/customers/${customer.id}/report`)
-                  }
-                >
-                  <BarChart2 className="h-4 w-4 mr-2" />
-                  Report
-                </Button>
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-8 px-2">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem
+                      onClick={() =>
+                        (window.location.href = `/admin/customers/${customer.id}/report`)
+                      }
+                      className="cursor-pointer"
+                    >
+                      <BarChart2 className="h-4 w-4 mr-2 text-indigo-500" />
+                      View Report
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             ),
           },
@@ -306,13 +366,16 @@ export function CustomersPage() {
         loading={isLoading}
       />
 
-      <DataTablePagination
-        currentPage={currentPage}
-        pageSize={pageSize}
-        totalItems={filteredCustomers.length}
-        onPageChange={setCurrentPage}
-        onPageSizeChange={setPageSize}
-      />
+      {filteredCustomers.length > 0 && (
+        <DataTablePagination
+          currentPage={currentPage}
+          pageSize={pageSize}
+          totalItems={filteredCustomers.length}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={setPageSize}
+          className="bg-card border rounded-lg p-2"
+        />
+      )}
 
       <CustomerDialog
         customer={

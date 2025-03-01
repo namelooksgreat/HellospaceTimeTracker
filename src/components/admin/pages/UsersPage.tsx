@@ -1,8 +1,5 @@
 import { useState, useEffect } from "react";
-import { useRealtimeSync } from "@/lib/hooks/useRealtimeSync";
-import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
@@ -12,29 +9,33 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Search,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Plus,
   Link,
   BarChart2,
   Users,
   ShieldCheck,
   UserPlus,
-  LayoutList,
-  LayoutGrid,
   UserCog,
   Trash2,
   Mail,
   CreditCard,
+  MoreHorizontal,
+  ChevronDown,
+  Search,
+  Filter,
+  Shield,
 } from "lucide-react";
-import { getUsers, deleteUser, createUser, User } from "@/lib/api/users";
+import { getUsers, User } from "@/lib/api/users";
 import { UserDialog } from "../dialogs/UserDialog";
 import { UserAssociationsDialog } from "../dialogs/UserAssociationsDialog";
 import { CreateInvitationDialog } from "../dialogs/CreateInvitationDialog";
 import { BankInfoDialog } from "../dialogs/BankInfoDialog";
-import { handleError } from "@/lib/utils/error-handler";
-import { showSuccess, showError } from "@/lib/utils/toast";
-import { toast } from "sonner";
-import { LoadingState } from "@/components/ui/loading-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
 import { useAdminUI } from "@/hooks/useAdminUI";
@@ -46,6 +47,7 @@ import { AdminHeader } from "../components/AdminHeader";
 import { AdminFilters } from "../components/AdminFilters";
 import { AdminTable } from "../components/AdminTable";
 import { AdminCard } from "../components/AdminCard";
+import { Input } from "@/components/ui/input";
 
 export function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -79,8 +81,8 @@ export function UsersPage() {
         filterAndSortUsers(data, searchQuery);
       },
       {
-        loadingMessage: "Loading users...",
-        errorMessage: "Failed to load users",
+        loadingMessage: "Kullanıcılar yükleniyor...",
+        errorMessage: "Kullanıcılar yüklenirken bir hata oluştu",
       },
     );
   };
@@ -138,29 +140,34 @@ export function UsersPage() {
   if (error) {
     return (
       <ErrorState
-        title="Failed to load users"
+        title="Kullanıcılar yüklenemedi"
         description={error.message}
         onRetry={() => {
           clearError();
           loadUsers();
         }}
+        className="bg-card border rounded-lg p-6"
       />
     );
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in-50 duration-500">
+    <div className="space-y-6 animate-in fade-in-50 duration-300">
       <div className="grid gap-4 md:grid-cols-3">
         <AdminCard
           icon={<Users className="h-5 w-5 text-primary" />}
           title="Toplam Kullanıcı"
           value={users.length}
+          description={`${users.filter((u) => u.is_active).length} aktif kullanıcı`}
+          className="bg-card hover:bg-card/90 shadow-sm hover:shadow transition-all duration-200"
         />
 
         <AdminCard
           icon={<ShieldCheck className="h-5 w-5 text-primary" />}
           title="Admin Sayısı"
           value={users.filter((u) => u.user_type === "admin").length}
+          description="Yönetici yetkisine sahip kullanıcılar"
+          className="bg-card hover:bg-card/90 shadow-sm hover:shadow transition-all duration-200"
         />
 
         <AdminCard
@@ -173,111 +180,149 @@ export function UsersPage() {
                 new Date().getMonth(),
             ).length
           }
+          description={`${new Date().toLocaleString("tr-TR", { month: "long" })} ayında katılan kullanıcılar`}
+          className="bg-card hover:bg-card/90 shadow-sm hover:shadow transition-all duration-200"
         />
       </div>
 
       <AdminHeader
-        title="Users"
+        title="Kullanıcı Yönetimi"
+        description="Sistem kullanıcılarını yönetin, düzenleyin ve izleyin"
         viewMode={{
           current: viewMode,
           onChange: setViewMode,
         }}
         actions={
           <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => setShowInviteDialog(true)}>
+            <Button
+              variant="outline"
+              onClick={() => setShowInviteDialog(true)}
+              className="h-9"
+            >
               <Mail className="mr-2 h-4 w-4" /> Davet Gönder
             </Button>
-            <Button onClick={handleCreateUser}>
-              <Plus className="mr-2 h-4 w-4" /> New User
+            <Button onClick={handleCreateUser} className="h-9">
+              <Plus className="mr-2 h-4 w-4" /> Yeni Kullanıcı
             </Button>
           </div>
         }
       />
 
-      <AdminFilters
-        searchProps={{
-          value: searchQuery,
-          onChange: setSearchQuery,
-          placeholder: "Kullanıcı ara...",
-        }}
-        selectedCount={selectedUsers.length}
-        bulkActions={
-          <>
+      <div className="flex flex-col sm:flex-row gap-4 items-start">
+        <div className="relative w-full sm:w-auto sm:flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder="İsim veya e-posta ile ara..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
+          <Select value={roleFilter} onValueChange={setRoleFilter}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder="Rol filtrele" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tüm Roller</SelectItem>
+              <SelectItem value="admin">Yöneticiler</SelectItem>
+              <SelectItem value="developer">Geliştiriciler</SelectItem>
+              <SelectItem value="designer">Tasarımcılar</SelectItem>
+              <SelectItem value="user">Kullanıcılar</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder="Sıralama" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="name_asc">İsim (A-Z)</SelectItem>
+              <SelectItem value="name_desc">İsim (Z-A)</SelectItem>
+              <SelectItem value="date_asc">Kayıt (Eski-Yeni)</SelectItem>
+              <SelectItem value="date_desc">Kayıt (Yeni-Eski)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {selectedUsers.length > 0 && (
+        <div className="flex items-center justify-between p-3 bg-muted/50 border rounded-lg">
+          <span className="flex items-center gap-1.5 font-medium text-primary">
+            <Shield className="h-4 w-4" /> {selectedUsers.length} kullanıcı
+            seçildi
+          </span>
+          <div className="flex gap-2">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setShowBulkRoleDialog(true)}
-              className="h-8"
             >
               <UserCog className="h-4 w-4 mr-2" />
-              Change Role
+              Rol Değiştir
             </Button>
             <Button
-              variant="outline"
+              variant="destructive"
               size="sm"
               onClick={() => setShowBulkDeleteDialog(true)}
-              className="h-8 text-destructive hover:text-destructive"
             >
               <Trash2 className="h-4 w-4 mr-2" />
-              Delete
+              Sil
             </Button>
-          </>
-        }
-      >
-        <Select value={roleFilter} onValueChange={setRoleFilter}>
-          <SelectTrigger className="w-full sm:w-[180px]">
-            <SelectValue placeholder="Rol seç" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tümü</SelectItem>
-            <SelectItem value="admin">Yöneticiler</SelectItem>
-            <SelectItem value="developer">Geliştiriciler</SelectItem>
-            <SelectItem value="designer">Tasarımcılar</SelectItem>
-            <SelectItem value="user">Kullanıcılar</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <Select value={sortBy} onValueChange={setSortBy}>
-          <SelectTrigger className="w-full sm:w-[180px]">
-            <SelectValue placeholder="Sıralama" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="name_asc">İsim (A-Z)</SelectItem>
-            <SelectItem value="name_desc">İsim (Z-A)</SelectItem>
-            <SelectItem value="date_asc">En Eski</SelectItem>
-            <SelectItem value="date_desc">En Yeni</SelectItem>
-          </SelectContent>
-        </Select>
-      </AdminFilters>
+          </div>
+        </div>
+      )}
 
       <div className="space-y-4">
         {viewMode === "grid" ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {paginatedUsers.map((user) => (
-              <UserCard
-                key={user.id}
-                user={user}
-                onEdit={() => {
-                  setSelectedUser(user);
-                  setShowUserDialog(true);
-                }}
-                onDelete={() => {
-                  setSelectedUser(user);
-                  setShowDeleteDialog(true);
-                }}
-                onViewReport={() =>
-                  (window.location.href = `/admin/users/${user.id}/report`)
-                }
-                onManageRelations={() => {
-                  setSelectedUser(user);
-                  setShowAssociationsDialog(true);
-                }}
-              />
-            ))}
+            {paginatedUsers.length > 0 ? (
+              paginatedUsers.map((user) => (
+                <UserCard
+                  key={user.id}
+                  user={user}
+                  onEdit={() => {
+                    setSelectedUser(user);
+                    setShowUserDialog(true);
+                  }}
+                  onDelete={() => {
+                    setSelectedUser(user);
+                    setShowDeleteDialog(true);
+                  }}
+                  onViewReport={() =>
+                    (window.location.href = `/admin/users/${user.id}/report`)
+                  }
+                  onManageRelations={() => {
+                    setSelectedUser(user);
+                    setShowAssociationsDialog(true);
+                  }}
+                />
+              ))
+            ) : (
+              <div className="col-span-full flex flex-col items-center justify-center py-12 px-4 border border-dashed rounded-lg bg-muted/30">
+                <Users className="h-12 w-12 text-gray-400 dark:text-gray-600 mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">
+                  Kullanıcı bulunamadı
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 text-center max-w-md mb-4">
+                  Arama kriterlerinize uygun kullanıcı bulunamadı. Filtreleri
+                  değiştirmeyi veya yeni bir kullanıcı eklemeyi deneyin.
+                </p>
+                <Button
+                  onClick={handleCreateUser}
+                  className="bg-primary hover:bg-primary/90 text-white"
+                >
+                  <Plus className="mr-2 h-4 w-4" /> Yeni Kullanıcı Ekle
+                </Button>
+              </div>
+            )}
           </div>
         ) : (
           <AdminTable
             data={paginatedUsers}
+            className="border rounded-lg overflow-hidden shadow-sm"
             columns={[
               {
                 header: "",
@@ -291,15 +336,16 @@ export function UsersPage() {
                           : prev.filter((id) => id !== user.id),
                       );
                     }}
+                    className="data-[state=checked]:bg-primary data-[state=checked]:border-primary focus-visible:ring-primary/30"
                   />
                 ),
               },
               {
-                header: "Full Name",
+                header: "Kullanıcı Bilgileri",
                 cell: (user) => (
                   <div className="flex items-center gap-3">
                     <div className="relative">
-                      <div className="w-10 h-10 rounded-full bg-primary/10 ring-2 ring-primary/20 flex items-center justify-center overflow-hidden">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center overflow-hidden shadow-sm">
                         {user.avatar_url ? (
                           <img
                             src={user.avatar_url}
@@ -312,7 +358,9 @@ export function UsersPage() {
                           </span>
                         )}
                       </div>
-                      <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-green-500 ring-2 ring-background" />
+                      {user.is_active && (
+                        <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-green-500 ring-2 ring-background" />
+                      )}
                     </div>
                     <div>
                       <div className="font-medium">{user.full_name || "-"}</div>
@@ -324,16 +372,23 @@ export function UsersPage() {
                 ),
               },
               {
-                header: "Role",
-                cell: (user) => <RoleBadge role={user.user_type as UserRole} />,
+                header: "Rol",
+                cell: (user) => (
+                  <div className="flex items-center">
+                    <RoleBadge role={user.user_type as UserRole} />
+                  </div>
+                ),
               },
               {
-                header: "Registration Date",
+                header: "Kayıt Tarihi",
                 cell: (user) => (
-                  <div className="space-y-1">
-                    <div className="text-sm">
+                  <div className="space-y-1.5">
+                    <div className="text-sm font-medium bg-muted/50 px-2 py-1 rounded-md inline-block">
                       {user.created_at
-                        ? new Date(user.created_at).toLocaleDateString()
+                        ? new Date(user.created_at).toLocaleDateString(
+                            "tr-TR",
+                            { day: "numeric", month: "long", year: "numeric" },
+                          )
                         : "-"}
                     </div>
                     <ActivityIndicator lastActive={user.last_active} />
@@ -341,70 +396,99 @@ export function UsersPage() {
                 ),
               },
               {
-                header: "Actions",
+                header: "İşlemler",
                 cell: (user) => (
-                  <div className="flex gap-2">
+                  <div className="flex items-center gap-2">
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
                       onClick={() => {
                         setSelectedUser(user);
                         setShowUserDialog(true);
                       }}
-                      className="admin-button"
+                      className="h-8 px-2 bg-primary/5 hover:bg-primary/10 border-primary/20"
                     >
-                      <UserCog className="h-4 w-4 mr-2" />
-                      Edit
+                      <UserCog className="h-4 w-4 mr-1.5 text-primary" />
+                      Düzenle
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedUser(user);
-                        setShowAssociationsDialog(true);
-                      }}
-                      className="admin-button"
-                    >
-                      <Link className="h-4 w-4 mr-2" />
-                      Relations
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() =>
-                        (window.location.href = `/admin/users/${user.id}/report`)
-                      }
-                      className="admin-button"
-                    >
-                      <BarChart2 className="h-4 w-4 mr-2" />
-                      Reports
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedUser(user);
-                        setShowBankInfoDialog(true);
-                      }}
-                      className="admin-button"
-                    >
-                      <CreditCard className="h-4 w-4 mr-2" />
-                      Banka
-                    </Button>
+
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 px-2"
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setShowAssociationsDialog(true);
+                          }}
+                          className="cursor-pointer"
+                        >
+                          <Link className="h-4 w-4 mr-2 text-blue-500" />
+                          İlişkiler
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() =>
+                            (window.location.href = `/admin/users/${user.id}/report`)
+                          }
+                          className="cursor-pointer"
+                        >
+                          <BarChart2 className="h-4 w-4 mr-2 text-indigo-500" />
+                          Raporlar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setShowBankInfoDialog(true);
+                          }}
+                          className="cursor-pointer"
+                        >
+                          <CreditCard className="h-4 w-4 mr-2 text-green-500" />
+                          Banka Bilgisi
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 ),
               },
             ]}
+            emptyState={
+              <div className="flex flex-col items-center justify-center py-12 px-4">
+                <Users className="h-12 w-12 text-gray-400 dark:text-gray-600 mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">
+                  Kullanıcı bulunamadı
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 text-center max-w-md mb-4">
+                  Arama kriterlerinize uygun kullanıcı bulunamadı. Filtreleri
+                  değiştirmeyi veya yeni bir kullanıcı eklemeyi deneyin.
+                </p>
+                <Button
+                  onClick={handleCreateUser}
+                  className="bg-primary hover:bg-primary/90 text-white"
+                >
+                  <Plus className="mr-2 h-4 w-4" /> Yeni Kullanıcı Ekle
+                </Button>
+              </div>
+            }
           />
         )}
 
-        <DataTablePagination
-          currentPage={currentPage}
-          pageSize={pageSize}
-          totalItems={filteredUsers.length}
-          onPageChange={setCurrentPage}
-          onPageSizeChange={setPageSize}
-        />
+        {filteredUsers.length > 0 && (
+          <DataTablePagination
+            currentPage={currentPage}
+            pageSize={pageSize}
+            totalItems={filteredUsers.length}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={setPageSize}
+            className="bg-card border rounded-lg p-2"
+          />
+        )}
       </div>
 
       <UserDialog

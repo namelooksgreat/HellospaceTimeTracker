@@ -1,19 +1,27 @@
 import { AlertCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Button } from "./button";
 
 interface ErrorStateProps {
   title?: string;
   description?: string;
   onRetry?: () => void;
+  className?: string;
 }
 
 export function ErrorState({
   title = "Something went wrong",
   description = "There was a problem with your request.",
   onRetry,
+  className,
 }: ErrorStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center min-h-[400px] p-8 text-center animate-in fade-in-50 duration-500">
+    <div
+      className={cn(
+        "flex flex-col items-center justify-center min-h-[400px] p-8 text-center animate-in fade-in-50 duration-500",
+        className,
+      )}
+    >
       <div className="relative">
         <div className="absolute inset-0 bg-destructive/10 blur-xl rounded-full" />
         <AlertCircle className="h-10 w-10 text-destructive" />

@@ -1,4 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AdminCard } from "../components/AdminCard";
+import { AdminHeader } from "../components/AdminHeader";
 import {
   BarChartIcon,
   Users,
@@ -85,107 +87,62 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-8 animate-in fade-in-50 duration-500">
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <div className="p-2 rounded-xl bg-primary/10 text-primary ring-1 ring-primary/20">
-            <BarChartIcon className="h-5 w-5" />
-          </div>
-          <div className="space-y-1">
-            <h1 className="text-2xl font-bold tracking-tight">
-              {t("admin.dashboard.title")}
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Genel istatistikler ve aktiviteler
-            </p>
-          </div>
-        </div>
-      </div>
+      <AdminHeader
+        title={t("admin.dashboard.title")}
+        description="Genel istatistikler ve aktiviteler"
+        icon={<BarChartIcon className="h-5 w-5" />}
+      />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <div className="p-6 bg-gradient-to-br from-card/50 to-card/30 dark:from-card/20 dark:to-card/10 border border-border/50 rounded-xl transition-all duration-300 hover:shadow-lg hover:border-border/80 group admin-card">
-          <div className="flex items-center gap-2">
-            <div className="p-2 bg-primary/10 rounded-xl transition-colors group-hover:bg-primary/20">
-              <Users className="h-5 w-5 text-primary" />
-            </div>
-            <div className="space-y-0.5">
-              <div className="text-sm text-muted-foreground">
-                {t("admin.dashboard.stats.totalUsers")}
-              </div>
-              <div className="text-2xl font-bold">
-                {loading ? t("common.loading") : stats.users}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {loading ? "" : "5 yeni kullanıcı bu ay"}
-              </div>
-            </div>
-          </div>
-        </div>
+        <AdminCard
+          icon={<Users className="h-5 w-5 text-primary" />}
+          title={t("admin.dashboard.stats.totalUsers")}
+          value={loading ? t("common.loading") : stats.users.toString()}
+          description={loading ? "" : "5 yeni kullanıcı bu ay"}
+          className="bg-card hover:bg-card/90 shadow-sm hover:shadow transition-all duration-200"
+        />
 
-        <div className="p-6 bg-gradient-to-br from-card/50 to-card/30 dark:from-card/20 dark:to-card/10 border border-border/50 rounded-xl transition-all duration-300 hover:shadow-lg hover:border-border/80 group admin-card">
-          <div className="flex items-center gap-2">
-            <div className="p-2 bg-primary/10 rounded-xl transition-colors group-hover:bg-primary/20">
-              <Building2 className="h-5 w-5 text-primary" />
-            </div>
-            <div className="space-y-0.5">
-              <div className="text-sm text-muted-foreground">
-                {t("admin.dashboard.stats.totalCustomers")}
-              </div>
-              <div className="text-2xl font-bold">
-                {loading ? t("common.loading") : stats.customers}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {loading ? "" : "3 aktif müşteri"}
-              </div>
-            </div>
-          </div>
-        </div>
+        <AdminCard
+          icon={<Building2 className="h-5 w-5 text-primary" />}
+          title={t("admin.dashboard.stats.totalCustomers")}
+          value={loading ? t("common.loading") : stats.customers.toString()}
+          description={loading ? "" : "3 aktif müşteri"}
+          className="bg-card hover:bg-card/90 shadow-sm hover:shadow transition-all duration-200"
+        />
 
-        <div className="p-6 bg-gradient-to-br from-card/50 to-card/30 dark:from-card/20 dark:to-card/10 border border-border/50 rounded-xl transition-all duration-300 hover:shadow-lg hover:border-border/80 group admin-card">
-          <div className="flex items-center gap-2">
-            <div className="p-2 bg-primary/10 rounded-xl transition-colors group-hover:bg-primary/20">
-              <Timer className="h-5 w-5 text-primary" />
-            </div>
-            <div className="space-y-0.5">
-              <div className="text-sm text-muted-foreground">
-                {t("admin.dashboard.stats.todayWork")}
-              </div>
-              <div className="text-2xl font-bold">
-                {loading
-                  ? t("common.loading")
-                  : `${stats.todayHours.toFixed(1)}s`}
-              </div>
-              <div className="text-xs text-green-500 font-medium">
-                {loading ? "" : "↑ 12% geçen haftaya göre"}
-              </div>
-            </div>
-          </div>
-        </div>
+        <AdminCard
+          icon={<Timer className="h-5 w-5 text-primary" />}
+          title={t("admin.dashboard.stats.todayWork")}
+          value={
+            loading ? t("common.loading") : `${stats.todayHours.toFixed(1)}s`
+          }
+          description={loading ? "" : "↑ 12% geçen haftaya göre"}
+          className="bg-card hover:bg-card/90 shadow-sm hover:shadow transition-all duration-200"
+          trend={{
+            value: 12,
+            label: "compared to last week",
+            isPositive: true,
+          }}
+        />
 
-        <div className="p-6 bg-gradient-to-br from-card/50 to-card/30 dark:from-card/20 dark:to-card/10 border border-border/50 rounded-xl transition-all duration-300 hover:shadow-lg hover:border-border/80 group admin-card">
-          <div className="flex items-center gap-2">
-            <div className="p-2 bg-primary/10 rounded-xl transition-colors group-hover:bg-primary/20">
-              <DollarSign className="h-5 w-5 text-primary" />
-            </div>
-            <div className="space-y-0.5">
-              <div className="text-sm text-muted-foreground">
-                {t("admin.dashboard.stats.monthlyEarnings")}
-              </div>
-              <div className="text-2xl font-bold">
-                {loading
-                  ? t("common.loading")
-                  : new Intl.NumberFormat("tr-TR", {
-                      style: "currency",
-                      currency: "TRY",
-                    }).format(stats.monthlyEarnings)}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {loading
-                  ? t("common.loading")
-                  : `${stats.totalEntries} ${t("admin.dashboard.stats.records")}`}
-              </div>
-            </div>
-          </div>
-        </div>
+        <AdminCard
+          icon={<DollarSign className="h-5 w-5 text-primary" />}
+          title={t("admin.dashboard.stats.monthlyEarnings")}
+          value={
+            loading
+              ? t("common.loading")
+              : new Intl.NumberFormat("tr-TR", {
+                  style: "currency",
+                  currency: "TRY",
+                }).format(stats.monthlyEarnings)
+          }
+          description={
+            loading
+              ? t("common.loading")
+              : `${stats.totalEntries} ${t("admin.dashboard.stats.records")}`
+          }
+          className="bg-card hover:bg-card/90 shadow-sm hover:shadow transition-all duration-200"
+        />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">

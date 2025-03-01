@@ -10,6 +10,7 @@ interface AdminHeaderProps {
     onChange: (mode: "table" | "grid") => void;
   };
   actions?: React.ReactNode;
+  icon?: React.ReactNode;
 }
 
 export function AdminHeader({
@@ -17,11 +18,13 @@ export function AdminHeader({
   description,
   viewMode,
   actions,
+  icon,
 }: AdminHeaderProps) {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div className="space-y-1">
         <div className="flex items-center gap-4">
+          {icon && <div className="flex-shrink-0">{icon}</div>}
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
             {title}
           </h1>
