@@ -1,0 +1,91 @@
+# Module Loading Fix Instructions
+
+## 1. Update vercel.json
+
+Create or update your vercel.json file with the following content:
+
+```json
+{
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/javascript; charset=utf-8"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    }
+  ],
+  "routes": [
+    { "handle": "filesystem" },
+    { "src": "/.*", "dest": "/index.html" }
+  ]
+}
+```
+
+## 2. Update vite.config.ts
+
+Update your vite.config.ts file to include the following rollupOptions configuration:
+
+```typescript
+build: {
+  // Keep your existing build options...
+  rollupOptions: {
+    output: {
+      // Group admin pages into a single chunk
+      manualChunks: (id) => {
+        // All admin pages in one chunk
+        if (id.includes('admin/pages')) {
+          return 'admin-pages';
+        }
+        // All dialog components in one chunk
+        if (id.includes('admin/dialogs')) {
+          return 'admin-dialogs';
+        }
+        // Group vendor libraries
+        if (id.includes('node_modules')) {
+          if (id.includes('react') || id.includes('react-dom')) {
+            return 'vendor-react';
+          }
+          if (id.includes('lucide-react')) {
+            return 'vendor-icons';
+          }
+          return 'vendor';
+        }
+      },
+      // Change chunk naming format
+      entryFileNames: 'assets/[name]-[hash].js',
+      chunkFileNames: 'assets/[name]-[hash].js',
+      assetFileNames: 'assets/[name]-[hash].[ext]'
+    }
+  }
+}
+```
+
+## 3. Create a _redirects file for Netlify (optional)
+
+If you're also deploying to Netlify, create a file at public/_redirects with:
+
+```
+/*    /index.html   200
+```
+
+## 4. Install required dependencies
+
+Run the following command to install required dependencies:
+
+```bash
+npm install --save-dev @rollup/plugin-commonjs @rollup/plugin-node-resolve
+```
+
+## 5. After making these changes
+
+Rebuild your project and redeploy to Vercel. This should fix the module loading issues.

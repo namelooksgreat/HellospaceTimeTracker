@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
@@ -8,9 +8,19 @@ import { UserSecurity } from "./UserSecurity";
 import { BankInfoForm } from "./BankInfoForm";
 import { Settings, Shield, Palette, CreditCard } from "lucide-react";
 
+const STORAGE_KEY = "profile_active_tab";
+
 export default function ProfilePage() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState("profile");
+  const [activeTab, setActiveTab] = useState(() => {
+    // Try to get the saved tab from localStorage on initial render
+    return localStorage.getItem(STORAGE_KEY) || "profile";
+  });
+
+  // Save the active tab to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, activeTab);
+  }, [activeTab]);
 
   if (!user) return null;
 
