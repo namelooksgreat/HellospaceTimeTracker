@@ -7,6 +7,7 @@ import {
   FolderKanban,
   Clock,
   Settings,
+  Tag,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -18,6 +19,7 @@ const menuItems = [
   { icon: Users, label: "Users", href: "/admin/users" },
   { icon: Building2, label: "Customers", href: "/admin/customers" },
   { icon: FolderKanban, label: "Projects", href: "/admin/projects" },
+  { icon: Tag, label: "Project Tags", href: "/admin/project-tags" },
   { icon: Clock, label: "Time Entries", href: "/admin/time-entries" },
   { icon: Settings, label: "Settings", href: "/admin/settings" },
 ];

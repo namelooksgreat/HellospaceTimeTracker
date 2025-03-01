@@ -5,7 +5,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { UserProfile } from "./UserProfile";
 import { UserPreferences } from "./UserPreferences";
 import { UserSecurity } from "./UserSecurity";
-import { Settings, Shield, Palette } from "lucide-react";
+import { BankInfoForm } from "./BankInfoForm";
+import { Settings, Shield, Palette, CreditCard } from "lucide-react";
 
 export default function ProfilePage() {
   const { user } = useAuth();
@@ -27,7 +28,7 @@ export default function ProfilePage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="w-full h-14 p-1.5 bg-muted/50 dark:bg-muted/30 rounded-xl ring-1 ring-border transition-all duration-300 ease-in-out grid grid-cols-3 gap-1">
+        <TabsList className="w-full h-14 p-1.5 bg-muted/50 dark:bg-muted/30 rounded-xl ring-1 ring-border transition-all duration-300 ease-in-out grid grid-cols-4 gap-1">
           <TabsTrigger
             value="profile"
             className="flex-1 h-11 rounded-lg data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all hover:bg-accent/50 active:scale-95 touch-none"
@@ -35,6 +36,15 @@ export default function ProfilePage() {
             <div className="flex items-center justify-center gap-1.5">
               <Settings className="h-4 w-4" />
               <span>Profile</span>
+            </div>
+          </TabsTrigger>
+          <TabsTrigger
+            value="bank-info"
+            className="flex-1 h-11 rounded-lg data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all hover:bg-accent/50 active:scale-95 touch-none"
+          >
+            <div className="flex items-center justify-center gap-1.5">
+              <CreditCard className="h-4 w-4" />
+              <span>Banka Bilgileri</span>
             </div>
           </TabsTrigger>
           <TabsTrigger
@@ -63,6 +73,12 @@ export default function ProfilePage() {
             className="mt-0 focus-visible:outline-none focus-visible:ring-0"
           >
             <UserProfile user={user} />
+          </TabsContent>
+          <TabsContent
+            value="bank-info"
+            className="mt-0 focus-visible:outline-none focus-visible:ring-0"
+          >
+            <BankInfoForm />
           </TabsContent>
           <TabsContent
             value="preferences"

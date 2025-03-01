@@ -57,6 +57,11 @@ const ProjectsPage = lazy(() =>
     default: module.ProjectsPage,
   })),
 );
+const ProjectTagsPage = lazy(() =>
+  import("./components/admin/pages/ProjectTagsPage").then((module) => ({
+    default: module.ProjectTagsPage,
+  })),
+);
 const TimeEntriesPage = lazy(() =>
   import("./components/admin/pages/TimeEntriesPage").then((module) => ({
     default: module.TimeEntriesPage,
@@ -182,6 +187,7 @@ export default function App() {
                     element={<CustomerReportPage />}
                   />
                   <Route path="projects" element={<ProjectsPage />} />
+                  <Route path="project-tags" element={<ProjectTagsPage />} />
                   <Route path="time-entries" element={<TimeEntriesPage />} />
                   <Route path="payments" element={<CustomerPaymentsPage />} />
                   <Route path="settings" element={<SettingsPage />} />
