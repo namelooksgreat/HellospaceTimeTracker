@@ -31,6 +31,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { DateTimePicker } from "@/components/ui/date-time-picker";
 
 export function TimeEntriesPage() {
   const [entries, setEntries] = useState<TimeEntry[]>([]);
@@ -40,6 +51,8 @@ export function TimeEntriesPage() {
   const [sortBy, setSortBy] = useState("date_desc");
   const [userFilter, setUserFilter] = useState("all");
   const [entryToDelete, setEntryToDelete] = useState<string | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedEntry, setSelectedEntry] = useState<TimeEntry | null>(null);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -206,9 +219,6 @@ export function TimeEntriesPage() {
     if (!entryToDelete) return;
 
     try {
-      // Admin users can delete any entry
-      const isAdmin = user?.email?.includes("admin") || false;
-
       const { error } = await supabase
         .from("time_entries")
         .delete()
@@ -257,7 +267,32 @@ export function TimeEntriesPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => {}}
+            onClick={() => {
+              if (selectedEntries.length > 0) {
+                // Implement bulk delete functionality
+                const deleteEntries = async () => {
+                  try {
+                    const { error } = await supabase
+                      .from("time_entries")
+                      .delete()
+                      .in("id", selectedEntries);
+
+                    if (error) throw error;
+
+                    toast.success(
+                      `${selectedEntries.length} entries deleted successfully`,
+                    );
+                    loadData();
+                    setSelectedEntries([]);
+                  } catch (error) {
+                    handleError(error, "TimeEntriesPage");
+                  }
+                };
+                deleteEntries();
+              } else {
+                toast.info("Please select entries to delete");
+              }
+            }}
             className="h-8 text-destructive hover:text-destructive"
           >
             <Trash2 className="h-4 w-4 mr-2" />
@@ -343,7 +378,17 @@ export function TimeEntriesPage() {
             header: "Actions",
             cell: (entry) => (
               <div className="flex gap-2">
-                <Button variant="ghost" size="sm" onClick={() => {}}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    const entryToEdit = entries.find((e) => e.id === entry.id);
+                    if (entryToEdit) {
+                      setSelectedEntry(entryToEdit);
+                      setIsEditDialogOpen(true);
+                    }
+                  }}
+                >
                   Edit
                 </Button>
                 <Button
@@ -393,6 +438,98 @@ export function TimeEntriesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Edit Time Entry Dialog - Placeholder for future implementation */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Time Entry</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            {selectedEntry && (
+              <>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="task-name" className="text-right">
+                    Task
+                  </Label>
+                  <Input
+                    id="task-name"
+                    defaultValue={selectedEntry.task_name}
+                    className="col-span-3"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="description" className="text-right">
+                    Description
+                  </Label>
+                  <Textarea
+                    id="description"
+                    defaultValue={selectedEntry.description || ""}
+                    className="col-span-3"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="duration" className="text-right">
+                    Duration (s)
+                  </Label>
+                  <Input
+                    id="duration"
+                    type="number"
+                    defaultValue={selectedEntry.duration}
+                    className="col-span-3"
+                  />
+                </div>
+              </>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setIsEditDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={async () => {
+                if (!selectedEntry) return;
+
+                try {
+                  const taskNameInput = document.getElementById(
+                    "task-name",
+                  ) as HTMLInputElement;
+                  const descriptionInput = document.getElementById(
+                    "description",
+                  ) as HTMLTextAreaElement;
+                  const durationInput = document.getElementById(
+                    "duration",
+                  ) as HTMLInputElement;
+
+                  const { error } = await supabase
+                    .from("time_entries")
+                    .update({
+                      task_name: taskNameInput.value,
+                      description: descriptionInput.value,
+                      duration: parseInt(durationInput.value),
+                    })
+                    .eq("id", selectedEntry.id);
+
+                  if (error) throw error;
+
+                  toast.success("Time entry updated successfully");
+                  loadData();
+                  setIsEditDialogOpen(false);
+                } catch (error) {
+                  handleError(error, "TimeEntriesPage");
+                }
+              }}
+            >
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

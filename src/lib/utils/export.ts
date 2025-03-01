@@ -132,6 +132,7 @@ export const exportToExcel = async (data: ExportData): Promise<void> => {
       { header: "Kullanıcı", key: "user", width: 30 },
       { header: "Tarih", key: "date", width: 15 },
       { header: "Görev", key: "task", width: 40 },
+      { header: "Etiketler", key: "tags", width: 30 },
       { header: "Proje", key: "project", width: 30 },
       { header: "Süre", key: "duration", width: 15 },
     ];
@@ -181,6 +182,7 @@ export const exportToExcel = async (data: ExportData): Promise<void> => {
         user: `${userName}`,
         date: "",
         task: "",
+        tags: "",
         project: "",
         duration: `Toplam: ${formatDuration(userTotalDuration)}`,
       });
@@ -210,17 +212,18 @@ export const exportToExcel = async (data: ExportData): Promise<void> => {
 
       // Add user entries
       userEntries.forEach((entry) => {
-        // Create task name with tags if available
-        let taskDisplay = entry.task_name;
-        if (entry.tags && entry.tags.length > 0) {
-          const tagNames = entry.tags.map((tag) => tag.name).join(", ");
-          taskDisplay = `${entry.task_name} [${tagNames}]`;
-        }
+        // Get task name and tags separately
+        const taskDisplay = entry.task_name;
+        const tagNames =
+          entry.tags && entry.tags.length > 0
+            ? entry.tags.map((tag) => tag.name).join(", ")
+            : "-";
 
         const entryRow = entriesSheet.addRow({
           user: "", // Leave blank as we have the user header
           date: new Date(entry.start_time).toLocaleDateString("tr-TR"),
           task: taskDisplay,
+          tags: tagNames,
           project: entry.project?.name || "-",
           duration: formatDuration(entry.duration),
         });
@@ -240,8 +243,17 @@ export const exportToExcel = async (data: ExportData): Promise<void> => {
             cell.alignment = { horizontal: "center" };
           }
 
+          // Style tags column
+          if (colNumber === 4) {
+            // tags column
+            cell.alignment = { horizontal: "left" };
+            if (cell.value && cell.value !== "-") {
+              cell.font = { color: { argb: "0066CC" } };
+            }
+          }
+
           // Right-align duration column
-          if (colNumber === 5) {
+          if (colNumber === 6) {
             // duration column
             cell.alignment = { horizontal: "right" };
           }

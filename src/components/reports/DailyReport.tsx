@@ -11,7 +11,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "../ui/alert-dialog";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 
 interface TimeEntryDisplay {
   id: string;
@@ -39,6 +39,13 @@ export function DailyReport({
     null,
   );
 
+  // Sort entries by date and time (newest first)
+  const sortedEntries = useMemo(() => {
+    return [...entries].sort((a, b) => {
+      return new Date(b.startTime).getTime() - new Date(a.startTime).getTime();
+    });
+  }, [entries]);
+
   const handleConfirmDelete = async () => {
     if (!entryToDelete) return;
     await onDeleteEntry(entryToDelete.id);
@@ -49,8 +56,8 @@ export function DailyReport({
     <>
       <ScrollArea className="h-[calc(100vh-16rem)] sm:h-[calc(100vh-20rem)] px-1.5 sm:px-4 -mx-1.5 sm:-mx-4">
         <div className="space-y-2 pb-[calc(4rem+env(safe-area-inset-bottom))] sm:pb-20">
-          {entries.length > 0 ? (
-            entries.map((entry) => (
+          {sortedEntries.length > 0 ? (
+            sortedEntries.map((entry) => (
               <div
                 key={entry.id}
                 className="animate-in fade-in-50 duration-300"
