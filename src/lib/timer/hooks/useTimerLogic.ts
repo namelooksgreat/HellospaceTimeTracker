@@ -3,7 +3,17 @@ import { useTimerStore } from "@/store/timerStore";
 import { useTimeEntryStore } from "@/store/timeEntryStore";
 
 export function useTimerLogic() {
-  const { state, time, start, pause, resume, stop, reset } = useTimerStore();
+  const {
+    state,
+    time,
+    compactView,
+    start,
+    pause,
+    resume,
+    stop,
+    reset,
+    toggleCompactView,
+  } = useTimerStore();
   const { setDuration } = useTimeEntryStore();
 
   const handleTimerAction = useCallback(() => {
@@ -36,10 +46,12 @@ export function useTimerLogic() {
   return {
     state,
     time,
+    compactView,
     formattedTime: formatTime(time),
     handleTimerAction,
     handleStop,
     handleReset,
     formatTime,
+    toggleCompactView,
   };
 }

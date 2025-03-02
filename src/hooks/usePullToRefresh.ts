@@ -1,59 +1,113 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useEffect, useState } from "react";
 
-export function usePullToRefresh(onRefresh: () => Promise<void>) {
+interface PullToRefreshOptions {
+  onRefresh: () => Promise<void>;
+  pullDownThreshold?: number;
+  maxPullDownDistance?: number;
+  backgroundColor?: string;
+  pullingContent?: React.ReactNode;
+  refreshingContent?: React.ReactNode;
+}
+
+export function usePullToRefresh({
+  onRefresh,
+  pullDownThreshold = 80,
+  maxPullDownDistance = 120,
+}: PullToRefreshOptions) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const [isPulling, setIsPulling] = useState(false);
-  const [pullProgress, setPullProgress] = useState(0);
-  const touchStart = useRef<number>(0);
-  const pullThreshold = 80;
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [pullDistance, setPullDistance] = useState(0);
+
+  const touchStartY = useRef(0);
+  const touchMoveY = useRef(0);
+  const isActive = useRef(false);
 
   useEffect(() => {
-    let isRefreshing = false;
+    const container = containerRef.current;
+    if (!container) return;
 
     const handleTouchStart = (e: TouchEvent) => {
-      const scrollTop = document.documentElement.scrollTop;
-      if (scrollTop <= 0) {
-        touchStart.current = e.touches[0].clientY;
-        setIsPulling(true);
+      // Only activate pull-to-refresh when at the top of the container
+      if (container.scrollTop <= 0) {
+        touchStartY.current = e.touches[0].clientY;
+        isActive.current = true;
+        setIsPulling(false);
+        setPullDistance(0);
       }
     };
 
     const handleTouchMove = (e: TouchEvent) => {
-      if (!isPulling) return;
+      if (!isActive.current) return;
 
-      const touchY = e.touches[0].clientY;
-      const pullDistance = touchY - touchStart.current;
-      const progress = Math.min(Math.max(pullDistance / pullThreshold, 0), 1);
-      setPullProgress(progress);
+      touchMoveY.current = e.touches[0].clientY;
+      const distance = touchMoveY.current - touchStartY.current;
 
-      if (pullDistance > 0) {
+      // Only allow pulling down
+      if (distance > 0) {
+        // Apply resistance to make the pull feel more natural
+        const newDistance = Math.min(distance * 0.5, maxPullDownDistance);
+        setPullDistance(newDistance);
+        setIsPulling(true);
+
+        // Prevent default scrolling behavior
         e.preventDefault();
       }
     };
 
     const handleTouchEnd = async () => {
-      if (!isPulling) return;
+      if (!isActive.current) return;
 
-      setIsPulling(false);
-      if (pullProgress >= 1 && !isRefreshing) {
-        isRefreshing = true;
-        await onRefresh();
-        isRefreshing = false;
+      if (pullDistance >= pullDownThreshold && !isRefreshing) {
+        setIsRefreshing(true);
+        setPullDistance(pullDownThreshold); // Keep indicator visible during refresh
+
+        try {
+          // Trigger haptic feedback if available
+          if (navigator.vibrate) {
+            navigator.vibrate(15);
+          }
+
+          await onRefresh();
+        } finally {
+          setIsRefreshing(false);
+          setPullDistance(0);
+          setIsPulling(false);
+        }
+      } else {
+        // Reset if not pulled enough
+        setPullDistance(0);
+        setIsPulling(false);
       }
-      setPullProgress(0);
+
+      isActive.current = false;
     };
 
-    document.addEventListener("touchstart", handleTouchStart, {
+    container.addEventListener("touchstart", handleTouchStart, {
       passive: true,
     });
-    document.addEventListener("touchmove", handleTouchMove, { passive: false });
-    document.addEventListener("touchend", handleTouchEnd);
+    container.addEventListener("touchmove", handleTouchMove, {
+      passive: false,
+    });
+    container.addEventListener("touchend", handleTouchEnd);
 
     return () => {
-      document.removeEventListener("touchstart", handleTouchStart);
-      document.removeEventListener("touchmove", handleTouchMove);
-      document.removeEventListener("touchend", handleTouchEnd);
+      container.removeEventListener("touchstart", handleTouchStart);
+      container.removeEventListener("touchmove", handleTouchMove);
+      container.removeEventListener("touchend", handleTouchEnd);
     };
-  }, [isPulling, pullProgress, onRefresh]);
+  }, [
+    onRefresh,
+    pullDownThreshold,
+    maxPullDownDistance,
+    pullDistance,
+    isRefreshing,
+  ]);
 
-  return { isPulling, pullProgress };
+  return {
+    containerRef,
+    isPulling,
+    isRefreshing,
+    pullDistance,
+  };
 }

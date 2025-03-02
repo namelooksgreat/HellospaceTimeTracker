@@ -1,9 +1,9 @@
 import { ScrollArea } from "../ui/scroll-area";
 import TimeEntry from "../TimeEntry";
 import { Clock } from "lucide-react";
+import { Button } from "../ui/button";
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -11,7 +11,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "../ui/alert-dialog";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
+import { PullToRefresh } from "../ui/pull-to-refresh";
+import { lightHapticFeedback, errorHapticFeedback } from "@/lib/utils/haptics";
 
 interface TimeEntryDisplay {
   id: string;
@@ -28,16 +30,19 @@ interface DailyReportProps {
   entries: TimeEntryDisplay[];
   onDeleteEntry: (id: string) => void;
   onEditEntry?: (id: string) => void;
+  onRefresh?: () => Promise<void>;
 }
 
 export function DailyReport({
   entries = [],
   onDeleteEntry,
   onEditEntry,
+  onRefresh,
 }: DailyReportProps) {
   const [entryToDelete, setEntryToDelete] = useState<TimeEntryDisplay | null>(
     null,
   );
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Sort entries by date and time (newest first)
   const sortedEntries = useMemo(() => {
@@ -46,46 +51,79 @@ export function DailyReport({
     });
   }, [entries]);
 
-  const handleConfirmDelete = async () => {
+  const handleConfirmDelete = () => {
     if (!entryToDelete) return;
-    await onDeleteEntry(entryToDelete.id);
+
+    // Execute immediately without waiting for a second click
+    onDeleteEntry(entryToDelete.id);
+    lightHapticFeedback(); // Add haptic feedback for deletion
     setEntryToDelete(null);
   };
 
+  const handleRefresh = useCallback(async () => {
+    if (!onRefresh) return;
+
+    setIsRefreshing(true);
+    try {
+      await onRefresh();
+    } catch (error) {
+      errorHapticFeedback(); // Provide error feedback if refresh fails
+      console.error("Failed to refresh time entries:", error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [onRefresh]);
+
+  const renderContent = () => (
+    <div className="space-y-2 pb-[calc(4rem+env(safe-area-inset-bottom))] sm:pb-20">
+      {sortedEntries.length > 0 ? (
+        sortedEntries.map((entry) => (
+          <div key={entry.id} className="animate-in fade-in-50 duration-300">
+            <TimeEntry
+              id={entry.id}
+              taskName={entry.taskName}
+              projectName={entry.projectName}
+              duration={entry.duration}
+              startTime={entry.startTime}
+              projectColor={entry.projectColor}
+              tags={entry.tags}
+              onDelete={() => {
+                lightHapticFeedback(); // Add haptic feedback when initiating delete
+                setEntryToDelete(entry);
+              }}
+              onEdit={() => {
+                lightHapticFeedback(); // Add haptic feedback when editing
+                onEditEntry?.(entry.id);
+              }}
+            />
+          </div>
+        ))
+      ) : (
+        <div className="flex flex-col items-center justify-center h-[300px] text-muted-foreground">
+          <Clock className="h-12 w-12 mb-4 text-muted-foreground/50" />
+          <p className="text-center mb-1">No time entries for today</p>
+          <p className="text-sm text-muted-foreground/80">
+            Start tracking your time to see entries here
+          </p>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <>
-      <ScrollArea className="h-[calc(100vh-16rem)] sm:h-[calc(100vh-20rem)] px-1.5 sm:px-4 -mx-1.5 sm:-mx-4">
-        <div className="space-y-2 pb-[calc(4rem+env(safe-area-inset-bottom))] sm:pb-20">
-          {sortedEntries.length > 0 ? (
-            sortedEntries.map((entry) => (
-              <div
-                key={entry.id}
-                className="animate-in fade-in-50 duration-300"
-              >
-                <TimeEntry
-                  id={entry.id}
-                  taskName={entry.taskName}
-                  projectName={entry.projectName}
-                  duration={entry.duration}
-                  startTime={entry.startTime}
-                  projectColor={entry.projectColor}
-                  tags={entry.tags}
-                  onDelete={() => setEntryToDelete(entry)}
-                  onEdit={() => onEditEntry?.(entry.id)}
-                />
-              </div>
-            ))
-          ) : (
-            <div className="flex flex-col items-center justify-center h-[300px] text-muted-foreground">
-              <Clock className="h-12 w-12 mb-4 text-muted-foreground/50" />
-              <p className="text-center mb-1">No time entries for today</p>
-              <p className="text-sm text-muted-foreground/80">
-                Start tracking your time to see entries here
-              </p>
-            </div>
-          )}
-        </div>
-      </ScrollArea>
+      {onRefresh ? (
+        <PullToRefresh
+          onRefresh={handleRefresh}
+          className="h-[calc(100vh-16rem)] sm:h-[calc(100vh-20rem)] px-1.5 sm:px-4 -mx-1.5 sm:-mx-4 overflow-auto"
+        >
+          {renderContent()}
+        </PullToRefresh>
+      ) : (
+        <ScrollArea className="h-[calc(100vh-16rem)] sm:h-[calc(100vh-20rem)] px-1.5 sm:px-4 -mx-1.5 sm:-mx-4">
+          {renderContent()}
+        </ScrollArea>
+      )}
 
       <AlertDialog
         open={!!entryToDelete}
@@ -101,12 +139,13 @@ export function DailyReport({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
+            <Button
               onClick={handleConfirmDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              type="button"
             >
               Delete
-            </AlertDialogAction>
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

@@ -362,42 +362,52 @@ export function TimeEntriesPage() {
     currentPage * pageSize,
   );
 
-  const handleDeleteEntry = async () => {
+  const handleDeleteEntry = () => {
     if (!entryToDelete) return;
 
     try {
-      const { error } = await supabase
-        .from("time_entries")
-        .delete()
-        .eq("id", entryToDelete);
+      const deleteTimeEntry = async () => {
+        const { error } = await supabase
+          .from("time_entries")
+          .delete()
+          .eq("id", entryToDelete);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      toast.success("Zaman kaydı başarıyla silindi");
-      loadData();
-      setEntryToDelete(null);
+        toast.success("Zaman kaydı başarıyla silindi");
+        loadData();
+        setEntryToDelete(null);
+      };
+
+      // Execute immediately without waiting for a second click
+      deleteTimeEntry();
     } catch (error) {
       handleError(error, "TimeEntriesPage");
     }
   };
 
-  const handleBulkDelete = async () => {
+  const handleBulkDelete = () => {
     if (selectedEntries.length === 0) {
       toast.info("Lütfen silinecek kayıtları seçin");
       return;
     }
 
     try {
-      const { error } = await supabase
-        .from("time_entries")
-        .delete()
-        .in("id", selectedEntries);
+      const bulkDelete = async () => {
+        const { error } = await supabase
+          .from("time_entries")
+          .delete()
+          .in("id", selectedEntries);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      toast.success(`${selectedEntries.length} kayıt başarıyla silindi`);
-      loadData();
-      setSelectedEntries([]);
+        toast.success(`${selectedEntries.length} kayıt başarıyla silindi`);
+        loadData();
+        setSelectedEntries([]);
+      };
+
+      // Execute immediately without waiting for a second click
+      bulkDelete();
     } catch (error) {
       handleError(error, "TimeEntriesPage");
     }

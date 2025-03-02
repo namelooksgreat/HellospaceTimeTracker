@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { DateTimePicker } from "@/components/ui/date-time-picker";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TagSelector } from "./TagSelector";
 import {
@@ -26,14 +25,15 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
-  MobileDialog,
-  MobileDialogContent,
-  MobileDialogHeader,
-  MobileDialogFooter,
-  MobileDialogTitle,
-} from "@/components/ui/mobile-dialog";
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetFooter,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { TimeEntry } from "@/types";
 
 interface EditTimeEntryDialogProps {
@@ -158,28 +158,260 @@ export function EditTimeEntryDialog({
 
   const isMobile = useMediaQuery("(max-width: 640px)");
 
-  const DialogComponent = isMobile ? MobileDialog : Dialog;
-  const DialogContentComponent = isMobile ? MobileDialogContent : DialogContent;
-  const DialogHeaderComponent = isMobile ? MobileDialogHeader : DialogHeader;
-  const DialogTitleComponent = isMobile ? MobileDialogTitle : DialogTitle;
+  if (isMobile) {
+    return (
+      <Sheet
+        open={editTimeEntryDialog.isOpen}
+        onOpenChange={(open) =>
+          setEditTimeEntryDialog(open, editTimeEntryDialog.entryId)
+        }
+      >
+        <SheetContent
+          side="bottom"
+          className="h-[90vh] p-0 gap-0 overflow-hidden rounded-t-xl"
+        >
+          <SheetHeader className="sticky top-0 z-10 p-4 sm:p-6 bg-gradient-to-b from-background via-background to-background/80 backdrop-blur-xl border-b border-border/50">
+            <div className="flex items-center gap-2 text-primary">
+              <Clock className="h-5 w-5" />
+              <SheetTitle className="text-lg font-semibold tracking-tight">
+                Edit Time Entry
+              </SheetTitle>
+            </div>
+
+            <div className="mt-6">
+              <div className="bg-gradient-to-br from-card/50 to-card/30 dark:from-card/20 dark:to-card/10 border border-border/50 rounded-xl p-6 transition-all duration-300 hover:shadow-lg hover:border-border/80 group">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-muted-foreground font-medium">
+                      Total Duration
+                    </div>
+                    <div className="text-sm font-mono text-muted-foreground">
+                      {formatDuration(duration)}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="relative">
+                      <Input
+                        type="number"
+                        min="0"
+                        value={Math.floor(duration / 3600)}
+                        onChange={(e) => {
+                          const hours = parseInt(e.target.value) || 0;
+                          const minutes = Math.floor((duration % 3600) / 60);
+                          const seconds = duration % 60;
+                          const newDuration =
+                            hours * 3600 + minutes * 60 + seconds;
+                          setDuration(newDuration);
+                        }}
+                        onClick={(e) => e.currentTarget.select()}
+                        className="h-16 w-full text-center font-mono text-3xl font-bold bg-background/50 hover:bg-accent/50 transition-all duration-150 rounded-lg border-border/50 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 shadow-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground">
+                        h
+                      </span>
+                    </div>
+                    <div className="relative">
+                      <Input
+                        type="number"
+                        min="0"
+                        max="59"
+                        value={Math.floor((duration % 3600) / 60)}
+                        onChange={(e) => {
+                          const hours = Math.floor(duration / 3600);
+                          const minutes = parseInt(e.target.value) || 0;
+                          const seconds = duration % 60;
+                          const newDuration =
+                            hours * 3600 + minutes * 60 + seconds;
+                          setDuration(newDuration);
+                        }}
+                        onClick={(e) => e.currentTarget.select()}
+                        className="h-16 w-full text-center font-mono text-3xl font-bold bg-background/50 hover:bg-accent/50 transition-all duration-150 rounded-lg border-border/50 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 shadow-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground">
+                        m
+                      </span>
+                    </div>
+                    <div className="relative">
+                      <Input
+                        type="number"
+                        min="0"
+                        max="59"
+                        value={duration % 60}
+                        onChange={(e) => {
+                          const hours = Math.floor(duration / 3600);
+                          const minutes = Math.floor((duration % 3600) / 60);
+                          const seconds = parseInt(e.target.value) || 0;
+                          const newDuration =
+                            hours * 3600 + minutes * 60 + seconds;
+                          setDuration(newDuration);
+                        }}
+                        onClick={(e) => e.currentTarget.select()}
+                        className="h-16 w-full text-center font-mono text-3xl font-bold bg-background/50 hover:bg-accent/50 transition-all duration-150 rounded-lg border-border/50 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 shadow-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground">
+                        s
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </SheetHeader>
+
+          <ScrollArea className="h-[calc(90vh-22rem)] overflow-y-auto overscroll-none bg-gradient-to-b from-transparent via-background/50 to-background/50 backdrop-blur-sm">
+            <div className="p-4 sm:p-6 space-y-6">
+              {/* Task Name */}
+              <div className="space-y-2">
+                <Label htmlFor="task-name">Task Name</Label>
+                <Input
+                  id="task-name"
+                  value={formData.taskName}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      taskName: e.target.value,
+                    }))
+                  }
+                  placeholder="What did you work on?"
+                />
+              </div>
+
+              {/* Customer Selection */}
+              <div className="space-y-2">
+                <Label htmlFor="customer">Customer</Label>
+                <Select
+                  value={formData.customerId}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      customerId: value,
+                      projectId: "",
+                    }))
+                  }
+                >
+                  <SelectTrigger id="customer">
+                    <SelectValue placeholder="Select customer" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {customers.map((customer) => (
+                      <SelectItem key={customer.id} value={customer.id}>
+                        {customer.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Project Selection */}
+              <div className="space-y-2">
+                <Label htmlFor="project">Project</Label>
+                <Select
+                  value={formData.projectId}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      projectId: value,
+                      tags: [],
+                    }))
+                  }
+                  disabled={!formData.customerId}
+                >
+                  <SelectTrigger id="project">
+                    <SelectValue
+                      placeholder={
+                        formData.customerId
+                          ? "Select project"
+                          : "Select customer first"
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {projects
+                      .filter(
+                        (project) =>
+                          project.customer_id === formData.customerId,
+                      )
+                      .map((project) => (
+                        <SelectItem key={project.id} value={project.id}>
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-3 h-3 rounded-full ring-1 ring-border/50"
+                              style={{ backgroundColor: project.color }}
+                            />
+                            <span>{project.name}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+
+                {formData.projectId && (
+                  <TagSelector
+                    projectId={formData.projectId}
+                    selectedTags={formData.tags}
+                    onTagsChange={(tags) => {
+                      setFormData((prev) => ({ ...prev, tags }));
+                    }}
+                    className="mt-2"
+                  />
+                )}
+              </div>
+
+              {/* Description */}
+              <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      description: e.target.value,
+                    }))
+                  }
+                  placeholder="Add any additional notes..."
+                  className="min-h-[100px]"
+                />
+              </div>
+            </div>
+          </ScrollArea>
+
+          <SheetFooter className="sticky bottom-0 p-4 bg-gradient-to-t from-background via-background to-background/80 backdrop-blur-xl border-t border-border/50 flex-row gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setEditTimeEntryDialog(false, null)}
+              className="flex-1 h-10 rounded-lg border-border/50 hover:bg-accent/50 transition-all duration-200"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleSave}
+              className="flex-1 h-10 rounded-lg bg-primary hover:bg-primary/90 text-white transition-all duration-200"
+            >
+              Save Changes
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+    );
+  }
 
   return (
-    <DialogComponent
+    <Dialog
       open={editTimeEntryDialog.isOpen}
       onOpenChange={(open) =>
         setEditTimeEntryDialog(open, editTimeEntryDialog.entryId)
       }
     >
-      <DialogContentComponent
-        className="max-w-lg w-full p-0 gap-0 overflow-hidden rounded-2xl border-border/50 shadow-xl dark:shadow-2xl dark:shadow-primary/10"
-        onOpenAutoFocus={(e) => e.preventDefault()}
-      >
-        <DialogHeaderComponent className="sticky top-0 z-10 p-4 sm:p-6 bg-gradient-to-b from-background via-background to-background/80 backdrop-blur-xl border-b border-border/50">
+      <DialogContent className="sm:max-w-lg w-full p-0 gap-0 overflow-hidden rounded-xl border-border/50 shadow-xl dark:shadow-2xl dark:shadow-primary/10">
+        <DialogHeader className="sticky top-0 z-10 p-4 sm:p-6 bg-gradient-to-b from-background via-background to-background/80 backdrop-blur-xl border-b border-border/50">
           <div className="flex items-center gap-2 text-primary">
             <Clock className="h-5 w-5" />
-            <DialogTitleComponent className="text-lg font-semibold tracking-tight">
+            <DialogTitle className="text-lg font-semibold tracking-tight">
               Edit Time Entry
-            </DialogTitleComponent>
+            </DialogTitle>
           </div>
 
           <div className="mt-6">
@@ -257,48 +489,12 @@ export function EditTimeEntryDialog({
                     </span>
                   </div>
                 </div>
-                <div className="mt-2">
-                  <Label className="text-sm text-muted-foreground mb-2">
-                    Started at
-                  </Label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <DateTimePicker
-                      date={new Date(formData.startTime)}
-                      setDate={(date) => {
-                        const currentDate = new Date(formData.startTime);
-                        date.setHours(currentDate.getHours());
-                        date.setMinutes(currentDate.getMinutes());
-                        setFormData((prev) => ({
-                          ...prev,
-                          startTime: date.toISOString(),
-                        }));
-                      }}
-                    />
-                    <Input
-                      type="time"
-                      value={format(new Date(formData.startTime), "HH:mm")}
-                      onChange={(e) => {
-                        const [hours, minutes] = e.target.value
-                          .split(":")
-                          .map(Number);
-                        const date = new Date(formData.startTime);
-                        date.setHours(hours);
-                        date.setMinutes(minutes);
-                        setFormData((prev) => ({
-                          ...prev,
-                          startTime: date.toISOString(),
-                        }));
-                      }}
-                      className="h-10"
-                    />
-                  </div>
-                </div>
               </div>
             </div>
           </div>
-        </DialogHeaderComponent>
+        </DialogHeader>
 
-        <ScrollArea className="max-h-[calc(100vh-20rem)] sm:max-h-[calc(100vh-22rem)] overflow-y-auto overscroll-none bg-gradient-to-b from-transparent via-background/50 to-background/50 backdrop-blur-sm">
+        <ScrollArea className="max-h-[calc(80vh-22rem)] overflow-y-auto overscroll-none bg-gradient-to-b from-transparent via-background/50 to-background/50 backdrop-blur-sm">
           <div className="p-4 sm:p-6 space-y-6">
             <div className="space-y-2">
               <Label>Task Name</Label>
@@ -308,7 +504,6 @@ export function EditTimeEntryDialog({
                   setFormData((prev) => ({ ...prev, taskName: e.target.value }))
                 }
                 placeholder="What did you work on?"
-                required
               />
             </div>
 
@@ -410,25 +605,24 @@ export function EditTimeEntryDialog({
           </div>
         </ScrollArea>
 
-        <div className="sticky bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-background via-background to-background/80 backdrop-blur-xl border-t border-border/50 z-50">
-          <div className="flex gap-3 max-w-xl mx-auto">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setEditTimeEntryDialog(false, null)}
-              className="h-12 flex-1 rounded-xl border-border/50 hover:bg-accent/50 transition-all duration-300"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSave}
-              className="h-12 flex-1 rounded-xl bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 hover:opacity-90 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0"
-            >
-              Save Changes
-            </Button>
-          </div>
-        </div>
-      </DialogContentComponent>
-    </DialogComponent>
+        <DialogFooter className="sticky bottom-0 p-4 bg-gradient-to-t from-background via-background to-background/80 backdrop-blur-xl border-t border-border/50 flex-row gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setEditTimeEntryDialog(false, null)}
+            className="flex-1 h-10 rounded-lg border-border/50 hover:bg-accent/50 transition-all duration-200"
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            onClick={handleSave}
+            className="flex-1 h-10 rounded-lg bg-primary hover:bg-primary/90 text-white transition-all duration-200"
+          >
+            Save Changes
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

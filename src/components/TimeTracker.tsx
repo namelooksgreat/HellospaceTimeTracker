@@ -33,7 +33,14 @@ import {
   Building2,
   RotateCcw,
   Plus,
+  Minimize2,
+  Maximize2,
 } from "lucide-react";
+import {
+  lightHapticFeedback,
+  mediumHapticFeedback,
+  successHapticFeedback,
+} from "@/lib/utils/haptics";
 
 interface TimeTrackerProps {
   projects?: Array<{
@@ -66,10 +73,12 @@ function TimeTracker({
   const {
     state,
     time,
+    compactView,
     formattedTime,
     handleTimerAction: timerAction,
     handleStop: timerStop,
     handleReset: timerReset,
+    toggleCompactView,
   } = useTimerLogic();
 
   const {
@@ -86,6 +95,7 @@ function TimeTracker({
 
   const handleTimerAction = useCallback(() => {
     try {
+      mediumHapticFeedback(); // Add haptic feedback for starting timer
       timerAction();
     } catch (error) {
       handleError(error, "TimeTracker");
@@ -93,6 +103,7 @@ function TimeTracker({
   }, [timerAction]);
 
   const handleStop = useCallback(() => {
+    mediumHapticFeedback(); // Add haptic feedback for stopping timer
     timerStop();
     setSaveTimeEntryDialog(
       true,
@@ -112,6 +123,7 @@ function TimeTracker({
   ]);
 
   const handleReset = useCallback(() => {
+    lightHapticFeedback(); // Add haptic feedback for reset
     timerReset();
     resetTimerData();
     toast.info(t("timer.reset"));
@@ -161,21 +173,27 @@ function TimeTracker({
 
           // Then add tags if any
           if (data.tags && data.tags.length > 0 && newEntry) {
-            const tagEntries = data.tags.map((tagId) => ({
-              time_entry_id: newEntry.id,
-              tag_id: tagId,
-              created_at: new Date().toISOString(),
-            }));
+            try {
+              const tagEntries = data.tags.map((tagId) => ({
+                time_entry_id: newEntry.id,
+                tag_id: tagId,
+                created_at: new Date().toISOString(),
+              }));
 
-            const { error: tagError } = await supabase
-              .from("time_entry_tags")
-              .insert(tagEntries);
+              const { error: tagError } = await supabase
+                .from("time_entry_tags")
+                .insert(tagEntries);
 
-            if (tagError) {
-              console.warn("Error adding tags to time entry:", tagError);
+              if (tagError) {
+                console.warn("Error adding tags to time entry:", tagError);
+                // Don't show error to user for new entries, just log it
+              }
+            } catch (tagError) {
+              console.warn("Exception adding tags to time entry:", tagError);
               // Continue even if tag insertion fails
             }
           }
+          successHapticFeedback(); // Add haptic feedback for successful save
           toast.success(t("timeEntry.save"), {
             description: `${data.taskName} - ${formatDuration(data.duration)}`,
           });
@@ -247,27 +265,47 @@ function TimeTracker({
 
             <div className="relative z-10">
               <div className="flex flex-col items-center justify-center gap-4">
-                <div className="flex items-center gap-2">
-                  <div className="relative p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-gradient-to-br from-background/80 to-background/60 dark:from-black/50 dark:to-black/30 text-primary ring-1 ring-border/10 shadow-lg overflow-hidden group/icon backdrop-blur-sm">
-                    <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent opacity-0 group-hover/icon:opacity-100 transition-opacity duration-500" />
-                    <div className="absolute inset-0 bg-[linear-gradient(to_right,transparent_0%,transparent_49%,rgb(var(--primary))_50%,transparent_51%,transparent_100%)] opacity-[0.03] bg-[length:8px_100%]" />
-                    <Clock
-                      className={cn(
-                        "relative h-5 w-5 transition-all duration-300",
-                        state === "running" && "animate-timer-pulse",
-                        "text-foreground dark:text-foreground",
-                        "group-hover/icon:scale-110",
-                      )}
-                      strokeWidth={2}
-                    />
+                <div className="flex items-center justify-between w-full">
+                  <div className="flex items-center gap-2">
+                    <div className="relative p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-gradient-to-br from-background/80 to-background/60 dark:from-black/50 dark:to-black/30 text-primary ring-1 ring-border/10 shadow-lg overflow-hidden group/icon backdrop-blur-sm">
+                      <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent opacity-0 group-hover/icon:opacity-100 transition-opacity duration-500" />
+                      <div className="absolute inset-0 bg-[linear-gradient(to_right,transparent_0%,transparent_49%,rgb(var(--primary))_50%,transparent_51%,transparent_100%)] opacity-[0.03] bg-[length:8px_100%]" />
+                      <Clock
+                        className={cn(
+                          "relative h-5 w-5 transition-all duration-300",
+                          state === "running" && "animate-timer-pulse",
+                          "text-foreground dark:text-foreground",
+                          "group-hover/icon:scale-110",
+                        )}
+                        strokeWidth={2}
+                      />
+                    </div>
+                    <div className="text-sm font-medium text-muted-foreground">
+                      {state === "running"
+                        ? t("timer.running")
+                        : state === "paused"
+                          ? t("timer.paused")
+                          : t("timer.stopped")}
+                    </div>
                   </div>
-                  <div className="text-sm font-medium text-muted-foreground">
-                    {state === "running"
-                      ? t("timer.running")
-                      : state === "paused"
-                        ? t("timer.paused")
-                        : t("timer.stopped")}
-                  </div>
+
+                  {/* Compact View Toggle Button */}
+                  <Button
+                    onClick={() => {
+                      lightHapticFeedback();
+                      toggleCompactView();
+                    }}
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-lg sm:rounded-xl bg-background/80 dark:bg-black/50 hover:bg-accent/80 text-muted-foreground hover:text-foreground transition-all duration-200 ring-1 ring-border/10 hover:ring-border shadow-sm"
+                    title={compactView ? "Expand View" : "Compact View"}
+                  >
+                    {compactView ? (
+                      <Maximize2 className="h-4 w-4" />
+                    ) : (
+                      <Minimize2 className="h-4 w-4" />
+                    )}
+                  </Button>
                 </div>
 
                 <div className="flex items-center gap-4">
@@ -291,101 +329,140 @@ function TimeTracker({
             </div>
           </div>
 
-          {/* Customer and Project Selection */}
-          <div className="grid gap-2 sm:gap-4 sm:grid-cols-2 px-2.5 sm:px-6 mt-3 sm:mt-6">
-            <div className="space-y-1">
-              <Label className="text-sm font-medium" htmlFor="customer-select">
-                {t("timeEntry.customer")}
-              </Label>
-              <Select value={selectedCustomer} onValueChange={setCustomerId}>
-                <SelectTrigger
-                  id="customer-select"
-                  className={cn(styles.input.base, styles.input.hover)}
-                >
-                  <SelectValue placeholder={t("timeEntry.selectCustomer")} />
-                </SelectTrigger>
-                <SelectContent className={styles.components.selectContent}>
-                  {safeCustomers.map((customer) => (
-                    <SelectItem
-                      key={customer.id}
-                      value={customer.id}
-                      className={styles.components.selectItem}
+          {/* Customer, Project Selection and Task Name Input - conditionally rendered based on compactView */}
+          {!compactView && (
+            <>
+              <div className="grid gap-2 sm:gap-4 sm:grid-cols-2 px-2.5 sm:px-6 mt-3 sm:mt-6">
+                <div className="space-y-1">
+                  <Label
+                    className="text-sm font-medium"
+                    htmlFor="customer-select"
+                  >
+                    {t("timeEntry.customer")}
+                  </Label>
+                  <Select
+                    value={selectedCustomer}
+                    onValueChange={(value) => {
+                      lightHapticFeedback(); // Add haptic feedback for selection
+                      setCustomerId(value);
+                    }}
+                  >
+                    <SelectTrigger
+                      id="customer-select"
+                      className={cn(styles.input.base, styles.input.hover)}
                     >
-                      <div className="flex items-center gap-2">
-                        <Building2 className="h-4 w-4 text-muted-foreground" />
-                        <span>{customer.name}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+                      <SelectValue
+                        placeholder={t("timeEntry.selectCustomer")}
+                      />
+                    </SelectTrigger>
+                    <SelectContent className={styles.components.selectContent}>
+                      {safeCustomers.map((customer) => (
+                        <SelectItem
+                          key={customer.id}
+                          value={customer.id}
+                          className={styles.components.selectItem}
+                        >
+                          <div className="flex items-center gap-2">
+                            <Building2 className="h-4 w-4 text-muted-foreground" />
+                            <span>{customer.name}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-            <div className="space-y-1">
-              <Label className="text-sm font-medium" htmlFor="project-select">
-                {t("timeEntry.project")}
-              </Label>
-              <Select
-                value={selectedProject}
-                onValueChange={setProjectId}
-                disabled={!selectedCustomer}
-              >
-                <SelectTrigger
-                  id="project-select"
-                  className={cn(styles.input.base, styles.input.hover)}
-                >
-                  <SelectValue
-                    placeholder={
-                      selectedCustomer
-                        ? t("timeEntry.selectProject")
-                        : t("timeEntry.selectCustomerFirst")
+                <div className="space-y-1">
+                  <Label
+                    className="text-sm font-medium"
+                    htmlFor="project-select"
+                  >
+                    {t("timeEntry.project")}
+                  </Label>
+                  <Select
+                    value={selectedProject}
+                    onValueChange={(value) => {
+                      lightHapticFeedback(); // Add haptic feedback for selection
+                      setProjectId(value);
+                    }}
+                    disabled={!selectedCustomer}
+                  >
+                    <SelectTrigger
+                      id="project-select"
+                      className={cn(styles.input.base, styles.input.hover)}
+                    >
+                      <SelectValue
+                        placeholder={
+                          selectedCustomer
+                            ? t("timeEntry.selectProject")
+                            : t("timeEntry.selectCustomerFirst")
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent className={styles.components.selectContent}>
+                      {safeProjects
+                        .filter(
+                          (project) => project.customer_id === selectedCustomer,
+                        )
+                        .map((project) => (
+                          <SelectItem
+                            key={project.id}
+                            value={project.id}
+                            className={styles.components.selectItem}
+                          >
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="w-3 h-3 rounded-full ring-1 ring-border/50"
+                                style={{ backgroundColor: project.color }}
+                              />
+                              <span>{project.name}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-1 px-2.5 sm:px-6 mt-2.5 sm:mt-4">
+                <Label className="text-sm font-medium" htmlFor="task-name">
+                  {t("timeEntry.taskName")}
+                </Label>
+                <Input
+                  id="task-name"
+                  type="text"
+                  placeholder={t("timeEntry.taskNamePlaceholder")}
+                  value={taskName}
+                  onChange={(e) => setTaskName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && state === "stopped") {
+                      handleTimerAction();
                     }
-                  />
-                </SelectTrigger>
-                <SelectContent className={styles.components.selectContent}>
-                  {safeProjects
-                    .filter(
-                      (project) => project.customer_id === selectedCustomer,
-                    )
-                    .map((project) => (
-                      <SelectItem
-                        key={project.id}
-                        value={project.id}
-                        className={styles.components.selectItem}
-                      >
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="w-3 h-3 rounded-full ring-1 ring-border/50"
-                            style={{ backgroundColor: project.color }}
-                          />
-                          <span>{project.name}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+                  }}
+                  className={cn(styles.input.base, styles.input.hover)}
+                />
+              </div>
+            </>
+          )}
 
-          {/* Task Name Input */}
-          <div className="space-y-1 px-2.5 sm:px-6 mt-2.5 sm:mt-4">
-            <Label className="text-sm font-medium" htmlFor="task-name">
-              {t("timeEntry.taskName")}
-            </Label>
-            <Input
-              id="task-name"
-              type="text"
-              placeholder={t("timeEntry.taskNamePlaceholder")}
-              value={taskName}
-              onChange={(e) => setTaskName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && state === "stopped") {
-                  handleTimerAction();
-                }
-              }}
-              className={cn(styles.input.base, styles.input.hover)}
-            />
-          </div>
+          {/* Compact Task Name Input - only shown in compact view */}
+          {compactView && (
+            <div className="space-y-1 px-2.5 sm:px-6 mt-2.5 sm:mt-4">
+              <Input
+                id="task-name-compact"
+                type="text"
+                placeholder={t("timeEntry.taskNamePlaceholder")}
+                value={taskName}
+                onChange={(e) => setTaskName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && state === "stopped") {
+                    handleTimerAction();
+                  }
+                }}
+                className={cn(styles.input.base, styles.input.hover)}
+              />
+            </div>
+          )}
 
           {/* Timer Controls */}
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mt-3 sm:mt-6 px-2.5 sm:px-6 pb-2.5 sm:pb-6">
@@ -404,19 +481,19 @@ function TimeTracker({
                 {(state === "stopped" || !state) && (
                   <div className="flex items-center justify-center gap-2">
                     <Play className="h-4 w-4 animate-pulse" />
-                    <span>{t("timer.start")}</span>
+                    <span>{compactView ? "" : t("timer.start")}</span>
                   </div>
                 )}
                 {state === "running" && (
                   <div className="flex items-center justify-center gap-2">
                     <Pause className="h-4 w-4" />
-                    <span>{t("timer.pause")}</span>
+                    <span>{compactView ? "" : t("timer.pause")}</span>
                   </div>
                 )}
                 {state === "paused" && (
                   <div className="flex items-center justify-center gap-2">
                     <Play className="h-4 w-4 animate-pulse" />
-                    <span>{t("timer.resume")}</span>
+                    <span>{compactView ? "" : t("timer.resume")}</span>
                   </div>
                 )}
               </Button>
@@ -434,26 +511,55 @@ function TimeTracker({
               )}
             </div>
 
-            <Button
-              onClick={() => {
-                // Manuel giriş için dialog açılırken description alanını sıfırla
-                localStorage.setItem("timeEntry.lastDescription", "");
-                setSaveTimeEntryDialog(
-                  true,
-                  {
-                    taskName: "",
-                    projectId: "",
-                    customerId: "",
-                  },
-                  true,
-                );
-              }}
-              variant="outline"
-              className="w-full sm:w-auto h-10 sm:h-12 bg-background/50 hover:bg-accent/50 text-foreground border-border"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Manuel Giriş
-            </Button>
+            {/* Manual Entry Button - conditionally rendered based on compactView */}
+            {!compactView && (
+              <Button
+                onClick={() => {
+                  lightHapticFeedback(); // Add haptic feedback for manual entry
+                  // Manuel giriş için dialog açılırken description alanını sıfırla
+                  localStorage.setItem("timeEntry.lastDescription", "");
+                  setSaveTimeEntryDialog(
+                    true,
+                    {
+                      taskName: "",
+                      projectId: "",
+                      customerId: "",
+                    },
+                    true,
+                  );
+                }}
+                variant="outline"
+                className="w-full sm:w-auto h-10 sm:h-12 bg-background/50 hover:bg-accent/50 text-foreground border-border"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Manuel Giriş
+              </Button>
+            )}
+
+            {/* Compact Manual Entry Button */}
+            {compactView && (
+              <Button
+                onClick={() => {
+                  lightHapticFeedback();
+                  localStorage.setItem("timeEntry.lastDescription", "");
+                  setSaveTimeEntryDialog(
+                    true,
+                    {
+                      taskName: "",
+                      projectId: "",
+                      customerId: "",
+                    },
+                    true,
+                  );
+                }}
+                variant="outline"
+                size="icon"
+                className="h-10 w-10 sm:h-12 sm:w-12 bg-background/50 hover:bg-accent/50 text-foreground border-border"
+                title="Manuel Giriş"
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </div>
       </CardContent>

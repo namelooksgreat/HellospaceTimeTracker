@@ -7,11 +7,13 @@ interface TimerStore {
   state: TimerState;
   time: number;
   startTimestamp: number | null;
+  compactView: boolean;
   start: () => void;
   pause: () => void;
   resume: () => void;
   stop: () => void;
   reset: () => void;
+  toggleCompactView: () => void;
 }
 
 export const useTimerStore = create<TimerStore>((set, get) => {
@@ -39,10 +41,17 @@ export const useTimerStore = create<TimerStore>((set, get) => {
     initialTime = savedState.time;
   }
 
+  // Check if compact view preference is saved
+  const savedCompactView = localStorage.getItem("timer_compact_view");
+  const initialCompactView = savedCompactView
+    ? JSON.parse(savedCompactView)
+    : false;
+
   const initialState = {
     state: (savedState?.state as TimerState) || "stopped",
     time: initialTime,
     startTimestamp: savedState?.state === "running" ? Date.now() : null,
+    compactView: initialCompactView,
   };
 
   // Start timer if it was running
@@ -108,6 +117,15 @@ export const useTimerStore = create<TimerStore>((set, get) => {
         startTimestamp: null,
       });
       localStorage.removeItem("timer_state");
+    },
+
+    toggleCompactView: () => {
+      const newCompactView = !get().compactView;
+      set({ compactView: newCompactView });
+      localStorage.setItem(
+        "timer_compact_view",
+        JSON.stringify(newCompactView),
+      );
     },
   };
 });

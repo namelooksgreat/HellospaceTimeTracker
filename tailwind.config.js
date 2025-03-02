@@ -55,6 +55,36 @@ module.exports = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        // Extended color system
+        text: {
+          primary: "hsl(var(--foreground))",
+          secondary: "hsl(var(--muted-foreground))",
+          tertiary: "hsl(var(--muted-foreground) / 0.7)",
+          quaternary: "hsl(var(--muted-foreground) / 0.5)",
+        },
+        surface: {
+          DEFAULT: "hsl(var(--background))",
+          raised: "hsl(var(--card))",
+          raisedMuted: "hsl(var(--card) / 0.5)",
+          overlay: "hsl(var(--card) / 0.8)",
+        },
+        accent: {
+          blue: {
+            DEFAULT: "hsl(210, 100%, 50%)",
+            muted: "hsl(210, 100%, 50%, 0.5)",
+            subtle: "hsl(210, 100%, 50%, 0.3)",
+          },
+          green: {
+            DEFAULT: "hsl(142, 72%, 50%)",
+            muted: "hsl(142, 72%, 50%, 0.5)",
+            subtle: "hsl(142, 72%, 50%, 0.3)",
+          },
+        },
+      },
+      opacity: {
+        15: "0.15",
+        35: "0.35",
+        85: "0.85",
       },
       borderRadius: {
         lg: "var(--radius)",

@@ -27,6 +27,11 @@ import {
 import { Button } from "./ui/button";
 import type { Project, Customer, TimeEntry as TimeEntryType } from "@/types";
 import TimeEntryComponent from "./TimeEntry";
+import {
+  lightHapticFeedback,
+  mediumHapticFeedback,
+  errorHapticFeedback,
+} from "@/lib/utils/haptics";
 
 // Lazy load components
 const TimeTracker = lazy(() => import("@/components/TimeTracker"));
@@ -49,6 +54,7 @@ function Home() {
   const [entryToDelete, setEntryToDelete] = useState<string | null>(null);
 
   const handleDeleteTimeEntry = async (id: string) => {
+    lightHapticFeedback(); // Add haptic feedback when initiating delete
     setEntryToDelete(id);
   };
 
@@ -67,9 +73,11 @@ function Home() {
       if (fetchTimeEntriesData) {
         await fetchTimeEntriesData();
       }
+      mediumHapticFeedback(); // Add haptic feedback for successful deletion
       toast.success("Time entry deleted successfully");
       setEntryToDelete(null);
     } catch (error) {
+      errorHapticFeedback(); // Add haptic feedback for error
       handleError(error, "Home");
       toast.error("Failed to delete time entry");
     }
@@ -111,27 +119,37 @@ function Home() {
 
         // Handle tags if provided
         if (data.tags && Array.isArray(data.tags)) {
-          // First delete existing tags
-          const { error: deleteTagsError } = await supabase
-            .from("time_entry_tags")
-            .delete()
-            .eq("time_entry_id", selectedEntry.id);
-
-          if (deleteTagsError) throw deleteTagsError;
-
-          // Then insert new tags if any
-          if (data.tags.length > 0) {
-            const tagEntries = data.tags.map((tagId) => ({
-              time_entry_id: selectedEntry.id,
-              tag_id: tagId,
-              created_at: new Date().toISOString(),
-            }));
-
-            const { error: insertTagsError } = await supabase
+          try {
+            // First delete existing tags
+            const { error: deleteTagsError } = await supabase
               .from("time_entry_tags")
-              .insert(tagEntries);
+              .delete()
+              .eq("time_entry_id", selectedEntry.id);
 
-            if (insertTagsError) throw insertTagsError;
+            if (deleteTagsError) {
+              console.error("Error deleting tags:", deleteTagsError);
+            }
+
+            // Then insert new tags if any
+            if (data.tags.length > 0) {
+              const tagEntries = data.tags.map((tagId) => ({
+                time_entry_id: selectedEntry.id,
+                tag_id: tagId,
+                created_at: new Date().toISOString(),
+              }));
+
+              const { error: insertTagsError } = await supabase
+                .from("time_entry_tags")
+                .insert(tagEntries);
+
+              if (insertTagsError) {
+                console.error("Error inserting tags:", insertTagsError);
+                toast.error("Etiketler güncellenirken bir hata oluştu");
+              }
+            }
+          } catch (tagError) {
+            console.error("Error managing tags:", tagError);
+            // Continue with the rest of the update even if tag management fails
           }
         }
 
@@ -154,17 +172,31 @@ function Home() {
           if (rateError) throw rateError;
         }
 
+        mediumHapticFeedback(); // Add haptic feedback for successful update
         showSuccess("Time entry updated successfully");
         setEditTimeEntryDialog(false, null);
         if (fetchTimeEntriesData) {
           await fetchTimeEntriesData();
         }
       } catch (error) {
+        errorHapticFeedback(); // Add haptic feedback for error
         handleError(error, "Home");
       }
     },
     [selectedEntry, fetchTimeEntriesData, session?.user?.user_metadata?.role],
   );
+
+  const refreshTimeEntries = useCallback(async () => {
+    if (fetchTimeEntriesData) {
+      try {
+        await fetchTimeEntriesData();
+        lightHapticFeedback(); // Add haptic feedback for successful refresh
+      } catch (error) {
+        errorHapticFeedback(); // Add haptic feedback for error
+        handleError(error, "Home");
+      }
+    }
+  }, [fetchTimeEntriesData]);
 
   useEffect(() => {
     // Initial fetch
@@ -198,8 +230,13 @@ function Home() {
     </div>
   );
 
+  const handleTabChange = (tab: "timer" | "reports" | "profile") => {
+    lightHapticFeedback(); // Add haptic feedback when changing tabs
+    setActiveTab(tab);
+  };
+
   return (
-    <MainLayout activeTab={activeTab} onTabChange={setActiveTab}>
+    <MainLayout activeTab={activeTab} onTabChange={handleTabChange}>
       <div className="min-h-[100dvh] bg-gradient-to-b from-background via-background/95 to-background/90">
         <main className="container max-w-5xl mx-auto px-4 py-6 space-y-6 pb-20 animate-in fade-in-50 duration-500">
           {loading ? (
@@ -239,6 +276,7 @@ function Home() {
                               projectColor={entry.project?.color || "#94A3B8"}
                               tags={entry.tags || []}
                               onEdit={() => {
+                                lightHapticFeedback(); // Add haptic feedback when editing
                                 setSelectedEntry(entry);
                                 setEditTimeEntryDialog(true, entry.id);
                               }}
@@ -255,6 +293,7 @@ function Home() {
                       projects={projects}
                       customers={customers}
                       onDeleteEntry={handleDeleteTimeEntry}
+                      onRefreshEntries={refreshTimeEntries}
                     />
                   )}
                   {activeTab === "profile" && <ProfilePage />}
@@ -285,7 +324,9 @@ function Home() {
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogCancel onClick={() => lightHapticFeedback()}>
+                  Cancel
+                </AlertDialogCancel>
                 <Button
                   onClick={handleConfirmDelete}
                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"

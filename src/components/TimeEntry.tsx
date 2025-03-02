@@ -1,10 +1,22 @@
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { cn } from "@/lib/utils";
 import { Button } from "./ui/button";
-import { Pencil, Trash2, Tag as TagIcon } from "lucide-react";
+import {
+  Pencil,
+  Trash2,
+  Tag as TagIcon,
+  Clock,
+  Pause,
+  Play,
+  CheckCircle,
+} from "lucide-react";
 import { formatDate, formatStartTime } from "@/lib/utils/time";
+import {
+  entryStatusStyles,
+  statusIndicators,
+} from "@/styles/status-indicators";
 
 interface TimeEntryProps {
   id?: string;
@@ -14,6 +26,7 @@ interface TimeEntryProps {
   startTime: string;
   projectColor?: string;
   tags?: Array<{ id: string; name: string; color: string }>;
+  status?: "active" | "paused" | "completed" | "overdue";
   onEdit?: () => void;
   onDelete?: () => void;
 }
@@ -27,42 +40,92 @@ function TimeEntryComponent({
   startTime,
   projectColor,
   tags = [],
+  status = "completed",
   onEdit,
   onDelete,
 }: TimeEntryProps) {
   if (!taskName) return null;
 
-  const formattedDate = formatDate(startTime);
-  const formattedTime = formatStartTime(startTime);
+  // Memoize formatted date and time
+  const formattedDate = useMemo(() => formatDate(startTime), [startTime]);
+  const formattedTime = useMemo(() => formatStartTime(startTime), [startTime]);
+
+  // Memoize status icon
+  const StatusIcon = useMemo(
+    () =>
+      ({
+        active: Play,
+        paused: Pause,
+        completed: CheckCircle,
+        overdue: Clock,
+      })[status],
+    [status],
+  );
 
   return (
     <Card
-      className={cn(
-        "relative overflow-hidden",
-        "bg-card/50 dark:bg-card/25",
-        "border border-border/50",
-        "transition-all duration-300",
-        "hover:bg-accent/5 hover:shadow-md",
-        "group",
+      className={useMemo(
+        () =>
+          cn(
+            "card-default",
+            "group",
+            entryStatusStyles[status].card,
+            entryStatusStyles[status].shadow,
+          ),
+        [status],
       )}
     >
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-50" />
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,transparent_0%,transparent_49%,rgb(var(--primary))_50%,transparent_51%,transparent_100%)] opacity-[0.03] bg-[length:8px_100%]" />
-      <div className="absolute inset-0 bg-grid-white/[0.02]" />
-      <div className="relative z-10 p-3">
-        <div className="flex flex-col gap-3">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex items-start gap-2 min-w-0">
-              <div
-                className="w-3 h-3 mt-1 rounded-full ring-1 ring-border/50 shadow-sm flex-shrink-0 transition-transform duration-300 group-hover:scale-110"
-                style={{ backgroundColor: projectColor }}
-              />
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-transparent to-transparent opacity-70" />
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,transparent_0%,transparent_49%,rgb(var(--primary))_50%,transparent_51%,transparent_100%)] opacity-[0.15] bg-[length:8px_100%]" />
+      <div className="absolute inset-0 bg-grid-white/[0.1]" />
+      <div className="relative z-10 p-standard-sm">
+        <div className="flex flex-col gap-standard-sm">
+          <div className="flex items-start justify-between gap-standard-sm">
+            <div className="flex items-start gap-standard-sm min-w-0">
+              <div className="flex flex-col items-center gap-1.5">
+                <div
+                  className="w-3 h-3 mt-1 rounded-full ring-1 ring-border/50 shadow-sm flex-shrink-0 transition-transform transition-medium ease-default group-hover:scale-110"
+                  style={{ backgroundColor: projectColor }}
+                />
+                <div
+                  className={useMemo(
+                    () =>
+                      cn(
+                        statusIndicators.dot.base,
+                        statusIndicators.dot[status],
+                        status === "active" && "animate-pulse",
+                      ),
+                    [status],
+                  )}
+                />
+              </div>
               <div className="min-w-0 flex-1">
-                <h3 className="font-medium text-foreground leading-tight">
-                  {taskName}
-                </h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="heading-5 leading-tight">{taskName}</h3>
+                  {status !== "completed" && (
+                    <div
+                      className={useMemo(
+                        () =>
+                          cn(
+                            statusIndicators.pill.base,
+                            statusIndicators.pill[status],
+                          ),
+                        [status],
+                      )}
+                    >
+                      <StatusIcon className="h-3 w-3" />
+                      <span>
+                        {status === "active"
+                          ? "Çalışıyor"
+                          : status === "paused"
+                            ? "Duraklatıldı"
+                            : "Gecikmiş"}
+                      </span>
+                    </div>
+                  )}
+                </div>
                 {projectName && (
-                  <div className="text-sm text-muted-foreground truncate mt-0.5">
+                  <div className="body-small text-muted-foreground truncate mt-0.5">
                     {projectName}
                   </div>
                 )}
@@ -72,7 +135,7 @@ function TimeEntryComponent({
                       <Badge
                         key={tag.id}
                         variant="outline"
-                        className="px-2 py-0 h-5 text-xs flex items-center gap-1 bg-primary/5"
+                        className="badge-sm badge-tag"
                         style={{ borderColor: tag.color }}
                       >
                         <span
@@ -87,39 +150,54 @@ function TimeEntryComponent({
               </div>
             </div>
 
-            <div className="font-mono font-medium text-foreground bg-gradient-to-r from-green-500/20 via-teal-500/20 to-emerald-500/20 px-2.5 py-1 rounded-lg shadow-sm ring-1 ring-primary/5">
+            <div
+              className={useMemo(
+                () =>
+                  cn(
+                    "font-mono font-medium px-2.5 py-1 rounded-lg shadow-sm ring-1",
+                    status === "active"
+                      ? "bg-gradient-to-r from-emerald-500/30 via-teal-500/30 to-green-500/30 text-emerald-700 dark:text-emerald-400 ring-emerald-500/20"
+                      : status === "paused"
+                        ? "bg-gradient-to-r from-amber-500/30 via-yellow-500/30 to-orange-500/30 text-amber-700 dark:text-amber-400 ring-amber-500/20"
+                        : status === "completed"
+                          ? "bg-gradient-to-r from-blue-500/30 via-indigo-500/30 to-purple-500/30 text-blue-700 dark:text-blue-400 ring-blue-500/20"
+                          : "bg-gradient-to-r from-red-500/30 via-pink-500/30 to-rose-500/30 text-red-700 dark:text-red-400 ring-red-500/20",
+                  ),
+                [status],
+              )}
+            >
               {formatDuration(duration)}
             </div>
           </div>
 
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-1.5 text-sm text-blue-500 dark:text-blue-400">
+          <div className="flex items-center justify-between gap-standard-sm">
+            <div className="flex items-center gap-1.5 body-small text-tertiary">
               <time dateTime={startTime} className="tabular-nums">
                 {formattedDate}
               </time>
               <span className="text-border/50">•</span>
               <span className="font-mono tabular-nums">{formattedTime}</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-standard-sm">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={onEdit}
-                className="h-8 rounded-lg bg-background/50 hover:bg-accent/50 transition-all duration-150 sm:px-3 px-2"
+                className="btn-sm btn-ghost bg-background/50 hover:bg-muted/50 sm:px-3 px-2"
               >
                 <Pencil className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">Edit</span>
-                <span className="sm:hidden sr-only">Edit</span>
+                <span className="hidden sm:inline">Düzenle</span>
+                <span className="sm:hidden sr-only">Düzenle</span>
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={onDelete}
-                className="h-8 rounded-lg text-destructive bg-background/50 hover:bg-destructive/10 hover:text-destructive transition-all duration-150 sm:px-3 px-2"
+                className="btn-sm text-destructive bg-background/50 hover:bg-destructive/10 hover:text-destructive sm:px-3 px-2"
               >
                 <Trash2 className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">Delete</span>
-                <span className="sm:hidden sr-only">Delete</span>
+                <span className="hidden sm:inline">Sil</span>
+                <span className="sm:hidden sr-only">Sil</span>
               </Button>
             </div>
           </div>
@@ -129,4 +207,19 @@ function TimeEntryComponent({
   );
 }
 
-export default memo(TimeEntryComponent);
+export default memo(TimeEntryComponent, (prevProps, nextProps) => {
+  // Custom comparison function to prevent unnecessary re-renders
+  return (
+    prevProps.taskName === nextProps.taskName &&
+    prevProps.projectName === nextProps.projectName &&
+    prevProps.duration === nextProps.duration &&
+    prevProps.startTime === nextProps.startTime &&
+    prevProps.projectColor === nextProps.projectColor &&
+    prevProps.status === nextProps.status &&
+    // Deep comparison for tags array
+    JSON.stringify(prevProps.tags) === JSON.stringify(nextProps.tags) &&
+    // Function references should be stable (ideally memoized by parent)
+    prevProps.onEdit === nextProps.onEdit &&
+    prevProps.onDelete === nextProps.onDelete
+  );
+});

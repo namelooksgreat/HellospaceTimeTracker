@@ -26,6 +26,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
+import {
+  lightHapticFeedback,
+  mediumHapticFeedback,
+  errorHapticFeedback,
+} from "@/lib/utils/haptics";
 
 interface ReportsPageProps {
   entries: TimeEntry[];
@@ -38,6 +43,7 @@ interface ReportsPageProps {
   }>;
   customers: Array<{ id: string; name: string }>;
   onDeleteEntry?: (id: string) => void;
+  onRefreshEntries?: () => Promise<void>;
 }
 
 import { EditTimeEntryDialog } from "../EditTimeEntryDialog";
@@ -50,7 +56,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogAction,
 } from "@/components/ui/alert-dialog";
 
 export default function ReportsPage({
@@ -58,6 +63,7 @@ export default function ReportsPage({
   projects,
   customers,
   onDeleteEntry,
+  onRefreshEntries,
 }: ReportsPageProps) {
   const { editTimeEntryDialog, setEditTimeEntryDialog } = useDialogStore();
   const [selectedEntry, setSelectedEntry] = useState<TimeEntry | null>(null);
@@ -149,8 +155,10 @@ export default function ReportsPage({
       }));
 
       setTimeEntries(transformedEntries);
+      return transformedEntries;
     } catch (error) {
       console.error("Error fetching time entries:", error);
+      throw error;
     }
   }, []); // Empty dependency array since we don't use any external variables
 
@@ -177,6 +185,22 @@ export default function ReportsPage({
     };
   }, [session?.user?.id, fetchTimeEntriesData]);
 
+  const handleRefresh = useCallback(async () => {
+    try {
+      if (onRefreshEntries) {
+        await onRefreshEntries();
+        lightHapticFeedback(); // Provide feedback when refresh completes
+      } else {
+        const refreshedEntries = await fetchTimeEntriesData();
+        setTimeEntries(refreshedEntries);
+        lightHapticFeedback(); // Provide feedback when refresh completes
+      }
+    } catch (error) {
+      errorHapticFeedback(); // Provide error feedback
+      console.error("Failed to refresh entries:", error);
+    }
+  }, [onRefreshEntries, fetchTimeEntriesData]);
+
   const handleEditEntry = async (data: any) => {
     try {
       if (!selectedEntry) return;
@@ -197,36 +221,48 @@ export default function ReportsPage({
 
       // Handle tags if provided
       if (data.tags && Array.isArray(data.tags)) {
-        // First delete existing tags
-        const { error: deleteTagsError } = await supabase
-          .from("time_entry_tags")
-          .delete()
-          .eq("time_entry_id", selectedEntry.id);
-
-        if (deleteTagsError) throw deleteTagsError;
-
-        // Then insert new tags if any
-        if (data.tags.length > 0) {
-          const tagEntries = data.tags.map((tagId: string) => ({
-            time_entry_id: selectedEntry.id,
-            tag_id: tagId,
-            created_at: new Date().toISOString(),
-          }));
-
-          const { error: insertTagsError } = await supabase
+        try {
+          // First delete existing tags
+          const { error: deleteTagsError } = await supabase
             .from("time_entry_tags")
-            .insert(tagEntries);
+            .delete()
+            .eq("time_entry_id", selectedEntry.id);
 
-          if (insertTagsError) throw insertTagsError;
+          if (deleteTagsError) {
+            console.error("Error deleting tags:", deleteTagsError);
+          }
+
+          // Then insert new tags if any
+          if (data.tags.length > 0) {
+            const tagEntries = data.tags.map((tagId: string) => ({
+              time_entry_id: selectedEntry.id,
+              tag_id: tagId,
+              created_at: new Date().toISOString(),
+            }));
+
+            const { error: insertTagsError } = await supabase
+              .from("time_entry_tags")
+              .insert(tagEntries);
+
+            if (insertTagsError) {
+              console.error("Error inserting tags:", insertTagsError);
+              toast.error("Etiketler güncellenirken bir hata oluştu");
+            }
+          }
+        } catch (tagError) {
+          console.error("Error managing tags:", tagError);
+          // Continue with the rest of the update even if tag management fails
         }
       }
 
       // Close the dialog
+      mediumHapticFeedback(); // Add haptic feedback for successful update
       setEditTimeEntryDialog(false, null);
 
       // Refresh data after update
       await fetchTimeEntriesData();
     } catch (error) {
+      errorHapticFeedback(); // Add haptic feedback for error
       console.error("Error updating time entry:", error);
     }
   };
@@ -241,12 +277,22 @@ export default function ReportsPage({
       if (error) throw error;
 
       // Refresh data after deletion
+      mediumHapticFeedback(); // Add haptic feedback for successful deletion
       await fetchTimeEntriesData();
       toast.success("Time entry deleted successfully");
     } catch (error) {
+      errorHapticFeedback(); // Add haptic feedback for error
       console.error("Error deleting time entry:", error);
       toast.error("Failed to delete time entry");
     }
+  };
+
+  const handleConfirmDelete = () => {
+    if (!entryToDelete) return;
+
+    // Direct deletion without async/await
+    onDeleteEntry?.(entryToDelete);
+    setEntryToDelete(null);
   };
 
   const [showFilters, setShowFilters] = useState(false);
@@ -392,6 +438,18 @@ export default function ReportsPage({
     }, 0);
   }, [filteredEntries, userSettings?.default_rate]);
 
+  const handleTimeRangeChange = (
+    value: "daily" | "weekly" | "monthly" | "yearly",
+  ) => {
+    lightHapticFeedback(); // Add haptic feedback when changing time range
+    setTimeRange(value);
+  };
+
+  const toggleFilters = () => {
+    lightHapticFeedback(); // Add haptic feedback when toggling filters
+    setShowFilters(!showFilters);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-2">
@@ -407,17 +465,12 @@ export default function ReportsPage({
             variant="outline"
             size="icon"
             className="h-9 w-9"
-            onClick={() => setShowFilters(!showFilters)}
+            onClick={toggleFilters}
           >
             <SlidersHorizontal className="h-4 w-4" />
           </Button>
 
-          <Select
-            value={timeRange}
-            onValueChange={(value: "daily" | "weekly" | "monthly" | "yearly") =>
-              setTimeRange(value)
-            }
-          >
+          <Select value={timeRange} onValueChange={handleTimeRangeChange}>
             <SelectTrigger className="h-9 w-[130px] sm:w-[180px]">
               <Calendar className="h-4 w-4 mr-2" />
               <SelectValue placeholder="Select time range" />
@@ -496,6 +549,7 @@ export default function ReportsPage({
               projects={projects}
               customers={customers}
               onFiltersChange={(newFilters) => {
+                lightHapticFeedback(); // Add haptic feedback when changing filters
                 setFilters((prev) => ({
                   ...prev,
                   ...newFilters,
@@ -520,12 +574,14 @@ export default function ReportsPage({
           }))}
           onDeleteEntry={handleDeleteTimeEntry}
           onEditEntry={(id) => {
+            lightHapticFeedback(); // Add haptic feedback when editing
             const entry = timeEntries.find((e) => e.id === id);
             if (entry) {
               setSelectedEntry(entry);
               setEditTimeEntryDialog(true, id);
             }
           }}
+          onRefresh={handleRefresh}
         />
 
         <EditTimeEntryDialog
@@ -548,17 +604,16 @@ export default function ReportsPage({
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => {
-                  if (entryToDelete) {
-                    handleDeleteTimeEntry(entryToDelete);
-                  }
-                }}
+              <AlertDialogCancel onClick={() => lightHapticFeedback()}>
+                Cancel
+              </AlertDialogCancel>
+              <Button
+                onClick={handleConfirmDelete}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                type="button"
               >
                 Delete
-              </AlertDialogAction>
+              </Button>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>

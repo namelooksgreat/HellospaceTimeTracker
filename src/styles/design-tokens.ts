@@ -1,137 +1,88 @@
-export const tokens = {
-  colors: {
-    primary: {
-      50: "hsl(265, 100%, 97%)",
-      100: "hsl(265, 100%, 94%)",
-      200: "hsl(265, 95%, 86%)",
-      300: "hsl(265, 90%, 76%)",
-      400: "hsl(265, 85%, 66%)",
-      500: "hsl(265, 80%, 56%)", // Primary brand color
-      600: "hsl(265, 75%, 46%)",
-      700: "hsl(265, 70%, 36%)",
-      800: "hsl(265, 65%, 26%)",
-      900: "hsl(265, 60%, 16%)",
-    },
-    neutral: {
-      50: "hsl(0, 0%, 98%)",
-      100: "hsl(0, 0%, 96%)",
-      200: "hsl(0, 0%, 90%)",
-      300: "hsl(0, 0%, 83%)",
-      400: "hsl(0, 0%, 64%)",
-      500: "hsl(0, 0%, 45%)",
-      600: "hsl(0, 0%, 32%)",
-      700: "hsl(0, 0%, 25%)",
-      800: "hsl(0, 0%, 15%)",
-      900: "hsl(0, 0%, 9%)",
-    },
-    success: "hsl(145, 80%, 42%)",
-    warning: "hsl(45, 93%, 47%)",
-    error: "hsl(0, 84%, 60%)",
-    info: "hsl(200, 98%, 39%)",
+// Design tokens for consistent styling across the application
+
+export const colorTokens = {
+  // Primary colors
+  primary: {
+    DEFAULT: "hsl(var(--primary))",
+    foreground: "hsl(var(--primary-foreground))",
   },
-  typography: {
-    fonts: {
-      sans: "Inter, system-ui, -apple-system, sans-serif",
-      mono: "JetBrains Mono, monospace",
+
+  // Text opacity levels
+  text: {
+    primary: "hsl(var(--foreground))",
+    secondary: "hsl(var(--muted-foreground))",
+    tertiary: "hsl(var(--muted-foreground) / 0.4)",
+    quaternary: "hsl(var(--muted-foreground) / 0.3)",
+  },
+
+  // Accent colors
+  accent: {
+    blue: {
+      DEFAULT: "hsl(210, 100%, 50%)",
+      muted: "hsl(210, 100%, 50%, 0.5)",
+      subtle: "hsl(210, 100%, 50%, 0.3)",
     },
-    sizes: {
-      xs: "0.75rem",
-      sm: "0.875rem",
-      base: "1rem",
-      lg: "1.125rem",
-      xl: "1.25rem",
-      "2xl": "1.5rem",
-      "3xl": "1.875rem",
-      "4xl": "2.25rem",
-      "5xl": "3rem",
-      timer: "4rem", // Special size for timer display
-      "timer-sm": "3rem", // Timer size for mobile
-    },
-    weights: {
-      normal: "400",
-      medium: "500",
-      semibold: "600",
-      bold: "700",
-    },
-    lineHeights: {
-      tight: "1.25",
-      base: "1.5",
-      relaxed: "1.75",
+    green: {
+      DEFAULT: "hsl(142, 72%, 50%)",
+      muted: "hsl(142, 72%, 50%, 0.5)",
+      subtle: "hsl(142, 72%, 50%, 0.3)",
     },
   },
-  spacing: {
-    0: "0",
-    px: "1px",
-    0.5: "0.125rem",
-    1: "0.25rem",
-    2: "0.5rem",
-    3: "0.75rem",
-    4: "1rem",
-    6: "1.5rem",
-    8: "2rem",
-    12: "3rem",
-    16: "4rem",
-    20: "5rem",
-    24: "6rem",
+
+  // Background opacity levels
+  surface: {
+    DEFAULT: "hsl(var(--background))",
+    raised: "hsl(var(--card))",
+    raisedMuted: "hsl(var(--card) / 0.5)",
+    overlay: "hsl(var(--card) / 0.8)",
   },
-  radii: {
-    none: "0",
-    sm: "0.25rem",
-    md: "0.375rem",
-    lg: "0.5rem",
-    xl: "0.75rem",
-    "2xl": "1rem",
-    "3xl": "1.5rem",
-    full: "9999px",
-  },
-  shadows: {
-    sm: "0 1px 2px 0 rgb(0 0 0 / 0.05)",
-    base: "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)",
-    md: "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
-    lg: "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
-    glow: "0 0 15px -3px rgb(var(--primary) / 0.15)",
-    "glow-lg": "0 0 30px -5px rgb(var(--primary) / 0.15)",
-  },
-  transitions: {
-    base: "150ms cubic-bezier(0.4, 0, 0.2, 1)",
-    smooth: "250ms cubic-bezier(0.4, 0, 0.2, 1)",
-    slow: "350ms cubic-bezier(0.4, 0, 0.2, 1)",
-    bounce: "500ms cubic-bezier(0.68, -0.55, 0.265, 1.55)",
-    spring: "700ms cubic-bezier(0.25, 0.1, 0.25, 1.0)",
-  },
-  zIndices: {
-    0: "0",
-    10: "10",
-    20: "20",
-    30: "30",
-    40: "40",
-    50: "50",
-    modal: "100",
-    overlay: "200",
-    toast: "300",
-    auto: "auto",
-  },
-  effects: {
-    gradients: {
-      subtle:
-        "linear-gradient(to bottom right, var(--card) / 0.5, var(--card) / 0.3)",
-      primary:
-        "linear-gradient(to bottom right, rgb(var(--primary)) / 0.1, transparent)",
-      glow: "radial-gradient(circle at center, rgb(var(--primary)) / 0.15, transparent 70%)",
-      timer:
-        "linear-gradient(to bottom right, rgb(var(--primary)) / 0.05, transparent)",
-    },
-    patterns: {
-      grid: "linear-gradient(to right, rgb(var(--primary)) / 0.05 1px, transparent 1px) 0 0 / 8px 100%",
-      dots: "radial-gradient(rgb(var(--primary)) / 0.2 1px, transparent 1px) 0 0 / 16px 16px",
-      stripes:
-        "linear-gradient(45deg, rgb(var(--primary)) / 0.05 25%, transparent 25%, transparent 50%, rgb(var(--primary)) / 0.05 50%, rgb(var(--primary)) / 0.05 75%, transparent 75%, transparent)",
-    },
-    animations: {
-      fadeIn: "fade-in 0.3s ease-out",
-      slideUp: "slide-up 0.4s ease-out",
-      bounce: "bounce 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55)",
-      pulse: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
-    },
-  },
-} as const;
+};
+
+export const opacityLevels = {
+  // Standard opacity levels
+  full: "1",
+  high: "0.7",
+  medium: "0.4",
+  low: "0.3",
+  subtle: "0.1",
+  decorative: "0.05",
+};
+
+export const textStyles = {
+  // Text hierarchy
+  heading: "text-foreground font-bold",
+  subheading: "text-foreground font-medium",
+  body: "text-foreground",
+  secondary: "text-muted-foreground",
+  tertiary: "text-tertiary",
+};
+
+export const buttonStyles = {
+  // Button variants
+  primary: "bg-primary text-primary-foreground hover:bg-primary/90",
+  secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/90",
+  ghost: "bg-transparent hover:bg-accent/10 text-foreground",
+  destructive:
+    "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+};
+
+export const spacingTokens = {
+  // Consistent spacing
+  xs: "0.25rem", // 4px
+  sm: "0.5rem", // 8px
+  md: "1rem", // 16px
+  lg: "1.5rem", // 24px
+  xl: "2rem", // 32px
+  "2xl": "3rem", // 48px
+};
+
+export const animationTokens = {
+  // Animation durations
+  fast: "150ms",
+  medium: "300ms",
+  slow: "500ms",
+  // Easing functions
+  easeOut: "cubic-bezier(0.16, 1, 0.3, 1)",
+  easeIn: "cubic-bezier(0.7, 0, 0.84, 0)",
+  easeInOut: "cubic-bezier(0.65, 0, 0.35, 1)",
+};
